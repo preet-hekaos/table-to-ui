@@ -1,0 +1,8 @@
+key: active_candidates
+label: Active candidates
+table: candidate
+aggregate: count
+where:
+  - field: status
+    op: eq
+    value: Active

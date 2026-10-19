@@ -1,0 +1,181 @@
+[project]
+name = "tableui-api"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "pydantic>=2.8",
+  "pydantic-settings>=2.4",
+  "sqlalchemy[asyncio]>=2.0.32",
+  "asyncpg>=0.29",
+  "alembic>=1.13",
+  "pyyaml>=6",
+  "pyotp>=2.9",
+  "pyjwt>=2.9",
+  "common-expression-language>=0.5",
+  "phonenumbers>=8.13",
+  "rapidfuzz>=3.9",
+  "httpx>=0.27",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8",
+  "pytest-asyncio>=0.24",
+  "ruff>=0.6",
+  "mypy>=1.11",
+  "import-linter>=2.0",
+  "types-pyyaml",
+  "testcontainers>=4.15.0",
+  "moto>=5.2.4",
+  "httpx>=0.28.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tableui"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC", "S", "SIM"]
+ignore = ["S101", "E501"]
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S105", "S106"]
+
+[tool.mypy]
+strict = true
+plugins = ["pydantic.mypy"]
+[[tool.mypy.overrides]]
+module = ["cel.*", "common_expression_language.*", "pyotp.*", "phonenumbers.*", "rapidfuzz.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+testpaths = ["tests"]
+
+[tool.importlinter]
+root_package = "tableui"
+include_external_packages = false
+
+[[tool.importlinter.contracts]]
+name = "Shared kernel (platform) imports no module"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = ["tableui.platform"]
+forbidden_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.ops"]
+
+[[tool.importlinter.contracts]]
+name = "Module 'audit': only its public interface is importable from other modules"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = ["tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.ops"]
+forbidden_modules = ["tableui.audit.application", "tableui.audit.domain", "tableui.audit.adapters", "tableui.audit.api.router"]
+
+[[tool.importlinter.contracts]]
+name = "Module 'audit' layers: api > adapters > application > domain"
+type = "layers"
+layers = ["tableui.audit.api", "tableui.audit.adapters", "tableui.audit.application", "tableui.audit.domain"]
+
+[[tool.importlinter.contracts]]
+name = "Module 'metadata': only its public interface is importable from other modules"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = ["tableui.audit", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.ops"]
+forbidden_modules = ["tableui.metadata.application", "tableui.metadata.domain", "tableui.metadata.adapters", "tableui.metadata.api.router"]
+
+[[tool.importlinter.contracts]]
+name = "Module 'metadata' layers: api > adapters > application > domain"
+type = "layers"
+layers = ["tableui.metadata.api", "tableui.metadata.adapters", "tableui.metadata.application", "tableui.metadata.domain"]
+
+[[tool.importlinter.contracts]]
+name = "Module 'tenancy': only its public interface is importable from other modules"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = ["tableui.audit", "tableui.metadata", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.ops"]
+forbidden_modules = ["tableui.tenancy.application", "tableui.tenancy.domain", "tableui.tenancy.adapters", "tableui.tenancy.api.router"]
+
+[[tool.importlinter.contracts]]
+name = "Module 'tenancy' layers: api > adapters > application > domain"
+type = "layers"
+layers = ["tableui.tenancy.api", "tableui.tenancy.adapters", "tableui.tenancy.application", "tableui.tenancy.domain"]
+
+[[tool.importlinter.contracts]]
+name = "Module 'identity': only its public interface is importable from other modules"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.ops"]
+forbidden_modules = ["tableui.identity.application", "tableui.identity.domain", "tableui.identity.adapters", "tableui.identity.api.router"]
+
+[[tool.importlinter.contracts]]
+name = "Module 'identity' layers: api > adapters > application > domain"
+type = "layers"
+layers = ["tableui.identity.api", "tableui.identity.adapters", "tableui.identity.application", "tableui.identity.domain"]
+
+[[tool.importlinter.contracts]]
+name = "Module 'rules': only its public interface is importable from other modules"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.commands", "tableui.query", "tableui.insights", "tableui.ops"]
+forbidden_modules = ["tableui.rules.application", "tableui.rules.domain", "tableui.rules.adapters", "tableui.rules.api.router"]
+
+[[tool.importlinter.contracts]]
+name = "Module 'rules' layers: api > adapters > application > domain"
+type = "layers"
+layers = ["tableui.rules.api", "tableui.rules.adapters", "tableui.rules.application", "tableui.rules.domain"]
+
+[[tool.importlinter.contracts]]
+name = "Module 'commands': only its public interface is importable from other modules"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.query", "tableui.insights", "tableui.ops"]
+forbidden_modules = ["tableui.commands.application", "tableui.commands.domain", "tableui.commands.adapters", "tableui.commands.api.router"]
+
+[[tool.importlinter.contracts]]
+name = "Module 'commands' layers: api > adapters > application > domain"
+type = "layers"
+layers = ["tableui.commands.api", "tableui.commands.adapters", "tableui.commands.application", "tableui.commands.domain"]
+
+[[tool.importlinter.contracts]]
+name = "Module 'query': only its public interface is importable from other modules"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.insights", "tableui.ops"]
+forbidden_modules = ["tableui.query.application", "tableui.query.domain", "tableui.query.adapters", "tableui.query.api.router"]
+
+[[tool.importlinter.contracts]]
+name = "Module 'query' layers: api > adapters > application > domain"
+type = "layers"
+layers = ["tableui.query.api", "tableui.query.adapters", "tableui.query.application", "tableui.query.domain"]
+
+[[tool.importlinter.contracts]]
+name = "Module 'insights': only its public interface is importable from other modules"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.ops"]
+forbidden_modules = ["tableui.insights.application", "tableui.insights.domain", "tableui.insights.adapters", "tableui.insights.api.router"]
+
+[[tool.importlinter.contracts]]
+name = "Module 'insights' layers: api > adapters > application > domain"
+type = "layers"
+layers = ["tableui.insights.api", "tableui.insights.adapters", "tableui.insights.application", "tableui.insights.domain"]
+
+[[tool.importlinter.contracts]]
+name = "Module 'ops': only its public interface is importable from other modules"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights"]
+forbidden_modules = ["tableui.ops.application", "tableui.ops.domain", "tableui.ops.adapters", "tableui.ops.api.router"]
+
+[[tool.importlinter.contracts]]
+name = "Module 'ops' layers: api > adapters > application > domain"
+type = "layers"
+layers = ["tableui.ops.api", "tableui.ops.adapters", "tableui.ops.application", "tableui.ops.domain"]

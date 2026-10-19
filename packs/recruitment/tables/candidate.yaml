@@ -1,0 +1,61 @@
+key: candidate
+label: Candidate
+plural_label: Candidates
+title_field: full_name
+groups:
+  - key: identity
+    label: Identity
+  - key: contact
+    label: Contact
+  - key: employment
+    label: Current employment
+  - key: status
+    label: Status
+fields:
+  - key: full_name
+    label: Full name
+    type: text
+    required: true
+    group: identity
+    normalize: text
+    max_length: 200
+  - key: email
+    label: Email
+    type: email
+    required: true
+    group: contact
+    normalize: email
+    unique: true
+  - key: phone
+    label: Phone
+    type: phone
+    group: contact
+    normalize: phone
+    unique: true
+  - key: current_title
+    label: Current title
+    type: text
+    group: employment
+  - key: current_employer
+    label: Current employer
+    type: text
+    group: employment
+    normalize: text
+  - key: location
+    label: Location
+    type: text
+    group: employment
+  - key: notice_period_days
+    label: Notice period (days)
+    type: integer
+    group: employment
+    min: 0
+    max: 365
+  - key: status
+    label: Status
+    type: select
+    group: status
+    required: true
+    default: Active
+    options: [Active, Placed, Archived]
+    analytics: true

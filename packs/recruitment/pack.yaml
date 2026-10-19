@@ -1,0 +1,9 @@
+id: recruitment
+version: 1.0.0
+title: Recruitment agency
+tables:
+  - tables/candidate.yaml
+rules:
+  - rules/R-01-no-duplicate-candidates.yaml
+measures:
+  - measures/active-candidates.yaml
