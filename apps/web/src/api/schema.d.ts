@@ -1219,6 +1219,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/studio/rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Studio Rules */
+        get: operations["studio_rules_v1_studio_rules_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/studio/rules/{rule}/checks/{check}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Check Severity */
+        put: operations["set_check_severity_v1_studio_rules__rule__checks__check__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/studio/screens": {
         parameters: {
             query?: never;
@@ -1327,6 +1361,23 @@ export interface paths {
         head?: never;
         /** Update Field */
         patch: operations["update_field_v1_studio_tables__table__fields__field__patch"];
+        trace?: never;
+    };
+    "/v1/studio/tables/{table}/stages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Stages */
+        put: operations["update_stages_v1_studio_tables__table__stages_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/v1/workflow/{table}/board": {
@@ -4442,6 +4493,68 @@ export interface operations {
             };
         };
     };
+    studio_rules_v1_studio_rules_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+        };
+    };
+    set_check_severity_v1_studio_rules__rule__checks__check__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rule: string;
+                check: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     studio_screens_v1_studio_screens_get: {
         parameters: {
             query?: never;
@@ -4660,6 +4773,45 @@ export interface operations {
             path: {
                 table: string;
                 field: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_stages_v1_studio_tables__table__stages_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                table: string;
             };
             cookie?: never;
         };

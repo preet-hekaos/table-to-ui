@@ -4391,6 +4391,97 @@
         ]
       }
     },
+    "/v1/studio/rules": {
+      "get": {
+        "operationId": "studio_rules_v1_studio_rules_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Studio Rules V1 Studio Rules Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Studio Rules",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
+    "/v1/studio/rules/{rule}/checks/{check}": {
+      "put": {
+        "operationId": "set_check_severity_v1_studio_rules__rule__checks__check__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rule",
+            "required": true,
+            "schema": {
+              "title": "Rule",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "check",
+            "required": true,
+            "schema": {
+              "title": "Check",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Set Check Severity V1 Studio Rules  Rule  Checks  Check  Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Check Severity",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
     "/v1/studio/screens": {
       "get": {
         "operationId": "studio_screens_v1_studio_screens_get",
@@ -4725,6 +4816,62 @@
           }
         },
         "summary": "Update Field",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
+    "/v1/studio/tables/{table}/stages": {
+      "put": {
+        "operationId": "update_stages_v1_studio_tables__table__stages_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "table",
+            "required": true,
+            "schema": {
+              "title": "Table",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Update Stages V1 Studio Tables  Table  Stages Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Stages",
         "tags": [
           "studio"
         ]
