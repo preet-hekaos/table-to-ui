@@ -53,6 +53,7 @@ class FieldDef(_Strict):
     searchable: bool = False  # included in keyword search
     filterable: bool = False  # offered as a facet or filter
     help: str | None = None
+    aliases: list[str] = []  # other column names an import should match to this field
 
     @model_validator(mode="after")
     def _check(self) -> "FieldDef":

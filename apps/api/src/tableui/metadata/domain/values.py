@@ -98,9 +98,10 @@ def _coerce(field: FieldDef, value: Any) -> tuple[Any, str | None]:
             return None, "must be a valid email address"
         return value.strip(), None
     if t == "phone":
-        if not isinstance(value, str) or normalise("phone", value) is None:
+        e164 = normalise("phone", value) if isinstance(value, str) else None
+        if e164 is None:
             return None, "must be a valid phone number"
-        return value.strip(), None
+        return e164, None  # stored as E.164 (+91...)
     if t == "url":
         if not isinstance(value, str) or not _URL.match(value.strip()):
             return None, "must be a web address starting with http:// or https://"

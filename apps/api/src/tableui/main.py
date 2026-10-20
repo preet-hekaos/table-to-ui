@@ -19,6 +19,7 @@ import tableui.catalog.public as catalog
 import tableui.commands.public as commands
 import tableui.files.public as files
 import tableui.identity.public as identity
+import tableui.imports.public as imports
 import tableui.insights.public as insights
 from tableui.audit.api.router import router as audit_router
 from tableui.commands.api.router import router as commands_router
@@ -226,6 +227,7 @@ def create_app(
         fixtures_router,
         files.router,
         files.documents_router,
+        imports.router,
     ):
         app.include_router(r)
     return app

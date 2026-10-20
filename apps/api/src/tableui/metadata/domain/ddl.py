@@ -122,7 +122,7 @@ def table_ddl_sql(schema: str, table: TableDef) -> str:
         [
             _table_ddl(schema, table),
             _rls(schema, [table.key]),
-            f'GRANT SELECT, INSERT, UPDATE ON "{schema}"."{table.key}" TO tableui_runtime;',
+            f'GRANT SELECT, INSERT, UPDATE, DELETE ON "{schema}"."{table.key}" TO tableui_runtime;',
         ]
     )
 

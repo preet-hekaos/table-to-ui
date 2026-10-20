@@ -197,3 +197,35 @@ export const documents = {
   confirm: (fileId: string, body: { screen: string; data?: Record<string, unknown>; existing_id?: string }) =>
     send<{ record: { table: string; id: string }; document: { table: string; id: string }; warnings: unknown[] }>('POST', `/v1/documents/${fileId}/confirm`, body),
 }
+
+export interface ImportColumn { header: string; samples: string[]; blanks: number; distinct: number; detected: string }
+export interface ImportSuggestion { header: string; field: string | null; confidence: number; mark: 'high' | 'medium' | 'low' | 'none' }
+export interface ImportDuplicate { row: number; label: unknown; severity: 'block' | 'warn'; default: 'skip' | 'create'; outcomes: { check: string; message: string; link: { table: string; id: string | null; row?: number; label: unknown } | null }[] }
+export interface ImportJob {
+  id: string
+  table: string
+  file_id: string
+  state: 'uploaded' | 'mapped' | 'validated' | 'loading' | 'done' | 'failed' | 'undone'
+  mapping: Record<string, string | null>
+  resolutions: Record<string, { action: string; reason: string | null }>
+  profile: { header: string[]; rows: number; columns: ImportColumn[]; suggestions: ImportSuggestion[]; reused_mapping: boolean }
+  report: { rows?: number; valid?: number; invalid?: number; by_reason?: Record<string, number>; duplicates_total?: number; duplicates_blocking?: number; duplicates?: ImportDuplicate[]; failure?: string }
+  counts: { read: number; loaded: number; updated: number; skipped: number; failed: number }
+  finished_at: string | null
+  can_undo: boolean
+}
+export interface ImportRow { id: string; table: string; state: ImportJob['state']; counts: ImportJob['counts']; created_at: string; file_name: string; by: string; can_undo: boolean }
+
+export const imports = {
+  create: (file_id: string, table: string) => send<ImportJob>('POST', '/v1/imports', { file_id, table }),
+  get: (id: string) => g<ImportJob>(`/v1/imports/${id}`),
+  history: () => g<ImportRow[]>('/v1/imports'),
+  mapping: (id: string, mapping: Record<string, string | null>) => send<ImportJob>('PUT', `/v1/imports/${id}/mapping`, { mapping }),
+  newField: (id: string, body: { header: string; label: string; type: string; options?: string[] }) =>
+    send<{ field: { key: string }; live: boolean; job: ImportJob }>('POST', `/v1/imports/${id}/fields`, body),
+  validate: (id: string) => send<ImportJob>('POST', `/v1/imports/${id}/validate`),
+  resolve: (id: string, rows: Record<string, { action: string; reason?: string }>) => send<ImportJob>('PUT', `/v1/imports/${id}/resolutions`, { rows }),
+  start: (id: string) => send<ImportJob>('POST', `/v1/imports/${id}/start`),
+  undo: (id: string) => send<ImportJob>('POST', `/v1/imports/${id}/undo`),
+  errorFile: (id: string) => unwrap<Blob>(api.GET(`/v1/imports/${id}/errors.csv` as never, { parseAs: 'blob' } as never) as never),
+}

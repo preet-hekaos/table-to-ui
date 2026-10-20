@@ -9,6 +9,7 @@ from tableui.metadata.application.releases import (
     rollback_live,
 )
 from tableui.metadata.application.runtime import RuntimeApp, live_app
+from tableui.metadata.application.studio import add_field
 from tableui.metadata.domain.ddl import (
     add_field_index_sql,
     add_shadow_column_sql,
@@ -34,6 +35,7 @@ from tableui.metadata.domain.values import (
 )
 
 __all__ = [
+    "add_field",
     "add_field_index_sql",
     "add_shadow_column_sql",
     "base_schema_sql",

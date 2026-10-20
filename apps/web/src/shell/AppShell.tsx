@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, Outlet, useNavigate } from '@tanstack/react-router'
-import { Bell, ClipboardList, Home, LayoutGrid, LogOut, Menu, Search, Settings2, UserPlus, Users, X } from 'lucide-react'
+import { Bell, ClipboardList, Home, LayoutGrid, LogOut, Menu, Search, Settings2, Upload, UserPlus, Users, X } from 'lucide-react'
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { ApiError } from '@/api/client'
 import { app, auth } from '@/api/endpoints'
@@ -73,6 +73,9 @@ export function AppShell() {
       })}
       {can(perms, 'metadata.read') && (
         <NavLink to="/studio" icon={<LayoutGrid className="size-4" aria-hidden />} onNavigate={close}>Studio</NavLink>
+      )}
+      {can(perms, 'import.run') && (
+        <NavLink to="/import" icon={<Upload className="size-4" aria-hidden />} onNavigate={close}>Import</NavLink>
       )}
       {can(perms, 'audit.read') && (
         <NavLink to="/activity" icon={<ClipboardList className="size-4" aria-hidden />} onNavigate={close}>Activity</NavLink>

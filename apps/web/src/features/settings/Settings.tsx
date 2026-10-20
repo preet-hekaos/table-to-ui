@@ -86,8 +86,9 @@ function Roles() {
   const [pick, setPick] = useState<string>('')
   const save = useMutation({
     mutationFn: (r: RoleRow) => admin.saveRole(r, false),
-    onMutate: (r: RoleRow) => {
+    onMutate: async (r: RoleRow) => {
       // Optimistic: the grid shows the change at once and rolls back if the server refuses it.
+      await qc.cancelQueries({ queryKey: ['roles'] }) // a refetch in flight must not undo the change
       const before = qc.getQueryData<RoleRow[]>(['roles'])
       qc.setQueryData<RoleRow[]>(['roles'], (rows) => rows?.map((x) => (x.key === r.key ? r : x)))
       return { before }

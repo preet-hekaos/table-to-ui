@@ -18,6 +18,7 @@ import { Home } from '@/features/home/Home'
 import { Onboarding, onboardingKey } from '@/features/onboarding/Onboarding'
 import { OpsShell, OpsSignIn, TenantDirectory } from '@/features/ops/Ops'
 import { Activity } from '@/features/studio/Activity'
+import { ImportWizard } from '@/features/imports/ImportWizard'
 import { Settings } from '@/features/settings/Settings'
 import { Studio, type StudioTab } from '@/features/studio/Studio'
 import { Team } from '@/features/studio/Team'
@@ -118,6 +119,14 @@ const studio = createRoute({
     return <Studio tab={tab} table={table} />
   },
 })
+const importRoute = createRoute({
+  getParentRoute: () => shell,
+  path: '/import',
+  validateSearch: (s: Record<string, unknown>): { job?: string } => ({ job: typeof s.job === 'string' ? s.job : undefined }),
+  component: function ImportRoute() {
+    return <ImportWizard jobId={importRoute.useSearch().job} />
+  },
+})
 const activity = createRoute({ getParentRoute: () => shell, path: '/activity', component: Activity })
 const settings = createRoute({
   getParentRoute: () => shell,
@@ -139,7 +148,7 @@ const tree = root.addChildren([
   signIn,
   mfa,
   accept,
-  shell.addChildren([onboarding, home, screenRoute, list, create, detail, edit, studio, activity, security, team, settings]),
+  shell.addChildren([onboarding, home, screenRoute, list, create, detail, edit, studio, importRoute, activity, security, team, settings]),
   opsSignIn,
   opsShell.addChildren([opsTenants]),
 ])
