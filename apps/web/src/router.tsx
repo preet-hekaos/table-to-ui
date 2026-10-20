@@ -1,0 +1,109 @@
+import type { QueryClient } from '@tanstack/react-query'
+import { createRootRouteWithContext, createRoute, createRouter, Outlet, redirect } from '@tanstack/react-router'
+import { ApiError } from '@/api/client'
+import { tokens } from '@/api/session'
+import { AcceptInvitation } from '@/features/auth/AcceptInvitation'
+import { MfaVerify } from '@/features/auth/Mfa'
+import { MfaSetup } from '@/features/auth/MfaSetup'
+import { SignIn } from '@/features/auth/SignIn'
+import { SignUp } from '@/features/auth/SignUp'
+import { meKey } from '@/features/auth/useMe'
+import { auth } from '@/api/endpoints'
+import { RecordDetail } from '@/features/records/RecordDetail'
+import { RecordNew } from '@/features/records/RecordNew'
+import { RecordsList } from '@/features/records/RecordsList'
+import { Home } from '@/features/home/Home'
+import { OpsShell, OpsSignIn, TenantDirectory } from '@/features/ops/Ops'
+import { Activity } from '@/features/studio/Activity'
+import { Studio } from '@/features/studio/Studio'
+import { Team } from '@/features/studio/Team'
+import { NotFound } from '@/design-system'
+import { AppShell } from '@/shell/AppShell'
+
+interface Ctx {
+  queryClient: QueryClient
+}
+
+const root = createRootRouteWithContext<Ctx>()({ component: Outlet, notFoundComponent: () => <div className="p-6"><NotFound /></div> })
+
+const signUp = createRoute({ getParentRoute: () => root, path: '/signup', component: SignUp })
+const signIn = createRoute({ getParentRoute: () => root, path: '/sign-in', component: SignIn })
+const mfa = createRoute({ getParentRoute: () => root, path: '/mfa', component: MfaVerify })
+const accept = createRoute({
+  getParentRoute: () => root,
+  path: '/accept-invitation',
+  validateSearch: (s: Record<string, unknown>) => ({ token: typeof s.token === 'string' ? s.token : '' }),
+  component: function AcceptRoute() {
+    const { token } = accept.useSearch()
+    return <AcceptInvitation token={token} />
+  },
+})
+
+/** Everything inside the signed-in app requires a session and, when enabled, a verified second factor. */
+const shell = createRoute({
+  getParentRoute: () => root,
+  id: 'app',
+  beforeLoad: async ({ context }) => {
+    if (!tokens.get()) throw redirect({ to: '/sign-in' })
+    try {
+      const me = await context.queryClient.ensureQueryData({ queryKey: meKey, queryFn: auth.me, staleTime: 60_000 })
+      if (me.mfa_enabled && !me.mfa_verified) throw redirect({ to: '/mfa' })
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) {
+        tokens.set(null)
+        throw redirect({ to: '/sign-in' })
+      }
+      throw e
+    }
+  },
+  component: AppShell,
+})
+const home = createRoute({ getParentRoute: () => shell, path: '/', component: Home })
+const list = createRoute({
+  getParentRoute: () => shell,
+  path: '/records/$table',
+  component: function ListRoute() {
+    return <RecordsList tableKey={list.useParams().table} />
+  },
+})
+const create = createRoute({
+  getParentRoute: () => shell,
+  path: '/records/$table/new',
+  component: function NewRoute() {
+    return <RecordNew tableKey={create.useParams().table} />
+  },
+})
+const detail = createRoute({
+  getParentRoute: () => shell,
+  path: '/records/$table/$id',
+  component: function DetailRoute() {
+    const { table, id } = detail.useParams()
+    return <RecordDetail tableKey={table} id={id} />
+  },
+})
+const studio = createRoute({ getParentRoute: () => shell, path: '/studio', component: Studio })
+const activity = createRoute({ getParentRoute: () => shell, path: '/activity', component: Activity })
+const security = createRoute({ getParentRoute: () => shell, path: '/security', component: MfaSetup })
+const team = createRoute({ getParentRoute: () => shell, path: '/team', component: Team })
+
+const opsSignIn = createRoute({ getParentRoute: () => root, path: '/ops/sign-in', component: OpsSignIn })
+const opsShell = createRoute({ getParentRoute: () => root, id: 'ops', component: OpsShell })
+const opsTenants = createRoute({ getParentRoute: () => opsShell, path: '/ops/tenants', component: TenantDirectory })
+
+const tree = root.addChildren([
+  signUp,
+  signIn,
+  mfa,
+  accept,
+  shell.addChildren([home, list, create, detail, studio, activity, security, team]),
+  opsSignIn,
+  opsShell.addChildren([opsTenants]),
+])
+
+export const makeRouter = (queryClient: QueryClient) => createRouter({ routeTree: tree, context: { queryClient }, defaultPreload: 'intent' })
+
+declare module '@tanstack/react-router' {
+  interface Register {
+    router: ReturnType<typeof makeRouter>
+  }
+}
