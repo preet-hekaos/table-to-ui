@@ -1,0 +1,64 @@
+{
+  "dataset_rows": 2000,
+  "import_50k": {
+    "rows": 2000,
+    "bytes": 290608,
+    "upload_and_profile_s": 0.1,
+    "validate_s": 0.6,
+    "valid": 2000,
+    "duplicates": 281,
+    "load_s": 20.2,
+    "total_s": 20.9,
+    "counts": {
+      "read": 2000,
+      "loaded": 2000,
+      "updated": 0,
+      "skipped": 0,
+      "failed": 0
+    },
+    "state": "done"
+  },
+  "screen_load": {
+    "n": 30,
+    "p50_ms": 63.6,
+    "p95_ms": 86.4,
+    "p99_ms": 102.6,
+    "mean_ms": 64.8
+  },
+  "save": {
+    "n": 30,
+    "p50_ms": 23.1,
+    "p95_ms": 34.8,
+    "p99_ms": 35.2,
+    "mean_ms": 24.5
+  },
+  "lists_and_filters": {
+    "n": 30,
+    "p50_ms": 25.0,
+    "p95_ms": 29.6,
+    "p99_ms": 32.0,
+    "mean_ms": 24.4
+  },
+  "keyword_search": {
+    "n": 30,
+    "p50_ms": 47.4,
+    "p95_ms": 64.7,
+    "p99_ms": 68.9,
+    "mean_ms": 47.4
+  },
+  "command_bar": {
+    "n": 30,
+    "p50_ms": 30.0,
+    "p95_ms": 46.4,
+    "p99_ms": 50.0,
+    "mean_ms": 32.3
+  },
+  "ranked_matches": {
+    "n": 10,
+    "p50_ms": 63.8,
+    "p95_ms": 177.6,
+    "p99_ms": 177.6,
+    "mean_ms": 79.1,
+    "considered": 1401
+  }
+}
