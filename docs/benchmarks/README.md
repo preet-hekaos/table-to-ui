@@ -32,3 +32,17 @@ Read this as a floor, not a capacity claim: the API (one uvicorn worker), Postgr
 | Command bar (S24) | < 300 ms | **p95 109 ms** | pass |
 
 Not a PRD gate, but worth knowing: ranked matches over 34,266 candidates that pass the hard filters take p95 2.0 s. It is fine for a screen opened once per requirement; narrowing candidates in SQL before scoring is the obvious next step if recruiters find it slow. The import is close to its limit, so a slower disk on AWS dev could breach 15 minutes; batch size is the first thing to tune.
+
+## M2 gates (M2 PRD section 5) — `m2.json`
+`apps/api/scripts/bench_m2.py`: one fresh recruitment workspace with 500 submissions, then 50,000 candidates imported through the import API. API, Postgres and generator share one small sandbox, so treat this as a floor.
+
+| Gate | Target | Measured | |
+|---|---|---|---|
+| Pipeline board, 500 cards (counts for all, 25 cards per stage sent) | p95 < 800 ms | **p95 80.8 ms** | pass |
+| Stage move | p95 < 300 ms | **p95 28.5 ms** | pass |
+| Approvals inbox | p95 < 600 ms | **p95 19.9 ms** | pass |
+| Pipeline filtered to one requirement | p95 < 600 ms | **p95 83.4 ms** | pass |
+| Duplicate list over 50,000 candidates | < 3 s | **p50 830.4 ms**, p95 4201.1 ms over 10 calls | p50 passes; p95 does not |
+| Merge with 100 linked records | < 5 s | **0.12 s** | pass |
+
+The duplicate list was 10.5 s before the trigram index and early cut-off. The p95 above is one cold first call (the other nine average about 0.85 s), so it is a warm-up cost, not steady state; it should still be closed before calling this gate met. The index is created for new tables only; workspaces created before M2 would need it added.
