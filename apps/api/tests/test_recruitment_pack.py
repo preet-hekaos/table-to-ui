@@ -19,7 +19,9 @@ async def test_pack_installs_thirteen_tables_and_screens(client: httpx.AsyncClie
     tables = (await client.get("/v1/app/tables", headers=a.h())).json()["tables"]
     assert len(tables) == 13
     nav = (await client.get("/v1/app/navigation", headers=a.h())).json()["items"]
-    assert len(nav) == 14 and nav[0]["label"] == "Candidates"  # 13 tables + Add from CV
+    assert (
+        len(nav) == 16 and nav[0]["label"] == "Candidates"
+    )  # 13 tables + Add from CV + Pipeline + Duplicate candidates
 
 
 async def test_r11_contact_must_belong_to_the_requirements_client(

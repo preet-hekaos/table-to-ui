@@ -245,6 +245,12 @@ def _check_generality(
     for s in screens:
         if s.table and s.table not in by_key:
             issues.append(PackIssue(f"screen {s.key}", "table", f"unknown table '{s.table}'"))
+        if s.pattern == "board" and (
+            by_key.get(s.table) is None or by_key[s.table].workflow is None
+        ):
+            issues.append(
+                PackIssue(f"screen {s.key}", "table", "a board needs a table with stages")
+            )
         if s.pattern == "ranked_list":
             src = by_key.get(str(s.config.get("source_table", "")))
             tgt = by_key.get(s.table)

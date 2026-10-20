@@ -7,12 +7,12 @@ workflow:
   stages:
     - {key: Sourced}
     - {key: Screened}
-    - {key: Submitted}
-    - {key: Client shortlisted}
+    - {key: Submitted, ask: [contact]}
+    - {key: Client shortlisted, ask: [client_feedback]}
     - {key: Interview}
     - {key: Offer}
     - {key: Placed, end: true}
-    - {key: Rejected, end: true}
+    - {key: Rejected, end: true, ask: [rejection_reason]}
     - {key: Withdrawn, end: true}
     - {key: On hold}
   transitions:

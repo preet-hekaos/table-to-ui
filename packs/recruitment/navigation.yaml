@@ -82,3 +82,16 @@
   icon: list
   section: main
   order: 60
+- key: nav_pipeline
+  label: Pipeline
+  screen: pipeline
+  icon: list
+  section: main
+  order: 45
+- key: nav_duplicates
+  label: Duplicate candidates
+  screen: duplicate_candidates
+  icon: users
+  section: more
+  order: 120
+  roles: [manager]

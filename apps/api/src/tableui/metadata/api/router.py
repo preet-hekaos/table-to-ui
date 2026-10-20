@@ -326,7 +326,7 @@ async def live_tables(app: LiveAppDep) -> dict[str, Any]:
 
 
 def _visible(roles: list[str], role_key: str | None) -> bool:
-    return not roles or (role_key in roles)
+    return not roles or role_key == "admin" or (role_key in roles)
 
 
 @router.get("/app/navigation")

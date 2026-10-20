@@ -89,6 +89,7 @@ class StageDef(_Strict):
     key: str  # the stored value (it is also an option of the stage field)
     label: str | None = None  # what screens show; builders may rename it
     end: bool = False  # an end state: nothing moves on from here
+    ask: list[str] = []  # fields the move dialog asks for when a record enters this stage
 
 
 class WorkflowDef(_Strict):
@@ -175,6 +176,10 @@ class TableDef(_Strict):
             if ref is None or ref.type != "reference":
                 raise ValueError(f"effect '{e.id}': '{e.ref}' is not a reference field")
         if self.workflow is not None:
+            for st in self.workflow.stages:
+                for k in st.ask:
+                    if self.field(k) is None:
+                        raise ValueError(f"stage '{st.key}' asks for unknown field '{k}'")
             wf_field = self.field(self.workflow.field)
             if wf_field is None or wf_field.type != "select":
                 raise ValueError("the workflow field must be a select field of this table")
@@ -261,6 +266,8 @@ Pattern = Literal[
     "ranked_list",
     "document_review",
     "detail",
+    "board",
+    "duplicate_review",
 ]
 Scope = Literal["all", "own_team", "own"]
 

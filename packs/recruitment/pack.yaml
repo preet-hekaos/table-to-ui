@@ -12,6 +12,8 @@ screens:
 - screens/clients.yaml
 - screens/requirement_matches.yaml
 - screens/consent_records.yaml
+- screens/duplicate_candidates.yaml
+- screens/pipeline.yaml
 - screens/contacts.yaml
 - screens/documents.yaml
 - screens/interactions.yaml
