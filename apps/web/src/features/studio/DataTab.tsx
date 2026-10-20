@@ -23,7 +23,7 @@ export function DataTab({ selected, onSelect, canEdit, defaultTable }: { selecte
   const all = tables.data ?? []
   const current = all.find((t) => t.key === (selected ?? defaultTable)) ?? all[0]
   return (
-    <div className="grid gap-4 md:grid-cols-[15rem_1fr]">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-[15rem_minmax(0,1fr)]">
       <nav aria-label="Tables" className="flex flex-col gap-1">
         {canEdit && (
           <Button variant="secondary" size="sm" className="mb-2 justify-start" onClick={() => setNewTable(true)}>
