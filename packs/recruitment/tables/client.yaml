@@ -12,5 +12,6 @@ fields:
   - {key: city, label: City, type: text, group: main, searchable: true, filterable: true}
   - {key: website, label: Website, type: url, group: main}
   - {key: fee_percent, label: Fee (% of annual CTC), type: decimal, group: terms, min: 0, max: 100}
+  - {key: min_fee, label: Minimum fee, type: money, group: terms}
   - {key: payment_terms_days, label: Payment terms (days), type: integer, group: terms, min: 0, max: 365}
   - {key: terms_notes, label: Terms and notes, type: long_text, group: terms}

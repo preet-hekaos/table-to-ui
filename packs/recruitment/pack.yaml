@@ -43,9 +43,12 @@ rules:
 - rules/R-03-one-entry-per-candidate.yaml
 - rules/R-04-requirement-fit.yaml
 - rules/R-06-interview-before-offer.yaml
+- rules/R-07-offer-within-budget.yaml
 - rules/R-08-placement-needs-accepted-offer.yaml
 - rules/R-09-requirement-open.yaml
+- rules/R-10-fee-above-floor.yaml
 - rules/R-11-contact-belongs-to-client.yaml
 - rules/R-12-rejection-needs-reason.yaml
+- rules/R-14-placement-needs-accepted-offer.yaml
 measures:
 - measures/active-candidates.yaml

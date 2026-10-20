@@ -116,6 +116,34 @@ class WorkflowDef(_Strict):
         return self.stages[0].key
 
 
+class RollupDef(_Strict):
+    """Keep a count on the record this one points at: ``field`` = rows here that point at it and match ``where``."""
+
+    field: Key
+    where: dict[str, str | int | bool] = {}
+
+
+class FullDef(_Strict):
+    """When ``field`` reaches ``at_least`` (a field of the same record), set ``set`` on that record."""
+
+    field: Key
+    at_least: Key
+    set: dict[str, str | int | bool]
+
+
+class EffectDef(_Strict):
+    """A follow-on change to the record a reference points at, made in the same transaction."""
+
+    id: str
+    actions: list[Literal["create", "update"]]
+    ref: Key  # reference field on this table; the effect changes the record it points at
+    when_changed: dict[str, str | int | bool] = {}  # this record's field has just become this value
+    when_is: dict[str, str | int | bool] = {}  # this record's field has this value
+    set: dict[str, str | int | bool] = {}
+    rollup: RollupDef | None = None
+    then: FullDef | None = None
+
+
 class TableDef(_Strict):
     key: Key
     label: str
@@ -129,6 +157,7 @@ class TableDef(_Strict):
     search_includes: list[SearchInclude] = []
     counts: list[CountDef] = []
     workflow: WorkflowDef | None = None
+    effects: list[EffectDef] = []
 
     @model_validator(mode="after")
     def _check(self) -> "TableDef":
@@ -141,6 +170,10 @@ class TableDef(_Strict):
         for f in self.fields:
             if f.group and f.group not in groups:
                 raise ValueError(f"field '{f.key}' uses unknown group '{f.group}'")
+        for e in self.effects:
+            ref = self.field(e.ref)
+            if ref is None or ref.type != "reference":
+                raise ValueError(f"effect '{e.id}': '{e.ref}' is not a reference field")
         if self.workflow is not None:
             wf_field = self.field(self.workflow.field)
             if wf_field is None or wf_field.type != "select":

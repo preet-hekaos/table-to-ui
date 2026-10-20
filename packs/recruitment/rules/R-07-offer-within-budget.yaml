@@ -1,0 +1,11 @@
+id: R-07
+title: An offer stays within the requirement's budget
+table: offer
+applies_to: [create, update]
+context:
+  budget: {kind: lookup, ref_field: submission.requirement, field: budget_max}
+checks:
+  - id: R-07.budget
+    severity: approval
+    when: "record.annual_ctc != null && ctx.budget != null && record.annual_ctc > ctx.budget"
+    message: "The offer is above the requirement's budget, so a manager has to approve it."

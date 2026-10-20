@@ -20,10 +20,13 @@ def test_pack_loads_candidate_table_rule_and_measure() -> None:
         "R-03",
         "R-04",
         "R-06",
+        "R-07",
         "R-08",
         "R-09",
+        "R-10",
         "R-11",
         "R-12",
+        "R-14",
     ]
     assert [m.key for m in pack.measures] == ["active_candidates"]
 

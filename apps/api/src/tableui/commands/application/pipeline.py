@@ -16,6 +16,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tableui.audit.public import append_history, write_audit
+from tableui.commands.application.effects import apply_effects
 from tableui.identity.public import Principal, hidden_fields, scope_predicate, strip_hidden
 from tableui.metadata.public import (
     RuntimeApp,
@@ -334,6 +335,7 @@ async def create_record(
                 detail=_audit_detail(ctx, used),
                 request_id=ctx.request_id,
             )
+            await apply_effects(s, ctx, table, "create", None, clean)
             await _emit(s, ctx, table, f"{table_key}.created", record_id, row.version, clean)
             result = CommandResult(201, _record_body(table, row, ctx.principal), warnings=warnings)
             result.body["warnings"] = warnings
@@ -440,6 +442,7 @@ async def update_record(
                 detail=_audit_detail(ctx, used),
                 request_id=ctx.request_id,
             )
+            await apply_effects(s, ctx, table, "update", before, merged_clean)
             await _emit(s, ctx, table, f"{table_key}.updated", record_id, row.version, merged_clean)
             result = CommandResult(200, _record_body(table, row, ctx.principal), warnings=warnings)
             result.body["warnings"] = warnings

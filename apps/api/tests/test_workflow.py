@@ -312,3 +312,150 @@ async def test_board_counts_and_stage_history(client: httpx.AsyncClient) -> None
     assert [(x["from"], x["to"]) for x in h.json()][-1] == ("Sourced", "Screened")
     none = await client.get("/v1/workflow/candidate/board", headers=a.h())
     assert none.status_code == 404
+
+
+async def _offer_ready(
+    client: httpx.AsyncClient, a: Agency, extra_client: dict[str, Any] | None = None
+) -> tuple[dict[str, str], dict[str, Any]]:
+    """A world whose entry stands at Offer, with consent and a passed interview."""
+    w = await _world(client, a)
+    if extra_client:
+        c = (await client.get(f"/v1/records/client/{w['client']}", headers=a.h())).json()
+        r = await client.patch(
+            f"/v1/records/client/{w['client']}",
+            headers=a.h(),
+            json={"version": c["version"], "data": extra_client},
+        )
+        assert r.status_code == 200, r.text
+    await _make(
+        client,
+        a,
+        "consent_record",
+        {"candidate": w["candidate"], "purpose": "Share with clients", "status": "Given"},
+    )
+    entry = await _entry(client, a, w)
+    for stage in ("Screened", "Submitted", "Client shortlisted", "Interview"):
+        assert (await _move(client, a, entry, stage)).status_code == 200, stage
+    await _make(
+        client,
+        a,
+        "interview",
+        {"summary": "Round 1", "submission": entry["id"], "status": "Done", "outcome": "Pass"},
+    )
+    assert (await _move(client, a, entry, "Offer")).status_code == 200
+    return w, entry
+
+
+async def test_offer_above_budget_waits_for_approval_and_within_budget_passes(
+    client: httpx.AsyncClient,
+) -> None:
+    a = Agency(client, "Budget Co", f"w-{uuid.uuid4().hex[:8]}@budget.test")
+    await a.sign_up("recruitment")
+    w, entry = await _offer_ready(client, a)
+    req = (await client.get(f"/v1/records/requirement/{w['requirement']}", headers=a.h())).json()
+    await client.patch(
+        f"/v1/records/requirement/{w['requirement']}",
+        headers=a.h(),
+        json={"version": req["version"], "data": {"budget_max": 3_000_000}},
+    )
+    over = await client.post(
+        "/v1/records/offer",
+        headers=a.h(),
+        json={"data": {"summary": "Offer", "submission": entry["id"], "annual_ctc": 3_500_000}},
+    )
+    assert over.status_code == 409 and over.json()["type"].endswith("approval-required")
+    assert over.json()["approval"]["checks"][0]["check"] == "R-07.budget"
+    ok = await client.post(
+        "/v1/records/offer",
+        headers=a.h(),
+        json={"data": {"summary": "Offer", "submission": entry["id"], "annual_ctc": 2_800_000}},
+    )
+    assert ok.status_code == 201
+
+
+async def test_placement_fills_the_requirement_and_closes_it(client: httpx.AsyncClient) -> None:
+    a = Agency(client, "Fill Co", f"w-{uuid.uuid4().hex[:8]}@fill.test")
+    await a.sign_up("recruitment")
+    w, entry = await _offer_ready(client, a, {"min_fee": 300_000})
+    no_offer = await client.post(
+        "/v1/records/placement",
+        headers=a.h(),
+        json={
+            "data": {
+                "summary": "Arjun at Aurora",
+                "candidate": w["candidate"],
+                "client": w["client"],
+                "requirement": w["requirement"],
+                "submission": entry["id"],
+                "fee": 360_000,
+            }
+        },
+    )
+    assert no_offer.status_code == 409 and no_offer.json()["rule"]["check"] == "R-14.offer"
+    offer = await _make(
+        client, a, "offer", {"summary": "Offer", "submission": entry["id"], "status": "Accepted"}
+    )
+    assert offer
+    low = await client.post(
+        "/v1/records/placement",
+        headers=a.h(),
+        json={
+            "data": {
+                "summary": "Arjun at Aurora",
+                "candidate": w["candidate"],
+                "client": w["client"],
+                "requirement": w["requirement"],
+                "submission": entry["id"],
+                "fee": 200_000,
+            }
+        },
+    )
+    assert low.status_code == 409 and low.json()["type"].endswith("approval-required")
+    assert low.json()["approval"]["checks"][0]["check"] == "R-10.fee"
+    placed = await client.post(
+        "/v1/records/placement",
+        headers=a.h(),
+        json={
+            "data": {
+                "summary": "Arjun at Aurora",
+                "candidate": w["candidate"],
+                "client": w["client"],
+                "requirement": w["requirement"],
+                "submission": entry["id"],
+                "fee": 360_000,
+                "status": "Joined",
+            }
+        },
+    )
+    assert placed.status_code == 201, placed.text
+    req = (await client.get(f"/v1/records/requirement/{w['requirement']}", headers=a.h())).json()
+    assert req["data"]["filled"] == 1 and req["data"]["status"] == "Filled"
+    sub = (await client.get(f"/v1/records/submission/{entry['id']}", headers=a.h())).json()
+    assert sub["data"]["stage"] == "Placed"
+    hist = (
+        await client.get(f"/v1/records/requirement/{w['requirement']}/history", headers=a.h())
+    ).json()
+    assert any(h["action"].startswith("effect:") for h in hist)
+
+
+async def test_declined_offer_sends_the_candidate_back_to_interview(
+    client: httpx.AsyncClient,
+) -> None:
+    a = Agency(client, "Decl Co", f"w-{uuid.uuid4().hex[:8]}@decl.test")
+    await a.sign_up("recruitment")
+    _, entry = await _offer_ready(client, a)
+    offer_id = await _make(
+        client, a, "offer", {"summary": "Offer", "submission": entry["id"], "status": "Sent"}
+    )
+    o = (await client.get(f"/v1/records/offer/{offer_id}", headers=a.h())).json()
+    r = await client.patch(
+        f"/v1/records/offer/{offer_id}",
+        headers=a.h(),
+        json={
+            "version": o["version"],
+            "data": {"status": "Declined", "decline_reason": "Counter-offer"},
+        },
+    )
+    assert r.status_code == 200, r.text
+    sub = (await client.get(f"/v1/records/submission/{entry['id']}", headers=a.h())).json()
+    assert sub["data"]["stage"] == "Interview"

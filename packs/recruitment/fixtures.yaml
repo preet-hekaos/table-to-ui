@@ -174,3 +174,58 @@
   record: {stage: Placed}
   expect: blocked
   checks: [R-08.offer]
+- id: FX-19
+  title: An offer above the requirement's budget needs approval (R-07)
+  table: offer
+  given:
+    - {table: candidate, id: 00000000-0000-4000-8000-0000000000c1, data: {full_name: Arjun Menon, email: arjun@gmail.com}}
+    - {table: client, id: 00000000-0000-4000-8000-0000000000a1, data: {name: Aurora}}
+    - {table: requirement, id: 00000000-0000-4000-8000-0000000000e1, data: {title: Java lead, client: 00000000-0000-4000-8000-0000000000a1, status: Open, budget_max: 3000000}}
+    - {table: submission, id: 00000000-0000-4000-8000-0000000000d1, data: {summary: Arjun for Java lead, candidate: 00000000-0000-4000-8000-0000000000c1, requirement: 00000000-0000-4000-8000-0000000000e1, stage: Offer}}
+  record: {summary: Offer, submission: 00000000-0000-4000-8000-0000000000d1, annual_ctc: 3500000}
+  expect: approval
+  checks: [R-07.budget]
+- id: FX-20
+  title: An offer within the budget is allowed
+  table: offer
+  given:
+    - {table: candidate, id: 00000000-0000-4000-8000-0000000000c1, data: {full_name: Arjun Menon, email: arjun@gmail.com}}
+    - {table: client, id: 00000000-0000-4000-8000-0000000000a1, data: {name: Aurora}}
+    - {table: requirement, id: 00000000-0000-4000-8000-0000000000e1, data: {title: Java lead, client: 00000000-0000-4000-8000-0000000000a1, status: Open, budget_max: 3000000}}
+    - {table: submission, id: 00000000-0000-4000-8000-0000000000d1, data: {summary: Arjun for Java lead, candidate: 00000000-0000-4000-8000-0000000000c1, requirement: 00000000-0000-4000-8000-0000000000e1, stage: Offer}}
+  record: {summary: Offer, submission: 00000000-0000-4000-8000-0000000000d1, annual_ctc: 2800000}
+  expect: allowed
+- id: FX-21
+  title: A fee below the client's minimum needs approval (R-10)
+  table: placement
+  given:
+    - {table: candidate, id: 00000000-0000-4000-8000-0000000000c1, data: {full_name: Arjun Menon, email: arjun@gmail.com}}
+    - {table: client, id: 00000000-0000-4000-8000-0000000000a1, data: {name: Aurora, min_fee: 300000}}
+    - {table: requirement, id: 00000000-0000-4000-8000-0000000000e1, data: {title: Java lead, client: 00000000-0000-4000-8000-0000000000a1, status: Open, budget_max: 3000000}}
+    - {table: submission, id: 00000000-0000-4000-8000-0000000000d1, data: {summary: Arjun for Java lead, candidate: 00000000-0000-4000-8000-0000000000c1, requirement: 00000000-0000-4000-8000-0000000000e1, stage: Offer}}
+    - {table: offer, id: 00000000-0000-4000-8000-0000000000h1, data: {summary: Offer, submission: 00000000-0000-4000-8000-0000000000d1, status: Accepted}}
+  record: {summary: Arjun at Aurora, candidate: 00000000-0000-4000-8000-0000000000c1, client: 00000000-0000-4000-8000-0000000000a1, requirement: 00000000-0000-4000-8000-0000000000e1, submission: 00000000-0000-4000-8000-0000000000d1, fee: 200000}
+  expect: approval
+  checks: [R-10.fee]
+- id: FX-22
+  title: A fee at or above the minimum is allowed
+  table: placement
+  given:
+    - {table: candidate, id: 00000000-0000-4000-8000-0000000000c1, data: {full_name: Arjun Menon, email: arjun@gmail.com}}
+    - {table: client, id: 00000000-0000-4000-8000-0000000000a1, data: {name: Aurora, min_fee: 300000}}
+    - {table: requirement, id: 00000000-0000-4000-8000-0000000000e1, data: {title: Java lead, client: 00000000-0000-4000-8000-0000000000a1, status: Open, budget_max: 3000000}}
+    - {table: submission, id: 00000000-0000-4000-8000-0000000000d1, data: {summary: Arjun for Java lead, candidate: 00000000-0000-4000-8000-0000000000c1, requirement: 00000000-0000-4000-8000-0000000000e1, stage: Offer}}
+    - {table: offer, id: 00000000-0000-4000-8000-0000000000h1, data: {summary: Offer, submission: 00000000-0000-4000-8000-0000000000d1, status: Accepted}}
+  record: {summary: Arjun at Aurora, candidate: 00000000-0000-4000-8000-0000000000c1, client: 00000000-0000-4000-8000-0000000000a1, requirement: 00000000-0000-4000-8000-0000000000e1, submission: 00000000-0000-4000-8000-0000000000d1, fee: 360000}
+  expect: allowed
+- id: FX-23
+  title: A placement without an accepted offer is blocked (R-14)
+  table: placement
+  given:
+    - {table: candidate, id: 00000000-0000-4000-8000-0000000000c1, data: {full_name: Arjun Menon, email: arjun@gmail.com}}
+    - {table: client, id: 00000000-0000-4000-8000-0000000000a1, data: {name: Aurora}}
+    - {table: requirement, id: 00000000-0000-4000-8000-0000000000e1, data: {title: Java lead, client: 00000000-0000-4000-8000-0000000000a1, status: Open, budget_max: 3000000}}
+    - {table: submission, id: 00000000-0000-4000-8000-0000000000d1, data: {summary: Arjun for Java lead, candidate: 00000000-0000-4000-8000-0000000000c1, requirement: 00000000-0000-4000-8000-0000000000e1, stage: Offer}}
+  record: {summary: Arjun at Aurora, candidate: 00000000-0000-4000-8000-0000000000c1, client: 00000000-0000-4000-8000-0000000000a1, requirement: 00000000-0000-4000-8000-0000000000e1, submission: 00000000-0000-4000-8000-0000000000d1}
+  expect: blocked
+  checks: [R-14.offer]

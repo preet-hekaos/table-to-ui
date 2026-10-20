@@ -158,19 +158,22 @@ def _cross_check(
             continue
         for name, loader in r.context.items():
             if loader.kind == "lookup":
-                ref = table.field(loader.ref_field or "")
-                if ref is None or ref.type != "reference" or not ref.ref_table:
+                cur, target, bad = table, None, False
+                for hop in (loader.ref_field or "").split("."):
+                    ref = cur.field(hop)
+                    target = by_key.get(ref.ref_table or "") if ref else None
+                    if ref is None or ref.type != "reference" or target is None:
+                        bad = True
+                        break
+                    cur = target
+                if bad or target is None:
                     issues.append(
                         PackIssue(f, f"context.{name}.ref_field", "must name a reference field")
                     )
-                else:
-                    target = by_key.get(ref.ref_table)
-                    if target is None or target.field(loader.field or "") is None:
-                        issues.append(
-                            PackIssue(
-                                f, f"context.{name}.field", f"unknown field on '{ref.ref_table}'"
-                            )
-                        )
+                elif target.field(loader.field or "") is None:
+                    issues.append(
+                        PackIssue(f, f"context.{name}.field", f"unknown field on '{target.key}'")
+                    )
                 continue
             for attr in ("field", "exact_field", "fuzzy_field"):
                 key = getattr(loader, attr)
