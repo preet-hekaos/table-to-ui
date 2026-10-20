@@ -70,7 +70,8 @@ test('M0 demo script', async ({ browser }) => {
     await a.page.getByLabel(/Email/).fill(priya.email)
     await a.page.getByRole('button', { name: 'Send invitation' }).click()
     const link = (await a.page.getByTestId('dev-accept-link').locator('a').textContent())!
-    await p.page.goto(link)
+    const u = new URL(link)
+    await p.page.goto(u.pathname + u.search) // stay on the same origin as the rest of the run (localhost vs 127.0.0.1)
     await p.page.getByLabel(/Your name/).fill(priya.name)
     await p.page.getByLabel(/Choose a password/).fill(PASSWORD)
     await p.page.getByRole('button', { name: 'Join workspace' }).click()
