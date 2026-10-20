@@ -1,0 +1,32 @@
+id: R-01
+title: No duplicate candidates
+table: candidate
+applies_to: [create, update]
+context:
+  email_match:
+    kind: normalised_match
+    field: email
+  phone_match:
+    kind: normalised_match
+    field: phone
+  similar_person:
+    kind: fuzzy_match
+    exact_field: current_employer
+    fuzzy_field: full_name
+    threshold: 92
+checks:
+  - id: R-01.email
+    severity: block
+    when: "ctx.email_match != null"
+    message: "A candidate with this email already exists."
+    link: email_match
+  - id: R-01.phone
+    severity: block
+    when: "ctx.phone_match != null"
+    message: "A candidate with this phone number already exists."
+    link: phone_match
+  - id: R-01.name-employer
+    severity: warn
+    when: "ctx.similar_person != null"
+    message: "A candidate with a very similar name works at the same employer."
+    link: similar_person

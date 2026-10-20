@@ -1,0 +1,19 @@
+{
+  "rules": 1000,
+  "evaluations": 100000,
+  "compile_all_ms": 20.8,
+  "single_rule_us": {
+    "p50": 9.0,
+    "p99": 32.6,
+    "max": 3333.1
+  },
+  "all_1000_rules_per_record_ms": {
+    "p50": 8.8,
+    "p99": 13.54
+  },
+  "target_p99_ms": 1.0,
+  "passes": true,
+  "python": "3.13.16",
+  "machine": "x86_64",
+  "platform": "Linux-6.18.44-fc-v139-x86_64-with-glibc2.39"
+}

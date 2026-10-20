@@ -13,3 +13,8 @@ dist/
 htmlcov/
 .terraform/
 *.tfstate*
+playwright-report/
+test-results/
+*.tsbuildinfo
+storybook-static/
+.local/
