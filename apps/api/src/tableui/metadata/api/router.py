@@ -101,6 +101,24 @@ async def live_table(table: str, app: LiveAppDep) -> dict[str, Any]:
     return {"release_version": app.release_version, "table": t.model_dump(mode="json")}
 
 
+@router.get("/app/tables/{table}/relations")
+async def live_relations(table: str, p: PrincipalDep, app: LiveAppDep) -> list[dict[str, Any]]:
+    """Tables that point at this one: they become related lists on its profile page."""
+    app.table(table)
+    return [
+        {
+            "table": t.key,
+            "label": t.plural_label,
+            "field": f.key,
+            "title_field": t.title_field,
+            "columns": [x.key for x in t.fields if not x.hidden and x.type != "long_text"][:5],
+        }
+        for t in app.tables.values()
+        for f in t.fields
+        if f.type == "reference" and f.ref_table == table and p.allows(f"record.{t.key}.read")
+    ]
+
+
 @router.get("/app/tables")
 async def live_tables(app: LiveAppDep) -> dict[str, Any]:
     return {

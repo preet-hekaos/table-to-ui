@@ -85,8 +85,17 @@ function Roles() {
   const [pick, setPick] = useState<string>('')
   const save = useMutation({
     mutationFn: (r: RoleRow) => admin.saveRole(r, false),
+    onMutate: (r: RoleRow) => {
+      // Optimistic: the grid shows the change at once and rolls back if the server refuses it.
+      const before = qc.getQueryData<RoleRow[]>(['roles'])
+      qc.setQueryData<RoleRow[]>(['roles'], (rows) => rows?.map((x) => (x.key === r.key ? r : x)))
+      return { before }
+    },
     onSuccess: () => { toast({ title: 'Saved. It applies on the next request.', tone: 'ok' }); return qc.invalidateQueries({ queryKey: ['roles'] }) },
-    onError: (e) => toast({ title: errMsg(e), tone: 'bad' }),
+    onError: (e, _r, ctx) => {
+      qc.setQueryData(['roles'], ctx?.before)
+      toast({ title: errMsg(e), tone: 'bad' })
+    },
   })
   if (!roles.data || !tables.data) return <LoadingState label="Loading roles" />
   const editable = roles.data.filter((r) => r.key !== 'admin')

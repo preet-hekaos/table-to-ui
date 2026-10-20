@@ -86,6 +86,10 @@ export const studio = {
 export const app = {
   table: (table: string) => cast<{ release_version: number; table: TableDef }>(api.GET('/v1/app/tables/{table}', { params: { path: { table } } })),
   tables: () => cast<{ release_version: number; tables: { key: string; label: string; plural_label: string }[] }>(api.GET('/v1/app/tables')),
+  relations: (table: string) =>
+    g<{ table: string; label: string; field: string; title_field: string; columns: string[] }[]>(`/v1/app/tables/${table}/relations`),
+  related: (table: string, field: string, id: string) =>
+    cast<RecordPage>(api.GET('/v1/records/{table}', { params: { path: { table }, query: { limit: 100, ['f.' + field]: id } as never } })),
   navigation: () =>
     cast<{ items: { key: string; label: string; icon: string; section: string; screen: string; pattern: string; table: string }[] }>(
       api.GET('/v1/app/navigation' as never),
@@ -94,12 +98,18 @@ export const app = {
     cast<{ screen: { key: string; title: string; pattern: string; table: string; config: Record<string, unknown> } }>(
       api.GET('/v1/app/screens/{screen}' as never, { params: { path: { screen: key } } } as never),
     ),
-  list: (table: string, query: { sort?: string; direction?: string; cursor?: string | null; limit?: number }) =>
-    cast<RecordPage>(
+  list: (
+    table: string,
+    query: { sort?: string; direction?: string; cursor?: string | null; limit?: number; q?: string; filters?: Record<string, string> },
+  ) => {
+    const { filters, cursor, q, ...rest } = query
+    const extra = Object.fromEntries(Object.entries(filters ?? {}).filter(([, v]) => v).map(([k, v]) => [`f.${k}`, v]))
+    return cast<RecordPage>(
       api.GET('/v1/records/{table}', {
-        params: { path: { table }, query: { ...query, cursor: query.cursor ?? undefined } },
+        params: { path: { table }, query: { ...rest, ...extra, cursor: cursor ?? undefined, q: q || undefined } as never },
       }),
-    ),
+    )
+  },
   get: (table: string, id: string) => cast<RecordRow>(api.GET('/v1/records/{table}/{record_id}', { params: { path: { table, record_id: id } } })),
   history: (table: string, id: string) =>
     cast<HistoryEntry[]>(api.GET('/v1/records/{table}/{record_id}/history', { params: { path: { table, record_id: id } } })),
@@ -110,6 +120,15 @@ export const app = {
         body: { data },
       }),
     ),
+  update: (table: string, id: string, data: Json, version: number, idempotencyKey: string) =>
+    cast<RecordRow>(
+      api.PATCH('/v1/records/{table}/{record_id}' as never, {
+        params: { path: { table, record_id: id }, header: { 'idempotency-key': idempotencyKey } },
+        body: { data, version },
+      } as never),
+    ),
+  options: (table: string) =>
+    cast<RecordPage>(api.GET('/v1/records/{table}', { params: { path: { table }, query: { limit: 200, sort: 'updated_at', direction: 'desc' } } })),
   check: (table: string, data: Json) =>
     cast<{ outcomes: RuleOutcome[] }>(api.POST('/v1/records/{table}/check', { params: { path: { table } }, body: { data } })),
   measures: () => cast<Measure[]>(api.GET('/v1/measures')),

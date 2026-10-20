@@ -87,7 +87,7 @@ test('M0 demo script', async ({ browser }) => {
   await test.step('4. Ananya opens the Studio and sees the Candidate table and its fields', async () => {
     await a.page.goto('/studio')
     await expect(a.page.getByRole('heading', { name: 'Candidate', exact: true })).toBeVisible()
-    const row = a.page.getByRole('row', { name: /Email/ })
+    const row = a.page.getByRole('row', { name: /^Email email Yes/ })
     await expect(row).toContainText('email')
     await expect(row).toContainText('Yes')
     await expect(row).toContainText('Pack')
@@ -138,7 +138,7 @@ test('M0 demo script', async ({ browser }) => {
 
   await test.step('8. The detail page shows history; the activity log shows who created him', async () => {
     await p.page.goto(arjunUrl)
-    await p.page.getByRole('tab', { name: 'History' }).click()
+    await p.page.getByRole('tab', { name: 'Timeline' }).click()
     await expect(p.page.getByRole('row', { name: /Created/ })).toContainText(priya.name)
     await a.page.goto('/activity')
     await expect(a.page.getByRole('row', { name: /candidate\.create/ })).toContainText(priya.name)

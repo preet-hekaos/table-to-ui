@@ -27,7 +27,13 @@ export interface TableDef {
   groups: { key: string; label: string }[]
   fields: FieldDef[]
 }
+export interface RecordRef {
+  table: string
+  id: string
+  label: string | null
+}
 export interface RecordRow {
+  refs?: Record<string, RecordRef>
   id: string
   table: string
   version: number

@@ -82,3 +82,10 @@ async def test_filter_search_and_reference_labels(client: httpx.AsyncClient) -> 
     assert [i["data"]["name"] for i in fuzzy.json()["items"]] == ["Zenith Labs"]
     bad = await client.get("/v1/records/contact?f.nope=1", headers=a.h())
     assert bad.status_code == 422
+
+
+async def test_relations_list_tables_that_point_at_a_table(client: httpx.AsyncClient) -> None:
+    a = Agency(client, "Rel Co", f"l-{uuid.uuid4().hex[:8]}@rel.test")
+    await a.sign_up("recruitment")
+    rel = (await client.get("/v1/app/tables/client/relations", headers=a.h())).json()
+    assert {r["table"] for r in rel} >= {"contact", "requirement", "placement", "interaction"}

@@ -10,6 +10,7 @@ import { SignUp } from '@/features/auth/SignUp'
 import { meKey } from '@/features/auth/useMe'
 import { auth, workspace } from '@/api/endpoints'
 import { RecordDetail } from '@/features/records/RecordDetail'
+import { RecordEdit } from '@/features/records/RecordEdit'
 import { RecordNew } from '@/features/records/RecordNew'
 import { ScreenView } from '@/features/screens/ScreenView'
 import { RecordsList } from '@/features/records/RecordsList'
@@ -83,8 +84,10 @@ const list = createRoute({
 const create = createRoute({
   getParentRoute: () => shell,
   path: '/records/$table/new',
+  validateSearch: (s: Record<string, unknown>) =>
+    Object.fromEntries(Object.entries(s).filter(([, v]) => typeof v === 'string')) as Record<string, string>,
   component: function NewRoute() {
-    return <RecordNew tableKey={create.useParams().table} />
+    return <RecordNew tableKey={create.useParams().table} prefill={create.useSearch()} />
   },
 })
 const detail = createRoute({
@@ -93,6 +96,14 @@ const detail = createRoute({
   component: function DetailRoute() {
     const { table, id } = detail.useParams()
     return <RecordDetail tableKey={table} id={id} />
+  },
+})
+const edit = createRoute({
+  getParentRoute: () => shell,
+  path: '/records/$table/$id/edit',
+  component: function EditRoute() {
+    const { table, id } = edit.useParams()
+    return <RecordEdit tableKey={table} id={id} />
   },
 })
 const studio = createRoute({ getParentRoute: () => shell, path: '/studio', component: Studio })
@@ -110,7 +121,7 @@ const tree = root.addChildren([
   signIn,
   mfa,
   accept,
-  shell.addChildren([onboarding, home, screenRoute, list, create, detail, studio, activity, security, team, settings]),
+  shell.addChildren([onboarding, home, screenRoute, list, create, detail, edit, studio, activity, security, team, settings]),
   opsSignIn,
   opsShell.addChildren([opsTenants]),
 ])

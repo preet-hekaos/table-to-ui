@@ -8,7 +8,7 @@ import { can, useMe } from '@/features/auth/useMe'
 import { RecordForm } from '@/patterns/RecordForm'
 
 /** Thin 3.6: the add form, generated from the live table definition. */
-export function RecordNew({ tableKey }: { tableKey: string }) {
+export function RecordNew({ tableKey, prefill }: { tableKey: string; prefill?: Record<string, string> }) {
   const def = useQuery({ queryKey: ['table', tableKey], queryFn: () => app.table(tableKey), retry: false })
   const me = useMe()
   const navigate = useNavigate()
@@ -28,6 +28,7 @@ export function RecordNew({ tableKey }: { tableKey: string }) {
       <h1 className="text-xl font-bold text-ink">Add {table.label.toLowerCase()}</h1>
       <RecordForm
         table={table}
+        prefill={prefill}
         onCreated={(id) => {
           void qc.invalidateQueries({ queryKey: ['records', tableKey] })
           void qc.invalidateQueries({ queryKey: ['measures'] })

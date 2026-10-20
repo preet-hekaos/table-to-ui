@@ -55,11 +55,20 @@ export function AppShell() {
   const nav = (
     <nav aria-label="Main" className="flex flex-col gap-0.5">
       <NavLink to="/" icon={<Home className="size-4" aria-hidden />} onNavigate={close}>Home</NavLink>
-      {menu.data?.items.map((n) => (
-        <NavLink key={n.key} to="/s/$screen" params={{ screen: n.screen }} icon={<Users className="size-4" aria-hidden />} onNavigate={close}>
-          {n.label}
-        </NavLink>
-      ))}
+      {['main', 'more'].map((section) => {
+        const items = menu.data?.items.filter((n) => (n.section || 'main') === section) ?? []
+        if (!items.length) return null
+        return (
+          <div key={section} className="flex flex-col gap-0.5" role="group" aria-label={section === 'main' ? undefined : 'More'}>
+            {section !== 'main' && <p className="px-2.5 pt-3 pb-1 text-[11px] font-semibold tracking-wide text-nav-text uppercase">More</p>}
+            {items.map((n) => (
+              <NavLink key={n.key} to="/s/$screen" params={{ screen: n.screen }} icon={<Users className="size-4" aria-hidden />} onNavigate={close}>
+                {n.label}
+              </NavLink>
+            ))}
+          </div>
+        )
+      })}
       {can(perms, 'metadata.read') && (
         <NavLink to="/studio" icon={<LayoutGrid className="size-4" aria-hidden />} onNavigate={close}>Studio</NavLink>
       )}
@@ -80,7 +89,7 @@ export function AppShell() {
     <div data-theme="agency" className="flex h-full">
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-surface focus:p-2">Skip to content</a>
       <aside className={`${open ? 'fixed inset-0 z-40 flex' : 'hidden'} md:static md:flex`}>
-        <div className="flex w-56 flex-col gap-4 bg-nav p-3">
+        <div className="flex h-full w-56 flex-col gap-4 overflow-y-auto bg-nav p-3">
           <div className="flex items-center gap-2 px-1 text-sm font-bold text-white">
             <span className="flex size-7 items-center justify-center rounded-lg bg-accent text-xs" aria-hidden>{me.data.tenant_name?.[0] ?? 'T'}</span>
             <span className="truncate" data-testid="app-name">{me.data.tenant_name}</span>
