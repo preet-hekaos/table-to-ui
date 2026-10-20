@@ -1,22 +1,15 @@
 import { useMutation } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
-import { auth } from '@/api/endpoints'
+import { useQuery } from '@tanstack/react-query'
+import { admin, auth } from '@/api/endpoints'
 import { Button, Card, CardTitle, Field, Input, PermissionDenied, Select, useToast } from '@/design-system'
 import { can, useMe } from '@/features/auth/useMe'
-
-const ROLES = [
-  ['recruiter', 'Recruiter'],
-  ['manager', 'Manager'],
-  ['sourcer', 'Sourcer'],
-  ['coordinator', 'Coordinator'],
-  ['finance', 'Finance'],
-  ['viewer', 'Viewer'],
-] as const
 
 /** Screen 1.3, sending side: invite a teammate by email. */
 export function Team() {
   const me = useMe()
   const toast = useToast()
+  const roles = useQuery({ queryKey: ['roles'], queryFn: admin.roles })
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<string>('recruiter')
   const [devLink, setDevLink] = useState<string | null>(null)
@@ -32,7 +25,7 @@ export function Team() {
     onError: (e) => setError(e.message),
   })
   if (!me.data) return null
-  if (!can(me.data.permissions, 'invitation.send')) return <PermissionDenied what="Only agency admins can invite teammates." />
+  if (!can(me.data.permissions, 'invitation.send')) return <PermissionDenied what="Only workspace admins can invite teammates." />
 
   function submit(e: FormEvent) {
     e.preventDefault()
@@ -49,9 +42,9 @@ export function Team() {
           </Field>
           <Field label="Role" required>
             <Select value={role} onChange={(e) => setRole(e.target.value)}>
-              {ROLES.map(([k, l]) => (
-                <option key={k} value={k}>
-                  {l}
+              {roles.data?.map((r) => (
+                <option key={r.key} value={r.key}>
+                  {r.name}
                 </option>
               ))}
             </Select>

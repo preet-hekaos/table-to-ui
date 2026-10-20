@@ -1,0 +1,4 @@
+key: consent_records
+title: Consent records
+pattern: searchable_table
+table: consent_record

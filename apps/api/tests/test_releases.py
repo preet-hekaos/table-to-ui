@@ -13,7 +13,7 @@ async def test_studio_shows_candidate_table_with_fields(
     tables = (await client.get("/v1/studio/tables", headers=agency.h())).json()
     cand = next(t for t in tables if t["key"] == "candidate")
     email = next(f for f in cand["fields"] if f["key"] == "email")
-    assert email == {
+    assert {k: email[k] for k in ("key", "label", "type", "required", "source")} == {
         "key": "email",
         "label": "Email",
         "type": "email",

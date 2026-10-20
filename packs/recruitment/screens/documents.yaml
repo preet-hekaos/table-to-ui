@@ -1,0 +1,4 @@
+key: documents
+title: Documents
+pattern: searchable_table
+table: candidate_document

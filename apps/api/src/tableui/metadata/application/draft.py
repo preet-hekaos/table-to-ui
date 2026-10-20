@@ -18,6 +18,8 @@ async def seed_draft(session: AsyncSession, tenant_id: uuid.UUID, pack: Pack) ->
     rows += [("table", t.key, t.model_dump(mode="json")) for t in pack.tables]
     rows += [("rule", r.id, r.model_dump(mode="json")) for r in pack.rules]
     rows += [("measure", m.key, m.model_dump(mode="json")) for m in pack.measures]
+    rows += [("screen", sc.key, sc.model_dump(mode="json")) for sc in pack.screens]
+    rows += [("nav", n.key, n.model_dump(mode="json")) for n in pack.navigation]
     for kind, key, definition in rows:
         await session.execute(
             text(
@@ -48,7 +50,14 @@ async def build_manifest(session: AsyncSession) -> dict[str, Any]:
     ).all()
     from tableui.metadata.application.runtime import canonical_hash
 
-    manifest: dict[str, Any] = {"pack": None, "tables": {}, "rules": {}, "measures": {}}
+    manifest: dict[str, Any] = {
+        "pack": None,
+        "tables": {},
+        "rules": {},
+        "measures": {},
+        "screens": {},
+        "navs": {},
+    }
     for o in objs:
         entry = {
             "version": o.definition.get("version", 1),

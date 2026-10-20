@@ -15,10 +15,14 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import tableui.catalog.public as catalog
 import tableui.commands.public as commands
+import tableui.files.public as files
 import tableui.identity.public as identity
+import tableui.imports.public as imports
 import tableui.insights.public as insights
-import tableui.metadata.public as metadata
+import tableui.matching.public as matching
+import tableui.search.public as search
 from tableui.audit.api.router import router as audit_router
 from tableui.commands.api.router import router as commands_router
 from tableui.identity.api.router import router as identity_router
@@ -33,7 +37,9 @@ from tableui.platform.messaging import LocalBus, Publisher
 from tableui.platform.messaging_sqs import SqsConsumer, SqsPublisher, make_client
 from tableui.platform.web import new_request_id
 from tableui.query.api.router import router as query_router
+from tableui.rules.api.router import router as fixtures_router
 from tableui.tenancy.public import Tenant, provision_tenant
+from tableui.workspace.public import router as workspace_router
 
 log = logging.getLogger("tableui")
 PROBLEM = "application/problem+json"
@@ -73,15 +79,25 @@ def create_app(
             else SmtpMailer(settings.smtp_host, settings.smtp_port, settings.mail_sender)
         )
         app.state.org = identity.LocalOrganisationProvider()
-        pack = metadata.load_pack(settings.pack_dir)  # fail fast on a broken pack
-        app.state.pack = pack
+        app.state.file_store = files.LocalFileStore(settings.files_dir)
+        app.state.scanner = (
+            files.ClamdScanner(settings.clamd_host, settings.clamd_port)
+            if settings.clamd_host
+            else files.SignatureScanner()
+        )
+        app.state.document_parser = (
+            files.RChilliParser(settings.rchilli_api_key)
+            if settings.cv_parser == "rchilli"
+            else files.RuleParser()
+        )
+        app.state.catalog = catalog.PackCatalog.load(
+            settings.packs_dir
+        )  # fail fast on a broken pack
 
         async def provisioner(
             session: AsyncSession, *, name: str, workos_org_id: str | None
         ) -> Tenant:
-            return await provision_tenant(
-                session, name=name, pack=pack, workos_org_id=workos_org_id
-            )
+            return await provision_tenant(session, name=name, workos_org_id=workos_org_id)
 
         app.state.provisioner = provisioner
         await insights.ensure_schema(app.state.analytics)
@@ -209,6 +225,14 @@ def create_app(
         insights_router,
         audit_router,
         ops_router,
+        workspace_router,
+        fixtures_router,
+        files.router,
+        files.documents_router,
+        imports.router,
+        search.router,
+        matching.router,
+        catalog.router,
     ):
         app.include_router(r)
     return app

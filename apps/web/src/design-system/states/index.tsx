@@ -52,7 +52,7 @@ export function ErrorState({ requestId, onRetry, message }: { requestId?: string
 export function PermissionDenied({ what }: { what?: string }) {
   return (
     <Panel icon={Lock} title="You do not have access" role="alert">
-      {what ?? 'Your role does not allow this. Ask your agency admin if you need it.'}
+      {what ?? 'Your role does not allow this. Ask your workspace admin if you need it.'}
     </Panel>
   )
 }

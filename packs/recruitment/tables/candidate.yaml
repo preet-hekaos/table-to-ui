@@ -2,7 +2,13 @@ key: candidate
 label: Candidate
 plural_label: Candidates
 title_field: full_name
+search_includes:
+  - {table: candidate_document, via: candidate}
 groups:
+  - key: profile
+    label: Profile
+  - key: pay
+    label: Pay
   - key: identity
     label: Identity
   - key: contact
@@ -14,14 +20,18 @@ groups:
 fields:
   - key: full_name
     label: Full name
+    aliases: [name, candidate name]
     type: text
+    searchable: true
     required: true
     group: identity
     normalize: text
     max_length: 200
   - key: email
     label: Email
+    aliases: [e-mail, email id, mail id, email address]
     type: email
+    searchable: true
     required: true
     group: contact
     normalize: email
@@ -31,22 +41,30 @@ fields:
     type: phone
     group: contact
     normalize: phone
-    unique: true
+    aliases: [mobile, mobile number, contact number, cell, phone no]
   - key: current_title
     label: Current title
+    aliases: [designation, job title, role]
     type: text
+    searchable: true
     group: employment
   - key: current_employer
     label: Current employer
+    aliases: [company, current company, organisation, organization, employer]
     type: text
+    searchable: true
     group: employment
     normalize: text
   - key: location
     label: Location
+    aliases: [city, current location]
     type: text
+    searchable: true
+    filterable: true
     group: employment
   - key: notice_period_days
     label: Notice period (days)
+    aliases: [notice, notice period, np]
     type: integer
     group: employment
     min: 0
@@ -59,3 +77,34 @@ fields:
     default: Active
     options: [Active, Placed, Archived]
     analytics: true
+    filterable: true
+  - key: skills
+    label: Skills
+    aliases: [key skills, skill set, technologies]
+    type: tags
+    group: profile
+    searchable: true
+    filterable: true
+  - key: total_experience
+    label: Total experience
+    aliases: [experience, total exp, exp, years of experience]
+    type: months
+    group: profile
+    filterable: true
+  - key: source
+    label: Source
+    type: select
+    group: profile
+    options: [Referral, Job board, LinkedIn, Walk-in, Import, Other]
+    filterable: true
+  - key: current_ctc
+    label: Current CTC
+    aliases: [ctc, current salary, cctc]
+    type: money
+    group: pay
+  - key: expected_ctc
+    label: Expected CTC
+    aliases: [expected salary, ectc, expected]
+    type: money
+    group: pay
+    filterable: true

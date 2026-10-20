@@ -1,0 +1,15 @@
+id: field_services
+version: 1.0.0
+title: Field services
+description: Customers, jobs and technicians for a repair, installation or maintenance business.
+tables:
+  - tables/customer.yaml
+  - tables/technician.yaml
+  - tables/job.yaml
+roles: roles.yaml
+screens:
+  - screens/customers.yaml
+  - screens/technicians.yaml
+  - screens/jobs.yaml
+navigation: navigation.yaml
+fixtures: fixtures.yaml

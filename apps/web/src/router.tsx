@@ -8,14 +8,21 @@ import { MfaSetup } from '@/features/auth/MfaSetup'
 import { SignIn } from '@/features/auth/SignIn'
 import { SignUp } from '@/features/auth/SignUp'
 import { meKey } from '@/features/auth/useMe'
-import { auth } from '@/api/endpoints'
+import { auth, workspace } from '@/api/endpoints'
 import { RecordDetail } from '@/features/records/RecordDetail'
+import { RecordEdit } from '@/features/records/RecordEdit'
 import { RecordNew } from '@/features/records/RecordNew'
+import { ScreenView } from '@/features/screens/ScreenView'
 import { RecordsList } from '@/features/records/RecordsList'
 import { Home } from '@/features/home/Home'
-import { OpsShell, OpsSignIn, TenantDirectory } from '@/features/ops/Ops'
+import { Onboarding, onboardingKey } from '@/features/onboarding/Onboarding'
+import { OpsShell, OpsSignIn, PackCatalog, TenantDirectory } from '@/features/ops/Ops'
 import { Activity } from '@/features/studio/Activity'
-import { Studio } from '@/features/studio/Studio'
+import { ImportWizard } from '@/features/imports/ImportWizard'
+import { RankedList } from '@/patterns/RankedList'
+import { PatternGallery } from '@/features/patterns/PatternGallery'
+import { Settings } from '@/features/settings/Settings'
+import { Studio, type StudioTab } from '@/features/studio/Studio'
 import { Team } from '@/features/studio/Team'
 import { NotFound } from '@/design-system'
 import { AppShell } from '@/shell/AppShell'
@@ -43,11 +50,14 @@ const accept = createRoute({
 const shell = createRoute({
   getParentRoute: () => root,
   id: 'app',
-  beforeLoad: async ({ context }) => {
+  beforeLoad: async ({ context, location }) => {
     if (!tokens.get()) throw redirect({ to: '/sign-in' })
     try {
       const me = await context.queryClient.ensureQueryData({ queryKey: meKey, queryFn: auth.me, staleTime: 60_000 })
       if (me.mfa_enabled && !me.mfa_verified) throw redirect({ to: '/mfa' })
+      const ob = await context.queryClient.fetchQuery({ queryKey: onboardingKey, queryFn: workspace.onboarding, staleTime: 0 })
+      const path = location.pathname
+      if (ob.step !== 'done' && path !== '/onboarding' && path !== '/security') throw redirect({ to: '/onboarding' })
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
         tokens.set(null)
@@ -58,7 +68,16 @@ const shell = createRoute({
   },
   component: AppShell,
 })
+const onboarding = createRoute({ getParentRoute: () => shell, path: '/onboarding', component: Onboarding })
 const home = createRoute({ getParentRoute: () => shell, path: '/', component: Home })
+const screenRoute = createRoute({
+  getParentRoute: () => shell,
+  path: '/s/$screen',
+  validateSearch: (s: Record<string, unknown>): { saved?: string } => ({ saved: typeof s.saved === 'string' ? s.saved : undefined }),
+  component: function ScreenRoute() {
+    return <ScreenView screenKey={screenRoute.useParams().screen} saved={screenRoute.useSearch().saved} />
+  },
+})
 const list = createRoute({
   getParentRoute: () => shell,
   path: '/records/$table',
@@ -69,8 +88,10 @@ const list = createRoute({
 const create = createRoute({
   getParentRoute: () => shell,
   path: '/records/$table/new',
+  validateSearch: (s: Record<string, unknown>) =>
+    Object.fromEntries(Object.entries(s).filter(([, v]) => typeof v === 'string')) as Record<string, string>,
   component: function NewRoute() {
-    return <RecordNew tableKey={create.useParams().table} />
+    return <RecordNew tableKey={create.useParams().table} prefill={create.useSearch()} />
   },
 })
 const detail = createRoute({
@@ -81,23 +102,68 @@ const detail = createRoute({
     return <RecordDetail tableKey={table} id={id} />
   },
 })
-const studio = createRoute({ getParentRoute: () => shell, path: '/studio', component: Studio })
+const edit = createRoute({
+  getParentRoute: () => shell,
+  path: '/records/$table/$id/edit',
+  component: function EditRoute() {
+    const { table, id } = edit.useParams()
+    return <RecordEdit tableKey={table} id={id} />
+  },
+})
+const studio = createRoute({
+  getParentRoute: () => shell,
+  path: '/studio',
+  validateSearch: (s: Record<string, unknown>): { tab?: StudioTab; table?: string } => ({
+    tab: typeof s.tab === 'string' ? (s.tab as StudioTab) : undefined,
+    table: typeof s.table === 'string' ? s.table : undefined,
+  }),
+  component: function StudioRoute() {
+    const { tab, table } = studio.useSearch()
+    return <Studio tab={tab} table={table} />
+  },
+})
+const importRoute = createRoute({
+  getParentRoute: () => shell,
+  path: '/import',
+  validateSearch: (s: Record<string, unknown>): { job?: string } => ({ job: typeof s.job === 'string' ? s.job : undefined }),
+  component: function ImportRoute() {
+    return <ImportWizard jobId={importRoute.useSearch().job} />
+  },
+})
+const matchRoute = createRoute({
+  getParentRoute: () => shell,
+  path: '/match/$screen/$id',
+  component: function MatchRoute() {
+    const { screen, id } = matchRoute.useParams()
+    return <RankedList screenKey={screen} sourceId={id} />
+  },
+})
+const patterns = createRoute({ getParentRoute: () => shell, path: '/patterns', component: PatternGallery })
 const activity = createRoute({ getParentRoute: () => shell, path: '/activity', component: Activity })
+const settings = createRoute({
+  getParentRoute: () => shell,
+  path: '/settings',
+  validateSearch: (s: Record<string, unknown>): { tab?: string } => ({ tab: typeof s.tab === 'string' ? s.tab : undefined }),
+  component: function SettingsRoute() {
+    return <Settings tab={settings.useSearch().tab} />
+  },
+})
 const security = createRoute({ getParentRoute: () => shell, path: '/security', component: MfaSetup })
 const team = createRoute({ getParentRoute: () => shell, path: '/team', component: Team })
 
 const opsSignIn = createRoute({ getParentRoute: () => root, path: '/ops/sign-in', component: OpsSignIn })
 const opsShell = createRoute({ getParentRoute: () => root, id: 'ops', component: OpsShell })
 const opsTenants = createRoute({ getParentRoute: () => opsShell, path: '/ops/tenants', component: TenantDirectory })
+const opsPacks = createRoute({ getParentRoute: () => opsShell, path: '/ops/packs', component: PackCatalog })
 
 const tree = root.addChildren([
   signUp,
   signIn,
   mfa,
   accept,
-  shell.addChildren([home, list, create, detail, studio, activity, security, team]),
+  shell.addChildren([onboarding, home, screenRoute, list, create, detail, edit, studio, importRoute, matchRoute, patterns, activity, security, team, settings]),
   opsSignIn,
-  opsShell.addChildren([opsTenants]),
+  opsShell.addChildren([opsTenants, opsPacks]),
 ])
 
 export const makeRouter = (queryClient: QueryClient) => createRouter({ routeTree: tree, context: { queryClient }, defaultPreload: 'intent' })

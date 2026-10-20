@@ -1,0 +1,21 @@
+key: requirement
+label: Requirement
+plural_label: Requirements
+title_field: title
+groups: [{key: role, label: Role}, {key: needs, label: What the client needs}, {key: budget, label: Budget and timing}]
+fields:
+  - {key: title, label: Title, type: text, required: true, group: role, searchable: true}
+  - {key: client, label: Client, type: reference, ref_table: client, required: true, group: role, filterable: true}
+  - {key: contact, label: Client contact, type: reference, ref_table: contact, group: role}
+  - {key: status, label: Status, type: select, group: role, required: true, default: Open, options: [Open, On hold, Filled, Closed], filterable: true}
+  - {key: positions, label: Positions, type: integer, group: role, min: 1, default: 1}
+  - {key: filled, label: Filled, type: integer, group: role, min: 0, default: 0}
+  - {key: skills, label: Skills, type: tags, group: needs, searchable: true}
+  - {key: location, label: Location, type: text, group: needs, searchable: true}
+  - {key: min_experience, label: Minimum experience, type: months, group: needs}
+  - {key: max_experience, label: Maximum experience, type: months, group: needs}
+  - {key: max_notice_days, label: Maximum notice (days), type: integer, group: needs, min: 0, max: 365}
+  - {key: budget_min, label: Budget from, type: money, group: budget}
+  - {key: budget_max, label: Budget up to, type: money, group: budget}
+  - {key: target_date, label: Target date, type: date, group: budget}
+  - {key: brief, label: Brief, type: long_text, group: needs, searchable: true}

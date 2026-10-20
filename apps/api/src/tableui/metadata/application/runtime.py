@@ -9,7 +9,7 @@ from typing import Any
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from tableui.metadata.domain.models import MeasureDef, RuleDef, TableDef
+from tableui.metadata.domain.models import MeasureDef, NavItem, RuleDef, ScreenDef, TableDef
 from tableui.platform.errors import NotFound
 
 
@@ -21,6 +21,8 @@ class RuntimeApp:
     tables: dict[str, TableDef]
     rules: list[RuleDef]
     measures: list[MeasureDef]
+    screens: dict[str, ScreenDef]
+    navigation: list[NavItem]
 
     def table(self, key: str) -> TableDef:
         t = self.tables.get(key)
@@ -47,24 +49,34 @@ def _from_manifest(
         tables={k: TableDef.model_validate(v["definition"]) for k, v in content["tables"].items()},
         rules=[RuleDef.model_validate(v["definition"]) for v in content["rules"].values()],
         measures=[MeasureDef.model_validate(v["definition"]) for v in content["measures"].values()],
+        screens={
+            k: ScreenDef.model_validate(v["definition"])
+            for k, v in content.get("screens", {}).items()
+        },
+        navigation=sorted(
+            (NavItem.model_validate(v["definition"]) for v in content.get("navs", {}).values()),
+            key=lambda n: (n.section, n.order),
+        ),
     )
 
 
-async def live_app(session: AsyncSession, tenant_id: uuid.UUID) -> RuntimeApp:
-    """The release currently live for a tenant. Manifests are immutable, so they are cached."""
+async def live_app(session: AsyncSession, tenant_id: uuid.UUID, env: str = "live") -> RuntimeApp:
+    """The release currently in an environment (Live by default). Manifests are immutable, so they are cached."""
     row = (
         await session.execute(
             text(
                 "SELECT r.id AS release_id, r.version, r.manifest_id FROM control.release_deployment d "
                 "JOIN control.release r ON r.id = d.release_id "
-                "WHERE d.tenant_id = :t AND d.environment = 'live' ORDER BY d.id DESC LIMIT 1"
+                "WHERE d.tenant_id = :t AND d.environment = :e ORDER BY d.id DESC LIMIT 1"
             ),
-            {"t": tenant_id},
+            {"t": tenant_id, "e": env},
         )
     ).first()
     if row is None:
         raise NotFound(
-            "This app has not been published yet. Publish it to Live in the Studio first.",
+            "This app has not been published yet. Publish it to Live in the Studio first."
+            if env == "live"
+            else "Nothing has been published to Test yet."
         )
     cached = _cache.get(row.manifest_id)
     if cached is not None and cached.release_id == row.release_id:

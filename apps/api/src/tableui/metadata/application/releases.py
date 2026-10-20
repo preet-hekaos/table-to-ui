@@ -68,17 +68,14 @@ async def promote_to_live(
     request_id: str | None,
 ) -> dict[str, Any]:
     rel = await _release(control, tenant_id, version)
-    tested = (
-        await control.execute(
-            text(
-                "SELECT 1 FROM control.release_deployment WHERE tenant_id = :t AND "
-                "release_id = :r AND environment = 'test' LIMIT 1"
-            ),
-            {"t": tenant_id, "r": rel},
-        )
-    ).first()
-    if tested is None:
-        raise ValidationFailed("Only a version that was published to Test can go Live.")
+    await _require_tested(control, tenant_id, rel)
+    await control.execute(
+        text(
+            "UPDATE control.release_approval SET status = 'approved', decided_by = :u, decided_at = now() "
+            "WHERE tenant_id = :t AND release_id = :r AND status = 'pending'"
+        ),
+        {"u": user_id, "t": tenant_id, "r": rel},
+    )
     await _deploy(control, tenant_id, "live", rel, "publish", user_id)
     await write_audit(
         control,
@@ -92,6 +89,169 @@ async def promote_to_live(
         request_id=request_id,
     )
     return {"version": version, "release_id": str(rel)}
+
+
+async def request_live(
+    control: AsyncSession,
+    *,
+    tenant_id: uuid.UUID,
+    user_id: uuid.UUID,
+    version: int,
+    request_id: str | None,
+) -> dict[str, Any]:
+    """A builder who is not an owner asks for a tested version to go Live; an owner decides."""
+    rel = await _release(control, tenant_id, version)
+    await _require_tested(control, tenant_id, rel)
+    pending = (
+        await control.execute(
+            text(
+                "SELECT id FROM control.release_approval WHERE tenant_id = :t AND release_id = :r "
+                "AND status = 'pending'"
+            ),
+            {"t": tenant_id, "r": rel},
+        )
+    ).scalar_one_or_none()
+    approval_id = pending or uuid.uuid4()
+    if pending is None:
+        await control.execute(
+            text(
+                "INSERT INTO control.release_approval (id, tenant_id, release_id, version, requested_by) "
+                "VALUES (:i, :t, :r, :v, :u)"
+            ),
+            {"i": approval_id, "t": tenant_id, "r": rel, "v": version, "u": user_id},
+        )
+        await write_audit(
+            control,
+            tenant_id=tenant_id,
+            scope="tenant",
+            actor_id=user_id,
+            action="release.request_live",
+            subject_type="release",
+            subject_id=str(rel),
+            detail={"version": version},
+            request_id=request_id,
+        )
+    return {
+        "version": version,
+        "release_id": str(rel),
+        "status": "pending_approval",
+        "approval_id": str(approval_id),
+    }
+
+
+async def decide_live(
+    control: AsyncSession,
+    *,
+    tenant_id: uuid.UUID,
+    user_id: uuid.UUID,
+    approval_id: uuid.UUID,
+    approve: bool,
+    request_id: str | None,
+) -> dict[str, Any]:
+    row = (
+        await control.execute(
+            text(
+                "SELECT version, requested_by, status FROM control.release_approval "
+                "WHERE id = :i AND tenant_id = :t FOR UPDATE"
+            ),
+            {"i": approval_id, "t": tenant_id},
+        )
+    ).first()
+    if row is None:
+        raise NotFound("There is no such approval request.")
+    if row.status != "pending":
+        raise ValidationFailed("This request has already been decided.")
+    await control.execute(
+        text(
+            "UPDATE control.release_approval SET status = :s, decided_by = :u, decided_at = now() "
+            "WHERE id = :i"
+        ),
+        {"s": "approved" if approve else "rejected", "u": user_id, "i": approval_id},
+    )
+    if not approve:
+        await write_audit(
+            control,
+            tenant_id=tenant_id,
+            scope="tenant",
+            actor_id=user_id,
+            action="release.reject_live",
+            subject_type="release_approval",
+            subject_id=str(approval_id),
+            detail={"version": row.version},
+            request_id=request_id,
+        )
+        return {"version": row.version, "status": "rejected"}
+    out = await promote_to_live(
+        control, tenant_id=tenant_id, user_id=user_id, version=row.version, request_id=request_id
+    )
+    return {**out, "status": "live"}
+
+
+async def list_approvals(control: AsyncSession, tenant_id: uuid.UUID) -> list[dict[str, Any]]:
+    rows = await control.execute(
+        text(
+            "SELECT a.id, a.version, a.status, a.requested_at, a.decided_at, u.full_name AS requested_by "
+            "FROM control.release_approval a JOIN control.app_user u ON u.id = a.requested_by "
+            "WHERE a.tenant_id = :t ORDER BY a.requested_at DESC LIMIT 50"
+        ),
+        {"t": tenant_id},
+    )
+    return [
+        {
+            "approval_id": str(r.id),
+            "version": r.version,
+            "status": r.status,
+            "requested_by": r.requested_by,
+            "requested_at": r.requested_at.isoformat(),
+            "decided_at": r.decided_at.isoformat() if r.decided_at else None,
+        }
+        for r in rows
+    ]
+
+
+async def manifest_of(control: AsyncSession, tenant_id: uuid.UUID, version: int) -> dict[str, Any]:
+    row = (
+        await control.execute(
+            text(
+                "SELECT m.content FROM control.release r JOIN control.manifest m ON m.id = r.manifest_id "
+                "WHERE r.tenant_id = :t AND r.version = :v"
+            ),
+            {"t": tenant_id, "v": version},
+        )
+    ).first()
+    if row is None:
+        raise NotFound(f"There is no version {version}.")
+    return row.content  # type: ignore[no-any-return]
+
+
+async def environment_manifest(
+    control: AsyncSession, tenant_id: uuid.UUID, env: str
+) -> tuple[int, dict[str, Any]] | None:
+    row = (
+        await control.execute(
+            text(
+                "SELECT r.version, m.content FROM control.release_deployment d "
+                "JOIN control.release r ON r.id = d.release_id JOIN control.manifest m ON m.id = r.manifest_id "
+                "WHERE d.tenant_id = :t AND d.environment = :e ORDER BY d.id DESC LIMIT 1"
+            ),
+            {"t": tenant_id, "e": env},
+        )
+    ).first()
+    return (row.version, row.content) if row else None
+
+
+async def _require_tested(control: AsyncSession, tenant_id: uuid.UUID, rel: uuid.UUID) -> None:
+    tested = (
+        await control.execute(
+            text(
+                "SELECT 1 FROM control.release_deployment WHERE tenant_id = :t AND "
+                "release_id = :r AND environment = 'test' LIMIT 1"
+            ),
+            {"t": tenant_id, "r": rel},
+        )
+    ).first()
+    if tested is None:
+        raise ValidationFailed("Only a version that was published to Test can go Live.")
 
 
 async def rollback_live(
@@ -161,9 +321,12 @@ async def list_releases(control: AsyncSession, tenant_id: uuid.UUID) -> list[dic
                     k: {"version": v["version"], "hash": v["hash"]}
                     for k, v in r.content["rules"].items()
                 },
-                "measures": {
-                    k: {"version": v["version"], "hash": v["hash"]}
-                    for k, v in r.content["measures"].items()
+                **{
+                    kind: {
+                        k: {"version": v["version"], "hash": v["hash"]}
+                        for k, v in r.content.get(kind, {}).items()
+                    }
+                    for kind in ("measures", "screens", "navs")
                 },
             },
         }

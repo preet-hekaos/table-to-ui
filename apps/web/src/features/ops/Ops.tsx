@@ -1,11 +1,11 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, Outlet, useNavigate } from '@tanstack/react-router'
-import { LogOut, Building2 } from 'lucide-react'
+import { LogOut, Building2, Package } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { ApiError } from '@/api/client'
 import { ops } from '@/api/endpoints'
 import { tokens } from '@/api/session'
-import { Badge, Button, EmptyState, ErrorState, Field, Input, LoadingState, Table, Td, Th } from '@/design-system'
+import { Badge, Button, Card, EmptyState, ErrorState, Field, Input, LoadingState, Table, Td, Th, useToast } from '@/design-system'
 import { AuthLayout } from '@/features/auth/AuthLayout'
 
 /** Screen 0.1: operator sign-in. A separate realm: password, then an authenticator code. */
@@ -41,7 +41,7 @@ export function OpsSignIn() {
   }
 
   return (
-    <AuthLayout title="Operator sign-in" subtitle="For platform staff only. This is separate from every agency workspace.">
+    <AuthLayout title="Operator sign-in" subtitle="For platform staff only. This is separate from every customer workspace.">
       <form onSubmit={submit} className="flex flex-col gap-4">
         {step === 'password' ? (
           <>
@@ -78,9 +78,19 @@ export function OpsShell() {
           Table to UI <span className="block text-[10px] tracking-wide text-warn uppercase">Operations</span>
         </div>
         <nav aria-label="Operations">
-          <Link to="/ops/tenants" className="flex items-center gap-2 rounded-md bg-nav-active px-2.5 py-2 text-[13px] font-semibold text-white" aria-current="page">
-            <Building2 className="size-4" aria-hidden /> Tenants
-          </Link>
+          {[
+            { to: '/ops/tenants', label: 'Tenants', icon: <Building2 className="size-4" aria-hidden /> },
+            { to: '/ops/packs', label: 'Packs', icon: <Package className="size-4" aria-hidden /> },
+          ].map((l) => (
+            <Link
+              key={l.to}
+              to={l.to}
+              className="flex items-center gap-2 rounded-md px-2.5 py-2 text-[13px] font-medium text-nav-text hover:text-white"
+              activeProps={{ className: 'bg-nav-active !text-white font-semibold', 'aria-current': 'page' }}
+            >
+              {l.icon} {l.label}
+            </Link>
+          ))}
         </nav>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
@@ -117,7 +127,7 @@ export function TenantDirectory() {
         <Table aria-label="Tenants">
           <thead>
             <tr>
-              <Th>Agency</Th>
+              <Th>Workspace</Th>
               <Th>Plan</Th>
               <Th>Cluster</Th>
               <Th>Schema</Th>
@@ -141,6 +151,58 @@ export function TenantDirectory() {
       ) : (
         <EmptyState title="No agencies yet" />
       )}
+    </div>
+  )
+}
+
+/** Screen 0.4: the pack catalog. A version is published only when its fixtures pass (S27). */
+export function PackCatalog() {
+  const qc = useQueryClient()
+  const toast = useToast()
+  const packs = useQuery({ queryKey: ['ops-packs'], queryFn: ops.packs })
+  const [results, setResults] = useState<Record<string, { passed: boolean; id: string; title: string; detail: string }[]>>({})
+  const publish = useMutation({
+    mutationFn: (id: string) => ops.publish(id),
+    onSuccess: async (r) => {
+      toast({ title: `Published ${r.pack_id} ${r.version}`, description: `${r.fixtures.passed} of ${r.fixtures.total} fixtures passed.`, tone: 'ok' })
+      await qc.invalidateQueries({ queryKey: ['ops-packs'] })
+    },
+    onError: (e, id) => {
+      const body = (e as ApiError).body as { fixtures?: { results: { passed: boolean; id: string; title: string; detail: string }[] } } | undefined
+      if (body?.fixtures) setResults({ ...results, [id]: body.fixtures.results })
+      toast({ title: 'Not published', description: (e as Error).message, tone: 'bad' })
+    },
+  })
+  if (packs.isLoading) return <LoadingState label="Loading packs" />
+  if (packs.error) return <ErrorState requestId={(packs.error as ApiError).requestId} onRetry={() => void packs.refetch()} />
+  return (
+    <div className="flex flex-col gap-4">
+      <h1 className="text-xl font-bold text-ink">Packs</h1>
+      <Table aria-label="Packs">
+        <thead><tr><Th>Pack</Th><Th>On disk</Th><Th>Compatible with</Th><Th>Fixtures</Th><Th>Published</Th><Th><span className="sr-only">Publish</span></Th></tr></thead>
+        <tbody>
+          {packs.data?.map((p) => (
+            <tr key={p.id}>
+              <Td className="font-semibold text-ink">{p.title}</Td>
+              <Td>{p.version}</Td>
+              <Td><code>{p.compatible_with}</code></Td>
+              <Td>{p.fixtures}</Td>
+              <Td>{p.published.map((x) => x.version).join(', ') || 'Not yet'}</Td>
+              <Td>
+                {p.is_published ? <Badge tone="ok">Published</Badge> : <Button size="sm" variant="primary" onClick={() => publish.mutate(p.id)} loading={publish.isPending && publish.variables === p.id}>Publish {p.version}</Button>}
+              </Td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+      {Object.entries(results).map(([id, rs]) => (
+        <Card key={id}>
+          <h2 className="text-sm font-bold text-ink">Fixtures for {id}</h2>
+          <ul className="mt-2 text-sm">
+            {rs.map((r) => <li key={r.id}><Badge tone={r.passed ? 'ok' : 'bad'}>{r.passed ? 'Pass' : 'Fail'}</Badge> <b>{r.id}</b> {r.title} {!r.passed && <span className="text-bad-ink">— {r.detail}</span>}</li>)}
+          </ul>
+        </Card>
+      ))}
     </div>
   )
 }

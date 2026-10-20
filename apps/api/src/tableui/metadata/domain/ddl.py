@@ -13,7 +13,7 @@ CREATE TABLE "{s}".schema_migration (
 );
 CREATE TABLE "{s}".metadata_object (
   tenant_id uuid NOT NULL,
-  kind text NOT NULL CHECK (kind IN ('pack','table','rule','measure')),
+  kind text NOT NULL CHECK (kind IN ('pack','table','rule','measure','screen','nav')),
   key text NOT NULL,
   definition jsonb NOT NULL,
   source text NOT NULL DEFAULT 'pack',
@@ -68,6 +68,8 @@ _SQL_TYPES = {
 def _table_ddl(s: str, t: TableDef) -> str:
     cols = ["id uuid PRIMARY KEY", "tenant_id uuid NOT NULL", "version integer NOT NULL DEFAULT 1"]
     cols.append("data jsonb NOT NULL")
+    cols.append("owner_id uuid NOT NULL")
+    cols.append("search_doc text NOT NULL DEFAULT ''")
     cols += [f'"{f.key}_norm" text' for f in t.fields if f.normalize]
     cols += [
         "created_at timestamptz NOT NULL DEFAULT now()",
@@ -77,6 +79,23 @@ def _table_ddl(s: str, t: TableDef) -> str:
     ]
     out = [f'CREATE TABLE "{s}"."{t.key}" (\n  ' + ",\n  ".join(cols) + "\n);"]
     out.append(f'CREATE INDEX "{t.key}_recent" ON "{s}"."{t.key}" (updated_at DESC, id DESC);')
+    out.append(f'CREATE INDEX "{t.key}_owner" ON "{s}"."{t.key}" (owner_id);')
+    out.append(
+        f'CREATE INDEX "{t.key}_search_trgm" ON "{s}"."{t.key}" USING gin (search_doc gin_trgm_ops);'
+    )
+    out.append(
+        f'CREATE INDEX "{t.key}_search_fts" ON "{s}"."{t.key}" '
+        f"USING gin (to_tsvector('simple', search_doc));"
+    )
+    out.append(
+        f'CREATE INDEX "{t.key}_title_trgm" ON "{s}"."{t.key}" '
+        f"USING gin ((lower(COALESCE(data->>'{t.title_field}', ''))) gin_trgm_ops);"
+    )
+    for f in t.fields:
+        if f.type == "reference" or f.filterable:
+            out.append(
+                f'CREATE INDEX IF NOT EXISTS "{t.key}_{f.key}_data" ON "{s}"."{t.key}" ((data->>\'{f.key}\'));'
+            )
     for f in t.fields:
         if f.unique:
             out.append(
@@ -101,14 +120,46 @@ def _rls(s: str, tables: list[str]) -> str:
     return "\n".join(out)
 
 
-def tenant_schema_sql(schema: str, pack: Pack) -> str:
-    """Full DDL for a new tenant: base tables, one table per metadata table, RLS and grants."""
+def table_ddl_sql(schema: str, table: TableDef) -> str:
+    """DDL to add one record table to an existing tenant schema (used by packs and by builders)."""
+    return "\n".join(
+        [
+            _table_ddl(schema, table),
+            _rls(schema, [table.key]),
+            f'GRANT SELECT, INSERT, UPDATE, DELETE ON "{schema}"."{table.key}" TO tableui_runtime;',
+        ]
+    )
+
+
+def add_shadow_column_sql(schema: str, table_key: str, field_key: str, unique: bool) -> str:
+    """DDL when a builder adds a field that needs a normalised shadow column (unique or matched)."""
+    out = [
+        f'ALTER TABLE "{schema}"."{table_key}" ADD COLUMN IF NOT EXISTS "{field_key}_norm" text;'
+    ]
+    if unique:
+        out.append(
+            f'CREATE UNIQUE INDEX IF NOT EXISTS "{table_key}_{field_key}_unique" ON "{schema}"."{table_key}" '
+            f'("{field_key}_norm") WHERE "{field_key}_norm" IS NOT NULL;'
+        )
+    else:
+        out.append(
+            f'CREATE INDEX IF NOT EXISTS "{table_key}_{field_key}_norm" ON "{schema}"."{table_key}" ("{field_key}_norm");'
+        )
+    return "\n".join(out)
+
+
+def add_field_index_sql(schema: str, table_key: str, field_key: str) -> str:
+    return (
+        f'CREATE INDEX IF NOT EXISTS "{table_key}_{field_key}_data" ON "{schema}"."{table_key}" '
+        f"((data->>'{field_key}'));"
+    )
+
+
+def base_schema_sql(schema: str) -> str:
+    """A workspace schema with the shared tables and no record tables yet."""
     parts = [_BASE.format(s=schema)]
-    parts += [_table_ddl(schema, t) for t in pack.tables]
-    record_tables = [t.key for t in pack.tables]
-    all_tables = ["metadata_object", "record_history", "outbox", "idempotency_key", *record_tables]
-    parts.append(_rls(schema, all_tables))
-    grants = [
+    parts.append(_rls(schema, ["metadata_object", "record_history", "outbox", "idempotency_key"]))
+    parts += [
         f'GRANT USAGE ON SCHEMA "{schema}" TO tableui_runtime;',
         f'GRANT SELECT, INSERT, UPDATE ON "{schema}".metadata_object TO tableui_runtime;',
         f'GRANT SELECT, INSERT ON "{schema}".record_history TO tableui_runtime;',
@@ -116,14 +167,13 @@ def tenant_schema_sql(schema: str, pack: Pack) -> str:
         f'GRANT SELECT, INSERT, UPDATE ON "{schema}".idempotency_key TO tableui_runtime;',
         f'GRANT SELECT ON "{schema}".schema_migration TO tableui_runtime;',
         f'GRANT USAGE ON ALL SEQUENCES IN SCHEMA "{schema}" TO tableui_runtime;',
-    ]
-    grants += [
-        f'GRANT SELECT, INSERT, UPDATE ON "{schema}"."{t}" TO tableui_runtime;'
-        for t in record_tables
-    ]
-    parts += grants
-    parts.append(
+        f'ALTER DEFAULT PRIVILEGES IN SCHEMA "{schema}" GRANT USAGE ON SEQUENCES TO tableui_runtime;',
         f'INSERT INTO "{schema}".schema_migration (version, name) '  # noqa: S608 - identifiers are validated metadata keys
-        f"VALUES ({TENANT_BASE_VERSION}, 'base');"
-    )
+        f"VALUES ({TENANT_BASE_VERSION}, 'base');",
+    ]
     return "\n".join(parts)
+
+
+def tenant_schema_sql(schema: str, pack: Pack) -> str:
+    """Full DDL for a new tenant with a pack installed: base tables plus one table per metadata table."""
+    return "\n".join([base_schema_sql(schema), *[table_ddl_sql(schema, t) for t in pack.tables]])

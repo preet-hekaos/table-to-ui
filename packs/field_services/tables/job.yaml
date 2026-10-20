@@ -1,0 +1,10 @@
+key: job
+label: Job
+plural_label: Jobs
+title_field: title
+fields:
+  - {key: title, label: Title, type: text, required: true, searchable: true}
+  - {key: customer, label: Customer, type: reference, ref_table: customer, required: true}
+  - {key: technician, label: Technician, type: reference, ref_table: technician}
+  - {key: status, label: Status, type: select, options: [Booked, In progress, Done, Cancelled], required: true, filterable: true}
+  - {key: quote, label: Quote, type: money}

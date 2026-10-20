@@ -1,0 +1,4 @@
+key: submissions
+title: Submissions
+pattern: searchable_table
+table: submission

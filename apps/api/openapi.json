@@ -19,6 +19,67 @@
         "title": "AcceptRequest",
         "type": "object"
       },
+      "Body_upload_v1_files_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "file"
+        ],
+        "title": "Body_upload_v1_files_post",
+        "type": "object"
+      },
+      "BrandBody": {
+        "properties": {
+          "accent": {
+            "title": "Accent",
+            "type": "string"
+          },
+          "app_name": {
+            "title": "App Name",
+            "type": "string"
+          },
+          "logo_file_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo File Id"
+          }
+        },
+        "required": [
+          "app_name",
+          "accent"
+        ],
+        "title": "BrandBody",
+        "type": "object"
+      },
+      "ChoosePack": {
+        "properties": {
+          "pack_id": {
+            "title": "Pack Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pack_id"
+        ],
+        "title": "ChoosePack",
+        "type": "object"
+      },
       "CodeRequest": {
         "properties": {
           "code": {
@@ -34,6 +95,37 @@
         "title": "CodeRequest",
         "type": "object"
       },
+      "ConfirmIn": {
+        "properties": {
+          "data": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Data",
+            "type": "object"
+          },
+          "existing_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Existing Id"
+          },
+          "screen": {
+            "title": "Screen",
+            "type": "string"
+          }
+        },
+        "required": [
+          "screen"
+        ],
+        "title": "ConfirmIn",
+        "type": "object"
+      },
       "CreateBody": {
         "properties": {
           "data": {
@@ -46,6 +138,38 @@
           "data"
         ],
         "title": "CreateBody",
+        "type": "object"
+      },
+      "CreateIn": {
+        "properties": {
+          "file_id": {
+            "format": "uuid",
+            "title": "File Id",
+            "type": "string"
+          },
+          "table": {
+            "title": "Table",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_id",
+          "table"
+        ],
+        "title": "CreateIn",
+        "type": "object"
+      },
+      "DecisionIn": {
+        "properties": {
+          "approve": {
+            "title": "Approve",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "approve"
+        ],
+        "title": "DecisionIn",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -125,6 +249,29 @@
         "title": "InviteRequest",
         "type": "object"
       },
+      "MappingIn": {
+        "properties": {
+          "mapping": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Mapping",
+            "type": "object"
+          }
+        },
+        "required": [
+          "mapping"
+        ],
+        "title": "MappingIn",
+        "type": "object"
+      },
       "MeResponse": {
         "properties": {
           "email": {
@@ -202,6 +349,23 @@
         "title": "MeResponse",
         "type": "object"
       },
+      "MembersBody": {
+        "properties": {
+          "user_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "User Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "user_ids"
+        ],
+        "title": "MembersBody",
+        "type": "object"
+      },
       "MfaEnrolment": {
         "properties": {
           "otpauth_uri": {
@@ -218,6 +382,101 @@
           "otpauth_uri"
         ],
         "title": "MfaEnrolment",
+        "type": "object"
+      },
+      "NavIn": {
+        "properties": {
+          "items": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "NavIn",
+        "type": "object"
+      },
+      "NewFieldIn": {
+        "properties": {
+          "header": {
+            "title": "Header",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "options": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Options",
+            "type": "array"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "header",
+          "label",
+          "type"
+        ],
+        "title": "NewFieldIn",
+        "type": "object"
+      },
+      "NewRoleBody": {
+        "properties": {
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "field_deny": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Field Deny",
+            "type": "array"
+          },
+          "grants": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Grants",
+            "type": "array"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "scopes": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "title": "Scopes",
+            "type": "object"
+          }
+        },
+        "required": [
+          "name",
+          "key"
+        ],
+        "title": "NewRoleBody",
         "type": "object"
       },
       "OpsCode": {
@@ -267,6 +526,113 @@
           "release_id"
         ],
         "title": "ReleaseOut",
+        "type": "object"
+      },
+      "ResolveIn": {
+        "properties": {
+          "rows": {
+            "additionalProperties": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Rows",
+            "type": "object"
+          }
+        },
+        "required": [
+          "rows"
+        ],
+        "title": "ResolveIn",
+        "type": "object"
+      },
+      "RoleBody": {
+        "properties": {
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "field_deny": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Field Deny",
+            "type": "array"
+          },
+          "grants": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Grants",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "scopes": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "title": "Scopes",
+            "type": "object"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "RoleBody",
+        "type": "object"
+      },
+      "RoleChange": {
+        "properties": {
+          "role": {
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "role"
+        ],
+        "title": "RoleChange",
+        "type": "object"
+      },
+      "SavedIn": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "query": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Query",
+            "type": "object"
+          },
+          "screen": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Screen"
+          },
+          "table": {
+            "title": "Table",
+            "type": "string"
+          }
+        },
+        "required": [
+          "table",
+          "name"
+        ],
+        "title": "SavedIn",
         "type": "object"
       },
       "SignInRequest": {
@@ -365,6 +731,19 @@
         "title": "SignUpResponse",
         "type": "object"
       },
+      "TeamBody": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "TeamBody",
+        "type": "object"
+      },
       "UpdateBody": {
         "properties": {
           "data": {
@@ -422,6 +801,22 @@
           "type"
         ],
         "title": "ValidationError",
+        "type": "object"
+      },
+      "WeightsIn": {
+        "properties": {
+          "weights": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Weights",
+            "type": "object"
+          }
+        },
+        "required": [
+          "weights"
+        ],
+        "title": "WeightsIn",
         "type": "object"
       }
     }
@@ -531,6 +926,161 @@
         ]
       }
     },
+    "/v1/app/navigation": {
+      "get": {
+        "description": "Menu items for the signed-in user's role. Items whose table the user cannot read are left out.",
+        "operationId": "live_navigation_v1_app_navigation_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Live Navigation V1 App Navigation Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Live Navigation",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
+    "/v1/app/screens": {
+      "get": {
+        "description": "Screens of the live app (for example the profile of a table, or matches for a source table).",
+        "operationId": "live_screens_v1_app_screens_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "table",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Table"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pattern",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Pattern"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source_table",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Table"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Live Screens V1 App Screens Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Live Screens",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
+    "/v1/app/screens/{screen}": {
+      "get": {
+        "operationId": "live_screen_v1_app_screens__screen__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "screen",
+            "required": true,
+            "schema": {
+              "title": "Screen",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Live Screen V1 App Screens  Screen  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Live Screen",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
     "/v1/app/tables": {
       "get": {
         "operationId": "live_tables_v1_app_tables_get",
@@ -599,6 +1149,237 @@
         ]
       }
     },
+    "/v1/app/tables/{table}/relations": {
+      "get": {
+        "description": "Tables that point at this one: they become related lists on its profile page.",
+        "operationId": "live_relations_v1_app_tables__table__relations_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "table",
+            "required": true,
+            "schema": {
+              "title": "Table",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Live Relations V1 App Tables  Table  Relations Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Live Relations",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
+    "/v1/apps/current/approvals": {
+      "get": {
+        "operationId": "approvals_v1_apps_current_approvals_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Approvals V1 Apps Current Approvals Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Approvals",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
+    "/v1/apps/current/approvals/{approval_id}": {
+      "post": {
+        "operationId": "decide_v1_apps_current_approvals__approval_id__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "approval_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Approval Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Decide V1 Apps Current Approvals  Approval Id  Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Decide",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
+    "/v1/apps/current/compare": {
+      "get": {
+        "description": "Every changed table, field, screen, menu item and rule between two versions (or the Draft).",
+        "operationId": "compare_v1_apps_current_compare_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "title": "From",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "default": "draft",
+              "title": "To",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Compare V1 Apps Current Compare Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Compare",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
+    "/v1/apps/current/fixtures/run": {
+      "post": {
+        "description": "Every fixture of the workspace's pack, run against that environment's tables and rules.",
+        "operationId": "run_pack_fixtures_v1_apps_current_fixtures_run_post",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "env",
+            "required": false,
+            "schema": {
+              "default": "test",
+              "pattern": "^(test|live)$",
+              "title": "Env",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Run Pack Fixtures V1 Apps Current Fixtures Run Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Run Pack Fixtures",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
     "/v1/apps/current/releases": {
       "get": {
         "operationId": "list_releases_v1_apps_current_releases_get",
@@ -646,6 +1427,7 @@
     },
     "/v1/apps/current/releases/{version}/promote": {
       "post": {
+        "description": "Owners make a version Live at once; other builders ask an owner to approve it.",
         "operationId": "promote_v1_apps_current_releases__version__promote_post",
         "parameters": [
           {
@@ -663,7 +1445,9 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ReleaseOut"
+                  "additionalProperties": true,
+                  "title": "Response Promote V1 Apps Current Releases  Version  Promote Post",
+                  "type": "object"
                 }
               }
             },
@@ -892,6 +1676,734 @@
         ]
       }
     },
+    "/v1/documents/{file_id}/confirm": {
+      "post": {
+        "description": "document.confirm_parse: create the record from the reviewed fields and file the document.",
+        "operationId": "confirm_document_v1_documents__file_id__confirm_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "file_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "File Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Confirm Document V1 Documents  File Id  Confirm Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Confirm Document",
+        "tags": [
+          "files"
+        ]
+      }
+    },
+    "/v1/documents/{file_id}/parse": {
+      "get": {
+        "operationId": "parse_state_v1_documents__file_id__parse_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "file_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "File Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Parse State V1 Documents  File Id  Parse Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Parse State",
+        "tags": [
+          "files"
+        ]
+      },
+      "post": {
+        "description": "Read an uploaded document into fields. Refused unless it was scanned clean (R-14).",
+        "operationId": "parse_document_v1_documents__file_id__parse_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "file_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "File Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Parse Document V1 Documents  File Id  Parse Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Parse Document",
+        "tags": [
+          "files"
+        ]
+      }
+    },
+    "/v1/files": {
+      "post": {
+        "operationId": "upload_v1_files_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_v1_files_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Upload V1 Files Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Upload",
+        "tags": [
+          "files"
+        ]
+      }
+    },
+    "/v1/files/{file_id}": {
+      "get": {
+        "operationId": "describe_v1_files__file_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "file_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "File Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Describe V1 Files  File Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Describe",
+        "tags": [
+          "files"
+        ]
+      }
+    },
+    "/v1/files/{file_id}/content": {
+      "get": {
+        "operationId": "content_v1_files__file_id__content_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "file_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "File Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Content",
+        "tags": [
+          "files"
+        ]
+      }
+    },
+    "/v1/imports": {
+      "get": {
+        "operationId": "history_v1_imports_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response History V1 Imports Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "History",
+        "tags": [
+          "imports"
+        ]
+      },
+      "post": {
+        "operationId": "create_v1_imports_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Create V1 Imports Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create",
+        "tags": [
+          "imports"
+        ]
+      }
+    },
+    "/v1/imports/{job_id}": {
+      "get": {
+        "operationId": "get_v1_imports__job_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get V1 Imports  Job Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get",
+        "tags": [
+          "imports"
+        ]
+      }
+    },
+    "/v1/imports/{job_id}/errors.csv": {
+      "get": {
+        "operationId": "errors_v1_imports__job_id__errors_csv_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Errors",
+        "tags": [
+          "imports"
+        ]
+      }
+    },
+    "/v1/imports/{job_id}/fields": {
+      "post": {
+        "description": "Create a workspace field for an unmatched column and publish it so the import can use it.",
+        "operationId": "new_field_v1_imports__job_id__fields_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewFieldIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response New Field V1 Imports  Job Id  Fields Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "New Field",
+        "tags": [
+          "imports"
+        ]
+      }
+    },
+    "/v1/imports/{job_id}/mapping": {
+      "put": {
+        "operationId": "mapping_v1_imports__job_id__mapping_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MappingIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Mapping V1 Imports  Job Id  Mapping Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Mapping",
+        "tags": [
+          "imports"
+        ]
+      }
+    },
+    "/v1/imports/{job_id}/resolutions": {
+      "put": {
+        "operationId": "resolve_v1_imports__job_id__resolutions_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Resolve V1 Imports  Job Id  Resolutions Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resolve",
+        "tags": [
+          "imports"
+        ]
+      }
+    },
+    "/v1/imports/{job_id}/start": {
+      "post": {
+        "operationId": "start_v1_imports__job_id__start_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Start V1 Imports  Job Id  Start Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start",
+        "tags": [
+          "imports"
+        ]
+      }
+    },
+    "/v1/imports/{job_id}/undo": {
+      "post": {
+        "operationId": "undo_v1_imports__job_id__undo_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Undo V1 Imports  Job Id  Undo Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Undo",
+        "tags": [
+          "imports"
+        ]
+      }
+    },
+    "/v1/imports/{job_id}/validate": {
+      "post": {
+        "operationId": "validate_v1_imports__job_id__validate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Validate V1 Imports  Job Id  Validate Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Validate",
+        "tags": [
+          "imports"
+        ]
+      }
+    },
     "/v1/invitations": {
       "post": {
         "operationId": "invite_v1_invitations_post",
@@ -1028,6 +2540,117 @@
         "summary": "Invitation Accept",
         "tags": [
           "identity"
+        ]
+      }
+    },
+    "/v1/matching/{screen}/weights": {
+      "put": {
+        "operationId": "save_weights_v1_matching__screen__weights_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "screen",
+            "required": true,
+            "schema": {
+              "title": "Screen",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WeightsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "number"
+                  },
+                  "title": "Response Save Weights V1 Matching  Screen  Weights Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Weights",
+        "tags": [
+          "matching"
+        ]
+      }
+    },
+    "/v1/matching/{screen}/{source_id}": {
+      "get": {
+        "description": "Ranked matches; ``w.<part>=<weight>`` changes the weights for this view only.",
+        "operationId": "ranked_v1_matching__screen___source_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "screen",
+            "required": true,
+            "schema": {
+              "title": "Screen",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Source Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Ranked V1 Matching  Screen   Source Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ranked",
+        "tags": [
+          "matching"
         ]
       }
     },
@@ -1199,6 +2822,77 @@
         ]
       }
     },
+    "/v1/ops/packs": {
+      "get": {
+        "operationId": "packs_v1_ops_packs_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Packs V1 Ops Packs Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Packs",
+        "tags": [
+          "catalog"
+        ]
+      }
+    },
+    "/v1/ops/packs/{pack_id}/publish": {
+      "post": {
+        "description": "Publish the pack version on disk; blocked unless every fixture passes and its range is valid.",
+        "operationId": "publish_v1_ops_packs__pack_id__publish_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pack_id",
+            "required": true,
+            "schema": {
+              "title": "Pack Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Publish V1 Ops Packs  Pack Id  Publish Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Publish",
+        "tags": [
+          "catalog"
+        ]
+      }
+    },
     "/v1/ops/tenants": {
       "get": {
         "operationId": "tenants_v1_ops_tenants_get",
@@ -1282,6 +2976,22 @@
               "default": 50,
               "title": "Limit",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
             }
           }
         ],
@@ -1433,6 +3143,83 @@
           }
         },
         "summary": "Check",
+        "tags": [
+          "records"
+        ]
+      }
+    },
+    "/v1/records/{table}/facets": {
+      "get": {
+        "description": "Counts per facet value under the current search (S23).",
+        "operationId": "facets_v1_records__table__facets_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "table",
+            "required": true,
+            "schema": {
+              "title": "Table",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "fields",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fields"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Facets V1 Records  Table  Facets Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Facets",
         "tags": [
           "records"
         ]
@@ -1627,9 +3414,333 @@
         ]
       }
     },
+    "/v1/search": {
+      "get": {
+        "description": "Ctrl K: screens and records by name, only what the person may see (S24).",
+        "operationId": "command_bar_v1_search_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "title": "Q",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Command Bar V1 Search Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Command Bar",
+        "tags": [
+          "search"
+        ]
+      }
+    },
+    "/v1/search/saved": {
+      "get": {
+        "operationId": "list_saved_v1_search_saved_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response List Saved V1 Search Saved Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Saved",
+        "tags": [
+          "search"
+        ]
+      },
+      "post": {
+        "operationId": "save_search_v1_search_saved_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SavedIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Save Search V1 Search Saved Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Search",
+        "tags": [
+          "search"
+        ]
+      }
+    },
+    "/v1/search/saved/{sid}": {
+      "delete": {
+        "operationId": "delete_saved_v1_search_saved__sid__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Sid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Saved",
+        "tags": [
+          "search"
+        ]
+      }
+    },
+    "/v1/studio/navigation": {
+      "get": {
+        "operationId": "studio_navigation_v1_studio_navigation_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Studio Navigation V1 Studio Navigation Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Studio Navigation",
+        "tags": [
+          "studio"
+        ]
+      },
+      "put": {
+        "operationId": "save_navigation_v1_studio_navigation_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NavIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Save Navigation V1 Studio Navigation Put",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Navigation",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
+    "/v1/studio/screens": {
+      "get": {
+        "operationId": "studio_screens_v1_studio_screens_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Studio Screens V1 Studio Screens Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Studio Screens",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
+    "/v1/studio/screens/{screen}": {
+      "put": {
+        "operationId": "save_screen_v1_studio_screens__screen__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "screen",
+            "required": true,
+            "schema": {
+              "title": "Screen",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Save Screen V1 Studio Screens  Screen  Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Screen",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
+    "/v1/studio/status": {
+      "get": {
+        "description": "Whether the Draft differs from Live, and how.",
+        "operationId": "studio_status_v1_studio_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Studio Status V1 Studio Status Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Studio Status",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
     "/v1/studio/tables": {
       "get": {
-        "description": "The Draft: tables and fields as the builder sees them.",
+        "description": "The Draft: tables and fields as the builder sees them, with where each came from.",
         "operationId": "studio_tables_v1_studio_tables_get",
         "responses": {
           "200": {
@@ -1651,6 +3762,889 @@
         "summary": "Studio Tables",
         "tags": [
           "studio"
+        ]
+      },
+      "post": {
+        "operationId": "create_table_v1_studio_tables_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Create Table V1 Studio Tables Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Table",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
+    "/v1/studio/tables/{table}/fields": {
+      "post": {
+        "operationId": "add_field_v1_studio_tables__table__fields_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "table",
+            "required": true,
+            "schema": {
+              "title": "Table",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Add Field V1 Studio Tables  Table  Fields Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add Field",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
+    "/v1/studio/tables/{table}/fields/{field}": {
+      "delete": {
+        "operationId": "remove_field_v1_studio_tables__table__fields__field__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "table",
+            "required": true,
+            "schema": {
+              "title": "Table",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "field",
+            "required": true,
+            "schema": {
+              "title": "Field",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Remove Field",
+        "tags": [
+          "studio"
+        ]
+      },
+      "patch": {
+        "operationId": "update_field_v1_studio_tables__table__fields__field__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "table",
+            "required": true,
+            "schema": {
+              "title": "Table",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "field",
+            "required": true,
+            "schema": {
+              "title": "Field",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Update Field V1 Studio Tables  Table  Fields  Field  Patch",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Field",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
+    "/v1/workspace/home": {
+      "get": {
+        "operationId": "home_v1_workspace_home_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Home V1 Workspace Home Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Home",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
+    "/v1/workspace/onboarding": {
+      "get": {
+        "operationId": "onboarding_v1_workspace_onboarding_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Onboarding V1 Workspace Onboarding Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Onboarding",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
+    "/v1/workspace/pack": {
+      "post": {
+        "operationId": "choose_pack_v1_workspace_pack_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChoosePack"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Choose Pack V1 Workspace Pack Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Choose Pack",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
+    "/v1/workspace/pack/updates": {
+      "get": {
+        "operationId": "updates_v1_workspace_pack_updates_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Updates V1 Workspace Pack Updates Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Updates",
+        "tags": [
+          "catalog"
+        ]
+      }
+    },
+    "/v1/workspace/pack/updates/{version}/accept": {
+      "post": {
+        "description": "Only an owner takes a pack update. It lands in the Draft, to publish like any change.",
+        "operationId": "accept_v1_workspace_pack_updates__version__accept_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "title": "Version",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Accept V1 Workspace Pack Updates  Version  Accept Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Accept",
+        "tags": [
+          "catalog"
+        ]
+      }
+    },
+    "/v1/workspace/people": {
+      "get": {
+        "operationId": "people_v1_workspace_people_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response People V1 Workspace People Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "People",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
+    "/v1/workspace/people/{user_id}/activate": {
+      "post": {
+        "operationId": "activate_v1_workspace_people__user_id__activate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Activate",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
+    "/v1/workspace/people/{user_id}/deactivate": {
+      "post": {
+        "operationId": "deactivate_v1_workspace_people__user_id__deactivate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Deactivate",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
+    "/v1/workspace/people/{user_id}/role": {
+      "put": {
+        "operationId": "change_role_v1_workspace_people__user_id__role_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Change Role",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
+    "/v1/workspace/roles": {
+      "get": {
+        "operationId": "roles_v1_workspace_roles_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Roles V1 Workspace Roles Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Roles",
+        "tags": [
+          "workspace"
+        ]
+      },
+      "post": {
+        "operationId": "new_role_v1_workspace_roles_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewRoleBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response New Role V1 Workspace Roles Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "New Role",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
+    "/v1/workspace/roles/{key}": {
+      "delete": {
+        "operationId": "remove_role_v1_workspace_roles__key__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Remove Role",
+        "tags": [
+          "workspace"
+        ]
+      },
+      "put": {
+        "operationId": "edit_role_v1_workspace_roles__key__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Edit Role",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
+    "/v1/workspace/settings": {
+      "get": {
+        "operationId": "settings_v1_workspace_settings_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Settings V1 Workspace Settings Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Settings",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
+    "/v1/workspace/settings/brand": {
+      "put": {
+        "operationId": "brand_v1_workspace_settings_brand_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrandBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Brand V1 Workspace Settings Brand Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Brand",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
+    "/v1/workspace/settings/regional": {
+      "put": {
+        "operationId": "regional_v1_workspace_settings_regional_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Regional V1 Workspace Settings Regional Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Regional",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
+    "/v1/workspace/teams": {
+      "get": {
+        "operationId": "teams_v1_workspace_teams_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Teams V1 Workspace Teams Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Teams",
+        "tags": [
+          "workspace"
+        ]
+      },
+      "post": {
+        "operationId": "new_team_v1_workspace_teams_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response New Team V1 Workspace Teams Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "New Team",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
+    "/v1/workspace/teams/{team_id}/members": {
+      "put": {
+        "operationId": "team_members_v1_workspace_teams__team_id__members_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "team_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Team Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MembersBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Team Members",
+        "tags": [
+          "workspace"
         ]
       }
     }

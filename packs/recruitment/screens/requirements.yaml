@@ -1,0 +1,8 @@
+key: requirements
+title: Requirements
+pattern: searchable_table
+table: requirement
+config:
+  columns: [title, client, status, target_date, positions, filled]
+  filters: [client, status]
+  actions: [create, export, import]

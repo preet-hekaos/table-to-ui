@@ -36,7 +36,7 @@ export function SignIn() {
       title="Sign in"
       footer={
         <>
-          New here? <Link to="/signup" className="font-semibold text-accent-ink underline">Create an agency workspace</Link>
+          New here? <Link to="/signup" className="font-semibold text-accent-ink underline">Create a workspace</Link>
         </>
       }
     >

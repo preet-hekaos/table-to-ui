@@ -1,0 +1,4 @@
+key: skills
+title: Skills
+pattern: searchable_table
+table: skill

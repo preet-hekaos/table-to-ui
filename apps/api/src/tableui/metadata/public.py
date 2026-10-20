@@ -9,21 +9,41 @@ from tableui.metadata.application.releases import (
     rollback_live,
 )
 from tableui.metadata.application.runtime import RuntimeApp, live_app
-from tableui.metadata.domain.ddl import tenant_schema_sql
+from tableui.metadata.application.studio import add_field
+from tableui.metadata.domain.ddl import (
+    add_field_index_sql,
+    add_shadow_column_sql,
+    base_schema_sql,
+    table_ddl_sql,
+    tenant_schema_sql,
+)
 from tableui.metadata.domain.models import (
     ContextLoader,
     FieldDef,
+    FixtureDef,
     MeasureDef,
     Pack,
     RuleCheck,
     RuleDef,
     TableDef,
 )
-from tableui.metadata.domain.values import normalise, shadow_columns, validate_record
+from tableui.metadata.domain.values import (
+    normalise,
+    search_document,
+    shadow_columns,
+    validate_record,
+)
 
 __all__ = [
+    "add_field",
+    "add_field_index_sql",
+    "add_shadow_column_sql",
+    "base_schema_sql",
+    "search_document",
+    "table_ddl_sql",
     "ContextLoader",
     "FieldDef",
+    "FixtureDef",
     "MeasureDef",
     "Pack",
     "PackInvalid",

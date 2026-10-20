@@ -1,0 +1,16 @@
+key: client
+label: Client
+plural_label: Clients
+title_field: name
+counts:
+  - {key: open_requirements, label: Open requirements, table: requirement, via: client, where: {status: Open}}
+groups: [{key: main, label: Company}, {key: terms, label: Commercial terms}]
+fields:
+  - {key: name, label: Name, type: text, required: true, group: main, normalize: text, searchable: true}
+  - {key: status, label: Status, type: select, group: main, required: true, default: Prospect, options: [Prospect, Active, On hold, Inactive], filterable: true}
+  - {key: industry, label: Industry, type: text, group: main, searchable: true, filterable: true}
+  - {key: city, label: City, type: text, group: main, searchable: true, filterable: true}
+  - {key: website, label: Website, type: url, group: main}
+  - {key: fee_percent, label: Fee (% of annual CTC), type: decimal, group: terms, min: 0, max: 100}
+  - {key: payment_terms_days, label: Payment terms (days), type: integer, group: terms, min: 0, max: 365}
+  - {key: terms_notes, label: Terms and notes, type: long_text, group: terms}

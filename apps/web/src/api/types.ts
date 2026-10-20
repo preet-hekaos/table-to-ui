@@ -2,7 +2,7 @@
 export interface FieldDef {
   key: string
   label: string
-  type: 'text' | 'long_text' | 'email' | 'phone' | 'integer' | 'decimal' | 'boolean' | 'date' | 'select' | 'url'
+  type: 'text' | 'long_text' | 'email' | 'phone' | 'integer' | 'decimal' | 'boolean' | 'date' | 'select' | 'url' | 'money' | 'months' | 'tags' | 'reference'
   required: boolean
   group: string | null
   options: string[]
@@ -12,6 +12,12 @@ export interface FieldDef {
   max_length: number | null
   normalize: 'text' | 'email' | 'phone' | null
   unique: boolean
+  hidden?: boolean
+  ref_table?: string | null
+  searchable?: boolean
+  filterable?: boolean
+  source?: 'pack' | 'agency'
+  help?: string | null
 }
 export interface TableDef {
   key: string
@@ -20,8 +26,17 @@ export interface TableDef {
   title_field: string
   groups: { key: string; label: string }[]
   fields: FieldDef[]
+  counts?: { key: string; label: string; table: string; via: string; where: Record<string, unknown> }[]
+}
+export interface RecordRef {
+  table: string
+  id: string
+  label: string | null
 }
 export interface RecordRow {
+  refs?: Record<string, RecordRef>
+  owner?: { id: string; name: string | null } | null
+  counts?: Record<string, number>
   id: string
   table: string
   version: number
@@ -74,10 +89,10 @@ export interface ReleaseRow {
     measures: Record<string, { version: number; hash: string }>
   }
 }
-export interface StudioTable {
-  key: string
-  label: string
-  fields: { key: string; label: string; type: string; required: boolean; source: string }[]
+export interface StudioTable extends TableDef {
+  source: 'pack' | 'agency'
+  description?: string
+  version: number
 }
 export interface Measure {
   key: string
@@ -101,4 +116,15 @@ export interface ActivityRow {
   subject_id: string | null
   at: string
   actor: string | null
+}
+
+/** How a builder tuned a screen in the configurator. Every key is optional; patterns fall back to sensible defaults. */
+export interface ScreenConfig {
+  facets?: string[]
+  columns?: string[]
+  filters?: string[]
+  group_by?: string
+  fields?: string[]
+  actions?: string[]
+  empty_text?: string
 }

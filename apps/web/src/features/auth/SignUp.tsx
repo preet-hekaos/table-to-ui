@@ -11,7 +11,7 @@ import { AuthLayout } from './AuthLayout'
 import { applyServerErrors } from './forms'
 
 const schema = z.object({
-  agency_name: z.string().trim().min(1, 'Enter your agency name'),
+  agency_name: z.string().trim().min(1, 'Enter your workspace name'),
   full_name: z.string().trim().min(1, 'Enter your name'),
   email: z.string().trim().email('Enter a valid email address'),
   password: z.string().min(12, 'Use at least 12 characters'),
@@ -39,8 +39,8 @@ export function SignUp() {
 
   return (
     <AuthLayout
-      title="Create your agency workspace"
-      subtitle="Your agency gets its own private workspace."
+      title="Create your workspace"
+      subtitle="Your organisation gets its own private workspace. You choose what to set up in it next."
       footer={
         <>
           Already have a workspace? <Link to="/sign-in" className="font-semibold text-accent-ink underline">Sign in</Link>
@@ -48,7 +48,7 @@ export function SignUp() {
       }
     >
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
-        <Field label="Agency name" required error={errors.agency_name?.message}>
+        <Field label="Workspace name" required error={errors.agency_name?.message}>
           <Input autoComplete="organization" {...register('agency_name')} />
         </Field>
         <Field label="Your name" required error={errors.full_name?.message}>

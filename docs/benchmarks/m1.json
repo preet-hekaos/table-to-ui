@@ -1,0 +1,72 @@
+{
+  "dataset_rows": 50000,
+  "import_50k": {
+    "rows": 50000,
+    "bytes": 7303888,
+    "upload_and_profile_s": 0.5,
+    "validate_s": 28.9,
+    "valid": 50000,
+    "duplicates": 43301,
+    "load_s": 848.3,
+    "total_s": 877.8,
+    "counts": {
+      "read": 50000,
+      "loaded": 50000,
+      "updated": 0,
+      "skipped": 0,
+      "failed": 0
+    },
+    "state": "done"
+  },
+  "screen_load": {
+    "n": 200,
+    "p50_ms": 492.1,
+    "p95_ms": 601.8,
+    "p99_ms": 699.5,
+    "mean_ms": 502.0
+  },
+  "save": {
+    "n": 200,
+    "p50_ms": 21.7,
+    "p95_ms": 28.8,
+    "p99_ms": 31.4,
+    "mean_ms": 22.1
+  },
+  "lists_and_filters": {
+    "n": 200,
+    "p50_ms": 51.7,
+    "p95_ms": 73.2,
+    "p99_ms": 86.3,
+    "mean_ms": 46.9
+  },
+  "keyword_search": {
+    "n": 200,
+    "p50_ms": 35.0,
+    "p95_ms": 53.5,
+    "p99_ms": 60.7,
+    "mean_ms": 35.9
+  },
+  "command_bar": {
+    "n": 200,
+    "p50_ms": 84.6,
+    "p95_ms": 109.0,
+    "p99_ms": 124.1,
+    "mean_ms": 86.5
+  },
+  "ranked_matches": {
+    "n": 20,
+    "p50_ms": 1845.4,
+    "p95_ms": 2016.1,
+    "p99_ms": 2056.3,
+    "mean_ms": 1813.4,
+    "considered": 34266
+  },
+  "accept_200k": {
+    "rows": 200000,
+    "bytes": 29356794,
+    "upload_and_profile_s": 2.6,
+    "validate_s": 425.9,
+    "valid": 200000,
+    "duplicates": 200000
+  }
+}

@@ -14,4 +14,11 @@ export function useMe() {
   })
 }
 
-export const can = (permissions: string[] | undefined, p: string) => !!permissions?.includes(p)
+/** Exact grant or a wildcard grant such as `*` or `record.*.read`, matching the server's rule. */
+export const can = (permissions: string[] | undefined, p: string) =>
+  !!permissions?.some((g) => {
+    if (g === p) return true
+    if (!g.includes('*')) return false
+    const re = new RegExp('^' + g.split('*').map((x) => x.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$')
+    return re.test(p)
+  })

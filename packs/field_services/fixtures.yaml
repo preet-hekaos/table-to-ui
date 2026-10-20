@@ -1,0 +1,10 @@
+- id: FS-01
+  title: A customer with a name is accepted
+  table: customer
+  record: {name: Shree Appliances, phone: "+91 98450 77777"}
+  expect: allowed
+- id: FS-02
+  title: A customer needs a name
+  table: customer
+  record: {phone: "+91 98450 77778"}
+  expect: invalid

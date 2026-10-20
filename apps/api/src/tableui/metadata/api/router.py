@@ -1,13 +1,15 @@
+import uuid
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request, Response
 from pydantic import BaseModel
 
 from tableui.identity.api.deps import PrincipalDep
 from tableui.metadata.api.deps import LiveAppDep
-from tableui.metadata.application import draft, releases
+from tableui.metadata.application import draft, releases, studio
+from tableui.metadata.domain.diff import diff_manifests
 from tableui.platform.db import Database
-from tableui.platform.errors import NotFound
+from tableui.platform.errors import NotFound, PermissionDenied
 from tableui.platform.web import get_db, get_request_id
 
 router = APIRouter(prefix="/v1", tags=["studio"])
@@ -19,29 +21,180 @@ class ReleaseOut(BaseModel):
     release_id: str
 
 
+def _owner(p: Any) -> bool:
+    return "*" in p.permissions
+
+
 @router.get("/studio/tables")
 async def studio_tables(p: PrincipalDep, db: DbDep) -> list[dict[str, Any]]:
-    """The Draft: tables and fields as the builder sees them."""
+    """The Draft: tables and fields as the builder sees them, with where each came from."""
     p.require("metadata.read")
-    async with db.tenant(p.tenant_id) as s:
-        tables = await draft.read_draft_tables(s)
-    return [
-        {
-            "key": t["key"],
-            "label": t["definition"]["label"],
-            "fields": [
-                {
-                    "key": f["key"],
-                    "label": f["label"],
-                    "type": f["type"],
-                    "required": f["required"],
-                    "source": f.get("source", "pack"),
-                }
-                for f in t["definition"]["fields"]
-            ],
-        }
-        for t in tables
-    ]
+    assert p.tenant_id
+    async with db.control() as s:
+        tables = await studio.read_draft(s, p.tenant_id, "table")
+    return tables
+
+
+@router.post("/studio/tables", status_code=201)
+async def create_table(
+    body: dict[str, Any], p: PrincipalDep, db: DbDep, request: Request
+) -> dict[str, Any]:
+    p.require("metadata.write")
+    assert p.tenant_id
+    async with db.control() as s:
+        return await studio.create_table(
+            s,
+            tenant_id=p.tenant_id,
+            user_id=p.user_id,
+            body=body,
+            request_id=get_request_id(request),
+        )
+
+
+@router.post("/studio/tables/{table}/fields", status_code=201)
+async def add_field(
+    table: str, body: dict[str, Any], p: PrincipalDep, db: DbDep, request: Request
+) -> dict[str, Any]:
+    p.require("metadata.write")
+    assert p.tenant_id
+    async with db.control() as s:
+        return await studio.add_field(
+            s,
+            tenant_id=p.tenant_id,
+            user_id=p.user_id,
+            table_key=table,
+            body=body,
+            request_id=get_request_id(request),
+        )
+
+
+@router.patch("/studio/tables/{table}/fields/{field}")
+async def update_field(
+    table: str, field: str, body: dict[str, Any], p: PrincipalDep, db: DbDep, request: Request
+) -> dict[str, Any]:
+    p.require("metadata.write")
+    assert p.tenant_id
+    async with db.control() as s:
+        return await studio.update_field(
+            s,
+            tenant_id=p.tenant_id,
+            user_id=p.user_id,
+            table_key=table,
+            field_key=field,
+            body=body,
+            request_id=get_request_id(request),
+        )
+
+
+@router.delete("/studio/tables/{table}/fields/{field}", status_code=204)
+async def remove_field(
+    table: str, field: str, p: PrincipalDep, db: DbDep, request: Request
+) -> Response:
+    p.require("metadata.write")
+    assert p.tenant_id
+    async with db.control() as s:
+        await studio.remove_field(
+            s,
+            tenant_id=p.tenant_id,
+            user_id=p.user_id,
+            table_key=table,
+            field_key=field,
+            request_id=get_request_id(request),
+        )
+    return Response(status_code=204)
+
+
+@router.get("/studio/screens")
+async def studio_screens(p: PrincipalDep, db: DbDep) -> list[dict[str, Any]]:
+    p.require("metadata.read")
+    assert p.tenant_id
+    async with db.control() as s:
+        return await studio.read_draft(s, p.tenant_id, "screen")
+
+
+@router.put("/studio/screens/{screen}")
+async def save_screen(
+    screen: str, body: dict[str, Any], p: PrincipalDep, db: DbDep, request: Request
+) -> dict[str, Any]:
+    p.require("metadata.write")
+    assert p.tenant_id
+    async with db.control() as s:
+        return await studio.save_screen(
+            s,
+            tenant_id=p.tenant_id,
+            user_id=p.user_id,
+            body={**body, "key": screen},
+            request_id=get_request_id(request),
+        )
+
+
+@router.get("/studio/navigation")
+async def studio_navigation(p: PrincipalDep, db: DbDep) -> list[dict[str, Any]]:
+    p.require("metadata.read")
+    assert p.tenant_id
+    async with db.control() as s:
+        items = await studio.read_draft(s, p.tenant_id, "nav")
+    return sorted(items, key=lambda n: (n.get("section", "main"), n.get("order", 100)))
+
+
+class NavIn(BaseModel):
+    items: list[dict[str, Any]]
+
+
+@router.put("/studio/navigation")
+async def save_navigation(
+    body: NavIn, p: PrincipalDep, db: DbDep, request: Request
+) -> list[dict[str, Any]]:
+    p.require("metadata.write")
+    assert p.tenant_id
+    async with db.control() as s:
+        return await studio.save_navigation(
+            s,
+            tenant_id=p.tenant_id,
+            user_id=p.user_id,
+            items=body.items,
+            request_id=get_request_id(request),
+        )
+
+
+async def _draft_manifest(db: Database, tenant_id: Any) -> dict[str, Any]:
+    async with db.tenant(tenant_id) as ts:
+        return await draft.build_manifest(ts)
+
+
+@router.get("/studio/status")
+async def studio_status(p: PrincipalDep, db: DbDep) -> dict[str, Any]:
+    """Whether the Draft differs from Live, and how."""
+    p.require("metadata.read")
+    assert p.tenant_id
+    d = await _draft_manifest(db, p.tenant_id)
+    async with db.control() as s:
+        live = await releases.environment_manifest(s, p.tenant_id, "live")
+    changes = diff_manifests(live[1] if live else {}, d)
+    return {
+        "live_version": live[0] if live else None,
+        "draft_changed": changes["changed"],
+        "changes": changes,
+    }
+
+
+@router.get("/apps/current/compare")
+async def compare(
+    p: PrincipalDep, db: DbDep, from_: Annotated[str, Query(alias="from")], to: str = "draft"
+) -> dict[str, Any]:
+    """Every changed table, field, screen, menu item and rule between two versions (or the Draft)."""
+    p.require("metadata.read")
+    assert p.tenant_id
+
+    async def load(v: str) -> dict[str, Any]:
+        if v == "draft":
+            return await _draft_manifest(db, p.tenant_id)
+        if not v.isdigit():
+            raise NotFound(f"There is no version {v}.")
+        async with db.control() as s:
+            return await releases.manifest_of(s, p.tenant_id, int(v))  # type: ignore[arg-type]
+
+    return {"from": from_, "to": to, **diff_manifests(await load(from_), await load(to))}
 
 
 @router.get("/apps/current/releases")
@@ -56,8 +209,7 @@ async def list_releases(p: PrincipalDep, db: DbDep) -> list[dict[str, Any]]:
 async def publish_test(p: PrincipalDep, db: DbDep, request: Request) -> dict[str, Any]:
     p.require("release.publish")
     assert p.tenant_id
-    async with db.tenant(p.tenant_id) as ts:
-        manifest = await draft.build_manifest(ts)
+    manifest = await _draft_manifest(db, p.tenant_id)
     async with db.control() as s:
         return await releases.publish_to_test(
             s,
@@ -68,16 +220,59 @@ async def publish_test(p: PrincipalDep, db: DbDep, request: Request) -> dict[str
         )
 
 
-@router.post("/apps/current/releases/{version}/promote", response_model=ReleaseOut)
-async def promote(version: int, p: PrincipalDep, db: DbDep, request: Request) -> dict[str, Any]:
+@router.post("/apps/current/releases/{version}/promote")
+async def promote(
+    version: int, p: PrincipalDep, db: DbDep, request: Request, response: Response
+) -> dict[str, Any]:
+    """Owners make a version Live at once; other builders ask an owner to approve it."""
     p.require("release.publish")
     assert p.tenant_id
     async with db.control() as s:
-        return await releases.promote_to_live(
+        if not _owner(p):
+            response.status_code = 202
+            return await releases.request_live(
+                s,
+                tenant_id=p.tenant_id,
+                user_id=p.user_id,
+                version=version,
+                request_id=get_request_id(request),
+            )
+        out = await releases.promote_to_live(
             s,
             tenant_id=p.tenant_id,
             user_id=p.user_id,
             version=version,
+            request_id=get_request_id(request),
+        )
+    return {**out, "status": "live"}
+
+
+@router.get("/apps/current/approvals")
+async def approvals(p: PrincipalDep, db: DbDep) -> list[dict[str, Any]]:
+    p.require("metadata.read")
+    assert p.tenant_id
+    async with db.control() as s:
+        return await releases.list_approvals(s, p.tenant_id)
+
+
+class DecisionIn(BaseModel):
+    approve: bool
+
+
+@router.post("/apps/current/approvals/{approval_id}")
+async def decide(
+    approval_id: uuid.UUID, body: DecisionIn, p: PrincipalDep, db: DbDep, request: Request
+) -> dict[str, Any]:
+    if not _owner(p):
+        raise PermissionDenied("Only a workspace owner can approve a version for Live.")
+    assert p.tenant_id
+    async with db.control() as s:
+        return await releases.decide_live(
+            s,
+            tenant_id=p.tenant_id,
+            user_id=p.user_id,
+            approval_id=approval_id,
+            approve=body.approve,
             request_id=get_request_id(request),
         )
 
@@ -101,6 +296,24 @@ async def live_table(table: str, app: LiveAppDep) -> dict[str, Any]:
     return {"release_version": app.release_version, "table": t.model_dump(mode="json")}
 
 
+@router.get("/app/tables/{table}/relations")
+async def live_relations(table: str, p: PrincipalDep, app: LiveAppDep) -> list[dict[str, Any]]:
+    """Tables that point at this one: they become related lists on its profile page."""
+    app.table(table)
+    return [
+        {
+            "table": t.key,
+            "label": t.plural_label,
+            "field": f.key,
+            "title_field": t.title_field,
+            "columns": [x.key for x in t.fields if not x.hidden and x.type != "long_text"][:5],
+        }
+        for t in app.tables.values()
+        for f in t.fields
+        if f.type == "reference" and f.ref_table == table and p.allows(f"record.{t.key}.read")
+    ]
+
+
 @router.get("/app/tables")
 async def live_tables(app: LiveAppDep) -> dict[str, Any]:
     return {
@@ -110,3 +323,60 @@ async def live_tables(app: LiveAppDep) -> dict[str, Any]:
             for t in app.tables.values()
         ],
     }
+
+
+def _visible(roles: list[str], role_key: str | None) -> bool:
+    return not roles or (role_key in roles)
+
+
+@router.get("/app/navigation")
+async def live_navigation(p: PrincipalDep, app: LiveAppDep) -> dict[str, Any]:
+    """Menu items for the signed-in user's role. Items whose table the user cannot read are left out."""
+    items = []
+    for n in app.navigation:
+        sc = app.screens.get(n.screen)
+        if sc is None or not _visible(n.roles, p.role_key) or not _visible(sc.roles, p.role_key):
+            continue
+        if not p.allows(f"record.{sc.table}.read"):
+            continue
+        items.append(
+            {
+                "key": n.key,
+                "label": n.label,
+                "icon": n.icon,
+                "section": n.section,
+                "screen": sc.key,
+                "pattern": sc.pattern,
+                "table": sc.table,
+            }
+        )
+    return {"release_version": app.release_version, "items": items}
+
+
+@router.get("/app/screens")
+async def live_screens(
+    p: PrincipalDep,
+    app: LiveAppDep,
+    table: str | None = None,
+    pattern: str | None = None,
+    source_table: str | None = None,
+) -> list[dict[str, Any]]:
+    """Screens of the live app (for example the profile of a table, or matches for a source table)."""
+    out = []
+    for sc in app.screens.values():
+        if not _visible(sc.roles, p.role_key) or not p.allows(f"record.{sc.table}.read"):
+            continue
+        if (table and sc.table != table) or (pattern and sc.pattern != pattern):
+            continue
+        if source_table and sc.config.get("source_table") != source_table:
+            continue
+        out.append(sc.model_dump(mode="json"))
+    return out
+
+
+@router.get("/app/screens/{screen}")
+async def live_screen(screen: str, p: PrincipalDep, app: LiveAppDep) -> dict[str, Any]:
+    sc = app.screens.get(screen)
+    if sc is None or not _visible(sc.roles, p.role_key):
+        raise NotFound(f"There is no screen '{screen}'.")
+    return {"release_version": app.release_version, "screen": sc.model_dump(mode="json")}

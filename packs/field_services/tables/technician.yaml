@@ -1,0 +1,8 @@
+key: technician
+label: Technician
+plural_label: Technicians
+title_field: name
+fields:
+  - {key: name, label: Name, type: text, required: true, searchable: true}
+  - {key: phone, label: Phone, type: phone}
+  - {key: skills, label: Skills, type: tags, searchable: true}

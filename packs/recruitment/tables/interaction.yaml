@@ -1,0 +1,11 @@
+key: interaction
+label: Interaction
+plural_label: Interactions
+title_field: summary
+fields:
+  - {key: summary, label: Summary, type: text, required: true, searchable: true}
+  - {key: kind, label: Kind, type: select, required: true, default: Call, options: [Call, Email, Meeting, WhatsApp, Note], filterable: true}
+  - {key: candidate, label: Candidate, type: reference, ref_table: candidate, filterable: true}
+  - {key: client, label: Client, type: reference, ref_table: client, filterable: true}
+  - {key: occurred_on, label: Date, type: date}
+  - {key: details, label: Details, type: long_text, searchable: true}

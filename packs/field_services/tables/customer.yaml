@@ -1,0 +1,9 @@
+key: customer
+label: Customer
+plural_label: Customers
+title_field: name
+fields:
+  - {key: name, label: Name, type: text, required: true, normalize: text, searchable: true}
+  - {key: phone, label: Phone, type: phone, normalize: phone, searchable: true}
+  - {key: email, label: Email, type: email, normalize: email, searchable: true}
+  - {key: address, label: Address, type: long_text, searchable: true}

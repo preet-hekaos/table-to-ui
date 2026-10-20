@@ -94,6 +94,20 @@ async def sign_up(
             )
             await s.execute(
                 text(
+                    "INSERT INTO control.tenant_role (tenant_id, key, name, description) "
+                    "VALUES (:t, 'admin', 'Administrator', 'Full access to everything in the workspace.')"
+                ),
+                {"t": tenant.id},
+            )
+            await s.execute(
+                text(
+                    "INSERT INTO control.tenant_role_grant (tenant_id, role_key, permission) "
+                    "VALUES (:t, 'admin', '*')"
+                ),
+                {"t": tenant.id},
+            )
+            await s.execute(
+                text(
                     "INSERT INTO control.membership (user_id, tenant_id, role_key) VALUES (:u, :t, 'admin')"
                 ),
                 {"u": user_id, "t": tenant.id},

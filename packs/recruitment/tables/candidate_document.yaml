@@ -1,0 +1,11 @@
+key: candidate_document
+label: Candidate document
+plural_label: Candidate documents
+title_field: file_name
+fields:
+  - {key: candidate, label: Candidate, type: reference, ref_table: candidate, required: true, filterable: true}
+  - {key: kind, label: Kind, type: select, required: true, default: CV, options: [CV, ID proof, Offer letter, Other], filterable: true}
+  - {key: file_name, label: File name, type: text, required: true}
+  - {key: file_id, label: File, type: text, hidden: true}
+  - {key: scan_status, label: Scan result, type: select, options: [pending, clean, infected, error], default: pending}
+  - {key: parsed_text, label: Parsed text, type: long_text, hidden: true, searchable: true}

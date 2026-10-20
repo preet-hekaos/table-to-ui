@@ -1,0 +1,18 @@
+{
+  "name": "Suresh Rao",
+  "email": "suresh.rao17@gmail.com",
+  "phone": "+916870203091",
+  "title": "Product Manager",
+  "employer": "Freshworks Technologies",
+  "location": "Hyderabad",
+  "experience_months": 192,
+  "skills": [
+    "Excel",
+    "Kubernetes",
+    "Angular",
+    "PostgreSQL",
+    "AWS",
+    "Django",
+    "Power BI"
+  ]
+}

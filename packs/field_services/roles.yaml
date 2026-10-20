@@ -1,0 +1,13 @@
+- key: dispatcher
+  name: Dispatcher
+  description: Books and assigns jobs.
+  grants: ["record.*.read", "record.*.create", "record.*.update"]
+- key: technician
+  name: Technician
+  description: Sees their own jobs.
+  grants: ["record.*.read", "record.job.update"]
+  scopes: {job: own}
+- key: viewer
+  name: Viewer
+  description: Read-only access.
+  grants: ["record.*.read"]
