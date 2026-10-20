@@ -20,6 +20,15 @@ uv run uvicorn tableui.main:create_app --factory --port 8000
 cd apps/web && pnpm install && pnpm dev        # http://localhost:5173
 ```
 
+On Windows `cmd`, set the variables one per line instead (they last for that window only):
+```bat
+set DATABASE_URL=postgresql+asyncpg://app:app@localhost:5432/tableui
+set ANALYTICS_DATABASE_URL=postgresql+asyncpg://app:app@localhost:5432/tableui_analytics
+set ENVIRONMENT=local
+set MAIL_BACKEND=log
+```
+In PowerShell use `$env:DATABASE_URL="..."` for each.
+
 Uploads are stored under `apps/api/var/files`. To scan them with ClamAV instead of the built-in EICAR signature check, run `docker compose --profile scan up -d clamav` and set `CLAMD_HOST=localhost`. CVs are read by the built-in parser; set `CV_PARSER=rchilli` and `RCHILLI_API_KEY` to use RChilli.
 
 Create the first platform operator (password on stdin, prints the authenticator secret):
