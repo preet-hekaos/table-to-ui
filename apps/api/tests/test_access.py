@@ -5,9 +5,9 @@ import uuid
 import httpx
 from sqlalchemy import text
 
-from tests.conftest import PASSWORD, Agency, candidate
 from tableui.platform.db import Database
 from tableui.platform.mail import InMemoryMailer
+from tests.conftest import PASSWORD, Agency, candidate
 
 
 async def _member(
