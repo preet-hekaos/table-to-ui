@@ -1,0 +1,171 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  api:
+    name: API (lint, types, boundaries, tests, isolation, OpenAPI)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U app" --health-interval 3s --health-timeout 3s --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgresql+asyncpg://app:app@localhost:5432/tableui_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: Lint (Ruff)
+        run: uv run ruff check . && uv run ruff format --check .
+      - name: Types (mypy strict)
+        run: uv run mypy src
+      - name: Module boundaries (import-linter)
+        run: uv run lint-imports
+      - name: Tests, including the tenant isolation suite
+        run: uv run pytest -v
+      - name: OpenAPI document is up to date
+        run: uv run python scripts/export_openapi.py --check
+
+  web:
+    name: Web (lint, types, unit and accessibility tests, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Generated API types are up to date
+        run: pnpm api:types && git diff --exit-code src/api/schema.d.ts
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - name: Unit and accessibility (axe) tests
+        run: pnpm test
+      - run: pnpm build
+
+  e2e:
+    name: End-to-end demo script (Playwright + axe)
+    runs-on: ubuntu-latest
+    needs: [api, web]
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U app" --health-interval 3s --health-timeout 3s --health-retries 20
+    env:
+      DATABASE_URL: postgresql+asyncpg://app:app@localhost:5432/tableui
+      ANALYTICS_DATABASE_URL: postgresql+asyncpg://app:app@localhost:5432/tableui_analytics
+      ENVIRONMENT: local
+      MAIL_BACKEND: log
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - name: Create databases
+        run: |
+          PGPASSWORD=app psql -h localhost -U app -d postgres -c 'create database tableui' -c 'create database tableui_analytics'
+      - name: Start the API
+        working-directory: apps/api
+        run: |
+          uv sync --frozen
+          uv run python -c "import asyncio; from tableui.platform.migrate import upgrade_control; asyncio.run(upgrade_control('$DATABASE_URL'))"
+          echo "OPS=$(printf 'correct-horse-battery\n' | uv run python -m tableui.ops.cli create-operator --email ops@platform.test --name 'Ops One' --non-interactive | tail -1)" >> "$GITHUB_ENV"
+          nohup uv run uvicorn tableui.main:create_app --factory --port 8000 > ../../api.log 2>&1 &
+      - name: Build and start the web app
+        working-directory: apps/web
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps chromium
+          nohup pnpm exec vite --port 5173 > ../../web.log 2>&1 &
+          npx --yes wait-on http://localhost:5173 http://localhost:8000/healthz
+      - name: Run the demo script
+        working-directory: apps/web
+        env:
+          OPS_EMAIL: ops@platform.test
+          OPS_PASSWORD: correct-horse-battery
+        run: |
+          export OPS_TOTP_SECRET="$(echo "$OPS" | sed -E 's/.*secret=([A-Z2-7]+).*/\1/')"
+          pnpm e2e
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+            api.log
+            web.log
+
+  security:
+    name: Dependency and secret scans
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Secret scan (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: astral-sh/setup-uv@v5
+      - name: Python dependency audit
+        working-directory: apps/api
+        run: uv export --frozen --no-dev --no-hashes -o /tmp/req.txt && uvx pip-audit -r /tmp/req.txt --no-deps --disable-pip
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - name: JavaScript dependency audit
+        working-directory: apps/web
+        run: pnpm audit --prod --audit-level high
+
+  terraform:
+    name: Terraform (format and validate)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform fmt -check -recursive infra
+      - run: |
+          cd infra/terraform/envs/dev
+          terraform init -backend=false
+          terraform validate
