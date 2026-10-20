@@ -66,7 +66,7 @@ TITLES = [
     "DevOps Engineer",
     "Tech Lead",
 ]
-PASSWORD = "correct-horse-battery"
+PASSWORD = "correct-horse-battery"  # noqa: S105 - benchmark data only
 HEADER = [
     "Name",
     "Email",
