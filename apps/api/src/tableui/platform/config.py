@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     outbox_poll_seconds: float = 1.0
     run_outbox_relay: bool = True
     cors_origins: list[str] = ["http://localhost:5173"]
+    mail_backend: str = "smtp"  # smtp | log
     smtp_host: str = "localhost"
     smtp_port: int = 1025
     mail_sender: str = "no-reply@tableui.local"

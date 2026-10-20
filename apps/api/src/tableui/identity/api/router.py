@@ -55,6 +55,7 @@ class MeResponse(BaseModel):
     role: str | None
     permissions: list[str]
     mfa_enabled: bool
+    mfa_verified: bool
 
 
 class InviteRequest(BaseModel):
@@ -156,6 +157,7 @@ async def me(p: PendingPrincipalDep) -> dict[str, Any]:
         "role": p.role_key,
         "permissions": sorted(p.permissions),
         "mfa_enabled": p.mfa_enabled,
+        "mfa_verified": p.mfa_verified,
     }
 
 
@@ -169,7 +171,7 @@ async def invite(
     mailer: MailerDep,
 ) -> dict[str, str]:
     async with db.control() as s:
-        inv = await invitations.send_invitation(
+        inv, link = await invitations.send_invitation(
             s,
             principal=p,
             email=body.email,
@@ -178,7 +180,10 @@ async def invite(
             mailer=mailer,
             request_id=get_request_id(request),
         )
-    return {"id": str(inv)}
+    out = {"id": str(inv)}
+    if settings.environment == "local":
+        out["dev_accept_link"] = link  # local development only; other environments email it
+    return out
 
 
 @router.get("/invitations/{token}", response_model=InvitationState)

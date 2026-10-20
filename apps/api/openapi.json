@@ -139,6 +139,10 @@
             "title": "Mfa Enabled",
             "type": "boolean"
           },
+          "mfa_verified": {
+            "title": "Mfa Verified",
+            "type": "boolean"
+          },
           "permissions": {
             "items": {
               "type": "string"
@@ -192,7 +196,8 @@
           "tenant_name",
           "role",
           "permissions",
-          "mfa_enabled"
+          "mfa_enabled",
+          "mfa_verified"
         ],
         "title": "MeResponse",
         "type": "object"

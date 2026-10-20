@@ -27,6 +27,13 @@ class SmtpMailer:
         await asyncio.to_thread(_send)
 
 
+class LogMailer:
+    """Development backend: prints messages instead of sending them."""
+
+    async def send(self, *, to: str, subject: str, body: str) -> None:
+        print(f"[mail] to={to} subject={subject}\n{body}")  # noqa: T201
+
+
 @dataclass
 class InMemoryMailer:
     sent: list[dict[str, str]] = field(default_factory=list)

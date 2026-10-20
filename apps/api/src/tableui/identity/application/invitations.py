@@ -34,7 +34,8 @@ async def send_invitation(
     settings: Settings,
     mailer: Mailer,
     request_id: str | None,
-) -> uuid.UUID:
+) -> tuple[uuid.UUID, str]:
+    """Returns (invitation id, accept link). The link is emailed; callers expose it only in local dev."""
     principal.require("invitation.send")
     assert principal.tenant_id is not None
     email = email.strip().lower()
@@ -91,7 +92,7 @@ async def send_invitation(
             f"Accept the invitation (valid for {settings.invitation_ttl_days} days):\n{link}\n"
         ),
     )
-    return inv_id
+    return inv_id, link
 
 
 async def describe_invitation(s: AsyncSession, token: str) -> InvitationInfo:

@@ -28,7 +28,7 @@ from tableui.ops.api.router import router as ops_router
 from tableui.platform.config import Settings, get_settings
 from tableui.platform.db import Database
 from tableui.platform.errors import ProblemError, TenantContextMissing
-from tableui.platform.mail import Mailer, SmtpMailer
+from tableui.platform.mail import LogMailer, Mailer, SmtpMailer
 from tableui.platform.messaging import LocalBus, Publisher
 from tableui.platform.web import new_request_id
 from tableui.query.api.router import router as query_router
@@ -66,8 +66,10 @@ def create_app(
         app.state.settings = settings
         app.state.db = db or Database(settings.database_url)
         app.state.analytics = analytics or Database(settings.analytics_database_url, pool_size=5)
-        app.state.mailer = mailer or SmtpMailer(
-            settings.smtp_host, settings.smtp_port, settings.mail_sender
+        app.state.mailer = mailer or (
+            LogMailer()
+            if settings.mail_backend == "log"
+            else SmtpMailer(settings.smtp_host, settings.smtp_port, settings.mail_sender)
         )
         app.state.org = identity.LocalOrganisationProvider()
         pack = metadata.load_pack(settings.pack_dir)  # fail fast on a broken pack
