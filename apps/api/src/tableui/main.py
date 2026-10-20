@@ -15,6 +15,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import tableui.approvals.public as approvals
 import tableui.catalog.public as catalog
 import tableui.commands.public as commands
 import tableui.files.public as files
@@ -234,6 +235,7 @@ def create_app(
         search.router,
         matching.router,
         workflow.router,
+        approvals.router,
         catalog.router,
     ):
         app.include_router(r)

@@ -19,6 +19,7 @@ MODULES = [
     "search",
     "matching",
     "workflow",
+    "approvals",
 ]
 
 

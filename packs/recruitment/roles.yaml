@@ -9,7 +9,7 @@
 - key: recruiter
   name: Recruiter
   description: Works candidates against requirements. Sees their own and their team's candidates.
-  grants: ["record.*.read", "record.candidate.create", "record.candidate.update", "record.candidate_document.create", "record.submission.create", "record.submission.update", "record.interview.create", "record.interview.update", "record.interaction.create", "record.task.create", "record.task.update", "record.consent_record.create", measure.read, document.upload]
+  grants: ["record.*.read", "record.candidate.create", "record.candidate.update", "record.candidate_document.create", "record.submission.create", "record.submission.update", "record.interview.create", "record.interview.update", "record.offer.create", "record.offer.update", "record.placement.create", "record.placement.update", "record.interaction.create", "record.task.create", "record.task.update", "record.consent_record.create", measure.read, document.upload]
   scopes: {candidate: own_team}
 - key: sourcer
   name: Sourcer
