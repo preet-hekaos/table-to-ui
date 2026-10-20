@@ -17,3 +17,18 @@ Both scripts live in `apps/api/scripts`; raw results are the JSON files here.
 80,686 requests, **0 errors**, 134 requests/s sustained, 8,098 records created.
 
 Read this as a floor, not a capacity claim: the API (one uvicorn worker), Postgres, the web dev server and the load generator all shared one small sandbox, so latency here is mostly queueing on a single worker. The same script will be re-run against AWS dev once it exists, with several API replicas, and that run becomes the real baseline.
+
+## M1 gates (M1 PRD section 5) — `m1.json`
+`apps/api/scripts/bench_m1.py`: one fresh recruitment workspace, 50,000 candidates imported through the import API (then 200 sequential samples per gate). API, Postgres and generator share one small sandbox, so treat this as a floor; the run is repeated on AWS dev once it exists.
+
+| Gate | Target | Measured | |
+|---|---|---|---|
+| Screen load (navigation, screen, table, first 50 rows, facets, in parallel) | p95 < 800 ms | **p95 602 ms** (p50 492) | pass |
+| Saving a record | p95 < 300 ms | **p95 29 ms** | pass |
+| Lists and filters | p95 < 600 ms | **p95 73 ms** | pass |
+| Keyword search (fields and CV text, typos) | p95 < 500 ms | **p95 54 ms** | pass |
+| Import 50,000 rows | < 15 min | **14 min 38 s** end to end (load 14 min 8 s), 0 failed | pass, narrowly |
+| 200,000-row file accepted | accepted | profiled and validated, 200,000 valid | pass |
+| Command bar (S24) | < 300 ms | **p95 109 ms** | pass |
+
+Not a PRD gate, but worth knowing: ranked matches over 34,266 candidates that pass the hard filters take p95 2.0 s. It is fine for a screen opened once per requirement; narrowing candidates in SQL before scoring is the obvious next step if recruiters find it slow. The import is close to its limit, so a slower disk on AWS dev could breach 15 minutes; batch size is the first thing to tune.
