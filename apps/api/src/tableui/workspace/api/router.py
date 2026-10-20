@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 from sqlalchemy import text
 
-from tableui.catalog.public import PackCatalog
+from tableui.catalog.public import PackCatalog, available_updates
 from tableui.identity.api.deps import PrincipalDep
 from tableui.platform.db import Database
 from tableui.platform.web import get_db, get_request_id
@@ -127,6 +127,8 @@ async def home(p: PrincipalDep, db: DbDep) -> dict[str, Any]:
             ).all()
         }
     settings = t.settings or {}
+    async with db.control() as s:
+        updates = await available_updates(s, p.tenant_id)
     checklist = [
         {
             "key": "import",
@@ -160,7 +162,7 @@ async def home(p: PrincipalDep, db: DbDep) -> dict[str, Any]:
         "release_version": live,
         "step": t.onboarding_step,
         "checklist": checklist,
-        "pack_updates": [],
+        "pack_updates": updates,
     }
 
 

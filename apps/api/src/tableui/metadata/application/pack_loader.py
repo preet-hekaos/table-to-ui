@@ -249,14 +249,36 @@ def _check_generality(
                 issues.append(PackIssue(f"screen {s.key}", "config.source_table", "unknown table"))
             for i, part in enumerate(s.config.get("parts", [])):
                 if part.get("kind") not in ("overlap", "within", "same", "at_most"):
-                    issues.append(PackIssue(f"screen {s.key}", f"config.parts.{i}.kind", "must be overlap, within, same or at_most"))
+                    issues.append(
+                        PackIssue(
+                            f"screen {s.key}",
+                            f"config.parts.{i}.kind",
+                            "must be overlap, within, same or at_most",
+                        )
+                    )
                 if tgt and tgt.field(part.get("target", "")) is None:
-                    issues.append(PackIssue(f"screen {s.key}", f"config.parts.{i}.target", f"unknown field '{part.get('target')}'"))
+                    issues.append(
+                        PackIssue(
+                            f"screen {s.key}",
+                            f"config.parts.{i}.target",
+                            f"unknown field '{part.get('target')}'",
+                        )
+                    )
                 for k in ("source", "source_min", "source_max"):
                     if src and part.get(k) and src.field(part[k]) is None:
-                        issues.append(PackIssue(f"screen {s.key}", f"config.parts.{i}.{k}", f"unknown field '{part[k]}'"))
+                        issues.append(
+                            PackIssue(
+                                f"screen {s.key}",
+                                f"config.parts.{i}.{k}",
+                                f"unknown field '{part[k]}'",
+                            )
+                        )
         if s.pattern == "profile":
-            for k in ("preview", *[f"badges.{i}" for i in range(len(s.config.get("badges", [])))], *[f"timeline.{i}" for i in range(len(s.config.get("timeline", [])))]):
+            for k in (
+                "preview",
+                *[f"badges.{i}" for i in range(len(s.config.get("badges", [])))],
+                *[f"timeline.{i}" for i in range(len(s.config.get("timeline", [])))],
+            ):
                 head, _, idx = k.partition(".")
                 spec = s.config.get(head)
                 if spec is None:
@@ -265,7 +287,13 @@ def _check_generality(
                 other = by_key.get(str(spec.get("table", "")))
                 via = other.field(spec.get("via", "")) if other else None
                 if via is None or via.ref_table != s.table:
-                    issues.append(PackIssue(f"screen {s.key}", f"config.{k}", f"must name a table that links to '{s.table}'"))
+                    issues.append(
+                        PackIssue(
+                            f"screen {s.key}",
+                            f"config.{k}",
+                            f"must name a table that links to '{s.table}'",
+                        )
+                    )
         if s.pattern == "document_review":
             doc = by_key.get(str(s.config.get("document_table", "")))
             if doc is None:

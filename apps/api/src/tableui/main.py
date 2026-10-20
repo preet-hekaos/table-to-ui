@@ -232,6 +232,7 @@ def create_app(
         imports.router,
         search.router,
         matching.router,
+        catalog.router,
     ):
         app.include_router(r)
     return app

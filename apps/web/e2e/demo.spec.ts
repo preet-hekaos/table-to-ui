@@ -174,6 +174,9 @@ test('M0 demo script', async ({ browser }) => {
     await expect(table).toContainText(northstar.agency)
     await expect(table).toContainText(crestline.agency)
     await expect(o.page.locator('body')).not.toContainText('Arjun')
+    // S27: the pack catalog lists each pack with its fixtures.
+    await o.page.getByRole('navigation', { name: 'Operations' }).getByRole('link', { name: 'Packs' }).click()
+    await expect(o.page.getByRole('table', { name: 'Packs' })).toContainText('Recruitment agency')
     await o.ctx.close()
   })
 

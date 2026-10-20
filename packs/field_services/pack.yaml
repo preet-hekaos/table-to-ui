@@ -12,3 +12,4 @@ screens:
   - screens/technicians.yaml
   - screens/jobs.yaml
 navigation: navigation.yaml
+fixtures: fixtures.yaml

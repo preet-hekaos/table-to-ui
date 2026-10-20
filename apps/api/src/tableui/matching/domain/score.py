@@ -131,6 +131,13 @@ def rank(
     scored: list[tuple[float, str, str, dict[str, Any]]] = []
     for cid, data in pool:
         s, detail = score_one(parts, src, data)
-        scored.append((-s, str(data.get(title_field) or "").lower(), cid, {"id": cid, "score": s, "parts": detail, "data": data}))
+        scored.append(
+            (
+                -s,
+                str(data.get(title_field) or "").lower(),
+                cid,
+                {"id": cid, "score": s, "parts": detail, "data": data},
+            )
+        )
     scored.sort(key=lambda x: (x[0], x[1], x[2]))
     return [x[3] for x in scored]

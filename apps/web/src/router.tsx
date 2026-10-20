@@ -16,7 +16,7 @@ import { ScreenView } from '@/features/screens/ScreenView'
 import { RecordsList } from '@/features/records/RecordsList'
 import { Home } from '@/features/home/Home'
 import { Onboarding, onboardingKey } from '@/features/onboarding/Onboarding'
-import { OpsShell, OpsSignIn, TenantDirectory } from '@/features/ops/Ops'
+import { OpsShell, OpsSignIn, PackCatalog, TenantDirectory } from '@/features/ops/Ops'
 import { Activity } from '@/features/studio/Activity'
 import { ImportWizard } from '@/features/imports/ImportWizard'
 import { RankedList } from '@/patterns/RankedList'
@@ -152,6 +152,7 @@ const team = createRoute({ getParentRoute: () => shell, path: '/team', component
 const opsSignIn = createRoute({ getParentRoute: () => root, path: '/ops/sign-in', component: OpsSignIn })
 const opsShell = createRoute({ getParentRoute: () => root, id: 'ops', component: OpsShell })
 const opsTenants = createRoute({ getParentRoute: () => opsShell, path: '/ops/tenants', component: TenantDirectory })
+const opsPacks = createRoute({ getParentRoute: () => opsShell, path: '/ops/packs', component: PackCatalog })
 
 const tree = root.addChildren([
   signUp,
@@ -160,7 +161,7 @@ const tree = root.addChildren([
   accept,
   shell.addChildren([onboarding, home, screenRoute, list, create, detail, edit, studio, importRoute, matchRoute, activity, security, team, settings]),
   opsSignIn,
-  opsShell.addChildren([opsTenants]),
+  opsShell.addChildren([opsTenants, opsPacks]),
 ])
 
 export const makeRouter = (queryClient: QueryClient) => createRouter({ routeTree: tree, context: { queryClient }, defaultPreload: 'intent' })

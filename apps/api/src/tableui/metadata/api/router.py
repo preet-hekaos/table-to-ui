@@ -355,7 +355,11 @@ async def live_navigation(p: PrincipalDep, app: LiveAppDep) -> dict[str, Any]:
 
 @router.get("/app/screens")
 async def live_screens(
-    p: PrincipalDep, app: LiveAppDep, table: str | None = None, pattern: str | None = None, source_table: str | None = None
+    p: PrincipalDep,
+    app: LiveAppDep,
+    table: str | None = None,
+    pattern: str | None = None,
+    source_table: str | None = None,
 ) -> list[dict[str, Any]]:
     """Screens of the live app (for example the profile of a table, or matches for a source table)."""
     out = []

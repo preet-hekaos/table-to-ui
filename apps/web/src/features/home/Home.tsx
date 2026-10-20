@@ -1,8 +1,8 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { ApiError } from '@/api/client'
 import { admin, app } from '@/api/endpoints'
-import { Badge, Card, CardTitle, EmptyState, ErrorState, LoadingState } from '@/design-system'
+import { Badge, Button, Card, CardTitle, EmptyState, ErrorState, LoadingState, useToast } from '@/design-system'
 import { CheckCircle2, Circle } from 'lucide-react'
 import { can, useMe } from '@/features/auth/useMe'
 
@@ -44,10 +44,36 @@ function SetupCard() {
           <dt className="text-muted">Pack updates</dt>
           <dd className="text-ink">{h.pack_updates.length ? `${h.pack_updates.length} available` : 'Up to date'}</dd>
         </dl>
+        {h.pack_updates.map((u) => <PackUpdate key={u.version} u={u} />)}
         <Link to="/studio" className="mt-3 inline-block text-sm font-semibold text-accent-ink hover:underline">
           Open the Studio
         </Link>
       </Card>
+    </div>
+  )
+}
+
+function PackUpdate({ u }: { u: { pack_id: string; version: string; title: string; from: string } }) {
+  const me = useMe()
+  const qc = useQueryClient()
+  const toast = useToast()
+  const accept = useMutation({
+    mutationFn: () => admin.acceptUpdate(u.version),
+    onSuccess: async (r) => {
+      const n = Object.values(r.changes).reduce((a, b) => a + b.length, 0)
+      toast({ title: `Update ${u.version} is in your Draft`, description: `${n} changes. Review and publish them in the Studio.`, tone: 'ok' })
+      await qc.invalidateQueries({ queryKey: ['ws-home'] })
+    },
+    onError: (e) => toast({ title: 'Could not take the update', description: (e as Error).message, tone: 'bad' }),
+  })
+  return (
+    <div className="mt-3 rounded-md border border-line p-2 text-sm" data-testid="pack-update">
+      <b className="text-ink">{u.title} {u.version}</b> <span className="text-muted">(you have {u.from})</span>
+      {me.data?.permissions.includes('*') ? (
+        <Button size="sm" className="mt-2 w-full" onClick={() => accept.mutate()} loading={accept.isPending}>Take this update</Button>
+      ) : (
+        <p className="text-xs text-muted">An owner can take this update.</p>
+      )}
     </div>
   )
 }
