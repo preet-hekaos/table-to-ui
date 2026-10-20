@@ -8,7 +8,7 @@ from typing import Any
 from sqlalchemy import text
 
 from tableui.audit.public import read_history
-from tableui.identity.public import Principal
+from tableui.identity.public import Principal, scope_predicate, strip_hidden
 from tableui.metadata.public import RuntimeApp, TableDef
 from tableui.platform.db import Database
 from tableui.platform.errors import NotFound, ValidationFailed
@@ -46,12 +46,13 @@ def _decode(cursor: str) -> tuple[Any, str]:
     return value, rid
 
 
-def _row(table: TableDef, r: Any) -> dict[str, Any]:
+def _row(table: TableDef, r: Any, p: Principal | None = None) -> dict[str, Any]:
+    data = strip_hidden(p, table.key, r.data) if p else r.data
     return {
         "id": str(r.id),
         "table": table.key,
         "version": r.version,
-        "data": r.data,
+        "data": data,
         "created_at": r.created_at.isoformat(),
         "updated_at": r.updated_at.isoformat(),
     }
@@ -77,12 +78,17 @@ async def list_records(
     limit = max(1, min(limit, MAX_PAGE))
     expr, sql_type = _sort_spec(table, sort)
     op = ">" if direction == "asc" else "<"
-    where = ""
+    conds: list[str] = []
     params: dict[str, Any] = {"lim": limit + 1}
+    scope_sql, scope_params = await scope_predicate(db, principal, table_key)
+    if scope_sql:
+        conds.append(scope_sql)
+        params |= scope_params
     if cursor:
         value, rid = _decode(cursor)
-        where = f"WHERE ({expr}, id) {op} (CAST(:cv AS {sql_type}), CAST(:cid AS uuid))"
+        conds.append(f"({expr}, id) {op} (CAST(:cv AS {sql_type}), CAST(:cid AS uuid))")
         params |= {"cv": value, "cid": rid}
+    where = f"WHERE {' AND '.join(conds)}" if conds else ""
     sql = (
         f'SELECT id, version, data, created_at, updated_at, {expr} AS sort_value FROM "{table_key}" '  # noqa: S608 - identifiers are validated metadata keys
         f"{where} ORDER BY {expr} {direction}, id {direction} LIMIT :lim"
@@ -100,7 +106,7 @@ async def list_records(
             else (float(v) if sql_type == "numeric" else v),
             str(last.id),
         )
-    return {"items": [_row(table, r) for r in page], "next_cursor": next_cursor}
+    return {"items": [_row(table, r, principal) for r in page], "next_cursor": next_cursor}
 
 
 async def get_record(
@@ -108,18 +114,20 @@ async def get_record(
 ) -> dict[str, Any]:
     principal.require(f"record.{table_key}.read")
     table = app.table(table_key)
+    scope_sql, scope_params = await scope_predicate(db, principal, table_key)
     async with db.tenant(principal.tenant_id) as s:
         r = (
             await s.execute(
                 text(
-                    f'SELECT id, version, data, created_at, updated_at FROM "{table_key}" WHERE id = :i'  # noqa: S608 - identifiers are validated metadata keys
+                    f'SELECT id, version, data, created_at, updated_at FROM "{table_key}" '  # noqa: S608 - identifiers are validated metadata keys
+                    f"WHERE id = :i{' AND ' + scope_sql if scope_sql else ''}"
                 ),
-                {"i": record_id},
+                {"i": record_id, **scope_params},
             )
         ).first()
     if r is None:
         raise NotFound("That record does not exist.")
-    return _row(table, r)
+    return _row(table, r, principal)
 
 
 async def get_history(
@@ -127,10 +135,17 @@ async def get_history(
 ) -> list[dict[str, Any]]:
     principal.require(f"record.{table_key}.read")
     app.table(table_key)
+    scope_sql, scope_params = await scope_predicate(db, principal, table_key)
     async with db.tenant(principal.tenant_id) as s:
         entries = await read_history(s, table_key, record_id)
         exists = (
-            await s.execute(text(f'SELECT 1 FROM "{table_key}" WHERE id = :i'), {"i": record_id})  # noqa: S608 - identifiers are validated metadata keys
+            await s.execute(
+                text(
+                    f'SELECT 1 FROM "{table_key}" WHERE id = :i'  # noqa: S608 - identifiers are validated metadata keys
+                    f"{' AND ' + scope_sql if scope_sql else ''}"
+                ),
+                {"i": record_id, **scope_params},
+            )
         ).first()
     if not exists:
         raise NotFound("That record does not exist.")
@@ -151,8 +166,8 @@ async def get_history(
         {
             "seq": e.seq,
             "action": e.action,
-            "before": e.before,
-            "after": e.after,
+            "before": strip_hidden(principal, table_key, e.before),
+            "after": strip_hidden(principal, table_key, e.after),
             "actor_id": e.actor_id,
             "actor_name": names.get(e.actor_id),
             "app_version": e.app_version,

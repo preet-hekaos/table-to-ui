@@ -16,7 +16,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tableui.audit.public import append_history, write_audit
-from tableui.identity.public import Principal
+from tableui.identity.public import Principal, hidden_fields, scope_predicate, strip_hidden
 from tableui.metadata.public import (
     RuntimeApp,
     TableDef,
@@ -58,12 +58,12 @@ def _hash(command: str, payload: dict[str, Any]) -> str:
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
-def _record_body(table: TableDef, row: Any) -> dict[str, Any]:
+def _record_body(table: TableDef, row: Any, p: Principal) -> dict[str, Any]:
     return {
         "id": str(row.id),
         "table": table.key,
         "version": row.version,
-        "data": row.data,
+        "data": strip_hidden(p, table.key, row.data),
         "created_at": row.created_at.isoformat(),
         "updated_at": row.updated_at.isoformat(),
     }
@@ -99,6 +99,38 @@ def _raise_if_blocked(outcomes: list[Outcome]) -> list[dict[str, Any]]:
             },
         )
     return [o.as_dict() for o in outcomes]
+
+
+def _reject_hidden_writes(ctx: CommandContext, table: TableDef, payload: dict[str, Any]) -> None:
+    denied = sorted(hidden_fields(ctx.principal, table.key) & set(payload))
+    if denied:
+        raise ValidationFailed(
+            errors=[
+                {"field": k, "code": "not_allowed", "message": "your role cannot change this field"}
+                for k in denied
+            ]
+        )
+
+
+async def _check_references(s: AsyncSession, table: TableDef, data: dict[str, Any]) -> None:
+    errors = []
+    for f in table.fields:
+        v = data.get(f.key)
+        if f.type != "reference" or not v or not f.ref_table:
+            continue
+        found = (
+            await s.execute(text(f'SELECT 1 FROM "{f.ref_table}" WHERE id = :i'), {"i": v})  # noqa: S608 - identifiers are validated metadata keys
+        ).first()
+        if found is None:
+            errors.append(
+                {
+                    "field": f.key,
+                    "code": "unknown_reference",
+                    "message": f"that {f.ref_table} does not exist",
+                }
+            )
+    if errors:
+        raise ValidationFailed(errors=errors)
 
 
 async def _claim_idempotency(
@@ -179,6 +211,7 @@ async def create_record(
     """``<table>.create``. Retries once through rules if the unique-index backstop fires."""
     ctx.principal.require(f"record.{table_key}.create")
     table = ctx.app.table(table_key)
+    _reject_hidden_writes(ctx, table, payload)
     clean, errors = validate_record(table, payload, partial=False)
     if errors:
         raise ValidationFailed(errors=errors)
@@ -191,6 +224,7 @@ async def create_record(
             replay = await _claim_idempotency(s, ctx, request_hash)
             if replay:
                 return replay
+            await _check_references(s, table, clean)
             warnings = _raise_if_blocked(
                 await _evaluate_rules(s, ctx, table, "create", clean, shadow, None)
             )
@@ -237,7 +271,7 @@ async def create_record(
                 request_id=ctx.request_id,
             )
             await _emit(s, ctx, table, f"{table_key}.created", record_id, row.version, clean)
-            result = CommandResult(201, _record_body(table, row), warnings=warnings)
+            result = CommandResult(201, _record_body(table, row, ctx.principal), warnings=warnings)
             result.body["warnings"] = warnings
             await _store_idempotency(s, ctx, result)
             return result
@@ -259,6 +293,7 @@ async def update_record(
     """``<table>.update`` with optimistic concurrency."""
     ctx.principal.require(f"record.{table_key}.update")
     table = ctx.app.table(table_key)
+    _reject_hidden_writes(ctx, table, payload)
     patch, errors = validate_record(table, payload, partial=True)
     if errors:
         raise ValidationFailed(errors=errors)
@@ -267,6 +302,7 @@ async def update_record(
     request_hash = _hash(
         f"{table_key}.update", {"id": str(record_id), "v": expected_version, "p": payload}
     )
+    scope_sql, scope_params = await scope_predicate(db, ctx.principal, table_key)
     try:
         async with db.tenant(tenant_id) as s:
             replay = await _claim_idempotency(s, ctx, request_hash)
@@ -274,8 +310,11 @@ async def update_record(
                 return replay
             current = (
                 await s.execute(
-                    text(f'SELECT id, version, data FROM "{table_key}" WHERE id = :id FOR UPDATE'),  # noqa: S608 - identifiers are validated metadata keys
-                    {"id": record_id},
+                    text(
+                        f'SELECT id, version, data FROM "{table_key}" WHERE id = :id'  # noqa: S608 - identifiers are validated metadata keys
+                        f"{' AND ' + scope_sql if scope_sql else ''} FOR UPDATE"
+                    ),
+                    {"id": record_id, **scope_params},
                 )
             ).first()
             if current is None:
@@ -290,6 +329,7 @@ async def update_record(
             merged_clean, errs = validate_record(table, after, partial=False)
             if errs:
                 raise ValidationFailed(errors=errs)
+            await _check_references(s, table, merged_clean)
             shadow = shadow_columns(table, merged_clean)
             warnings = _raise_if_blocked(
                 await _evaluate_rules(s, ctx, table, "update", merged_clean, shadow, record_id)
@@ -334,7 +374,7 @@ async def update_record(
                 request_id=ctx.request_id,
             )
             await _emit(s, ctx, table, f"{table_key}.updated", record_id, row.version, merged_clean)
-            result = CommandResult(200, _record_body(table, row), warnings=warnings)
+            result = CommandResult(200, _record_body(table, row, ctx.principal), warnings=warnings)
             result.body["warnings"] = warnings
             await _store_idempotency(s, ctx, result)
             return result

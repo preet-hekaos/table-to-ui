@@ -16,11 +16,15 @@ from tableui.identity.application.invitations import (
     describe_invitation,
     send_invitation,
 )
+from tableui.identity.application.scope import hidden_fields, scope_predicate, strip_hidden
 from tableui.identity.application.sessions import authenticate, create_session, revoke
 from tableui.identity.domain.ports import OrganisationProvider, TenantProvisioner
 from tableui.identity.domain.principal import Principal
 
 __all__ = [
+    "hidden_fields",
+    "scope_predicate",
+    "strip_hidden",
     "ISSUER_NAME",
     "InvitationInfo",
     "LocalOrganisationProvider",
