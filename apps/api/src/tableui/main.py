@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import tableui.approvals.public as approvals
 import tableui.catalog.public as catalog
 import tableui.commands.public as commands
+import tableui.duplicates.public as duplicates
 import tableui.files.public as files
 import tableui.identity.public as identity
 import tableui.imports.public as imports
@@ -236,6 +237,7 @@ def create_app(
         matching.router,
         workflow.router,
         approvals.router,
+        duplicates.router,
         catalog.router,
     ):
         app.include_router(r)
