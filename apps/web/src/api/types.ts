@@ -2,7 +2,7 @@
 export interface FieldDef {
   key: string
   label: string
-  type: 'text' | 'long_text' | 'email' | 'phone' | 'integer' | 'decimal' | 'boolean' | 'date' | 'select' | 'url'
+  type: 'text' | 'long_text' | 'email' | 'phone' | 'integer' | 'decimal' | 'boolean' | 'date' | 'select' | 'url' | 'money' | 'months' | 'tags' | 'reference'
   required: boolean
   group: string | null
   options: string[]
@@ -12,6 +12,12 @@ export interface FieldDef {
   max_length: number | null
   normalize: 'text' | 'email' | 'phone' | null
   unique: boolean
+  hidden?: boolean
+  ref_table?: string | null
+  searchable?: boolean
+  filterable?: boolean
+  source?: 'pack' | 'agency'
+  help?: string | null
 }
 export interface TableDef {
   key: string

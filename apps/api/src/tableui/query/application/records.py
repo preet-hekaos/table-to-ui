@@ -31,6 +31,33 @@ def _sort_spec(table: TableDef, key: str) -> tuple[str, str]:
     return f"COALESCE(data->>'{key}', '')", "text"
 
 
+def _filter_conditions(
+    principal: Principal, table: TableDef, filters: dict[str, str], q: str | None
+) -> tuple[list[str], dict[str, Any]]:
+    """Equality filters on fields and a keyword search over the searchable text. Only known keys reach SQL."""
+    conds: list[str] = []
+    params: dict[str, Any] = {}
+    hidden = {f for (t, f) in principal.field_denies if t == table.key}
+    for i, (key, value) in enumerate(filters.items()):
+        f = table.field(key)
+        if f is None or key in hidden:
+            raise ValidationFailed(
+                errors=[{"field": key, "code": "unknown", "message": "cannot be filtered on"}]
+            )
+        if f.type == "tags":
+            conds.append(f"data->'{key}' @> CAST(:flt{i} AS jsonb)")
+            params[f"flt{i}"] = json.dumps([value])
+        else:
+            conds.append(f"data->>'{key}' = :flt{i}")
+            params[f"flt{i}"] = value
+    if q and q.strip():
+        conds.append(
+            "(search_doc ILIKE '%' || :q || '%' OR public.word_similarity(:q, search_doc) > 0.45)"
+        )
+        params["q"] = q.strip().lower()
+    return conds, params
+
+
 def _encode(value: Any, rid: str) -> str:
     return base64.urlsafe_b64encode(json.dumps([value, rid]).encode()).decode()
 
@@ -58,6 +85,36 @@ def _row(table: TableDef, r: Any, p: Principal | None = None) -> dict[str, Any]:
     }
 
 
+async def _attach_refs(
+    s: Any, app: RuntimeApp, table: TableDef, items: list[dict[str, Any]]
+) -> None:
+    """Add ``refs``: the title of every record a reference field points at, for display."""
+    for f in table.fields:
+        if f.type != "reference" or not f.ref_table or f.ref_table not in app.tables:
+            continue
+        ids = {i["data"].get(f.key) for i in items if i["data"].get(f.key)}
+        if not ids:
+            continue
+        target = app.tables[f.ref_table]
+        rows = (
+            await s.execute(
+                text(
+                    f'SELECT id, data FROM "{target.key}" WHERE id = ANY(CAST(:ids AS uuid[]))'  # noqa: S608 - identifiers are validated metadata keys
+                ),
+                {"ids": list(ids)},
+            )
+        ).all()
+        labels = {str(r.id): (r.data or {}).get(target.title_field) for r in rows}
+        for i in items:
+            v = i["data"].get(f.key)
+            if v:
+                i.setdefault("refs", {})[f.key] = {
+                    "table": target.key,
+                    "id": v,
+                    "label": labels.get(v),
+                }
+
+
 async def list_records(
     db: Database,
     principal: Principal,
@@ -68,6 +125,8 @@ async def list_records(
     direction: str = "desc",
     cursor: str | None = None,
     limit: int = 50,
+    filters: dict[str, str] | None = None,
+    q: str | None = None,
 ) -> dict[str, Any]:
     principal.require(f"record.{table_key}.read")
     table = app.table(table_key)
@@ -84,6 +143,9 @@ async def list_records(
     if scope_sql:
         conds.append(scope_sql)
         params |= scope_params
+    conds_f, params_f = _filter_conditions(principal, table, filters or {}, q)
+    conds += conds_f
+    params |= params_f
     if cursor:
         value, rid = _decode(cursor)
         conds.append(f"({expr}, id) {op} (CAST(:cv AS {sql_type}), CAST(:cid AS uuid))")
@@ -96,6 +158,9 @@ async def list_records(
     async with db.tenant(principal.tenant_id) as s:
         rows = (await s.execute(text(sql), params)).all()
     page = rows[:limit]
+    items = [_row(table, r, principal) for r in page]
+    async with db.tenant(principal.tenant_id) as s:
+        await _attach_refs(s, app, table, items)
     next_cursor = None
     if len(rows) > limit and page:
         last = page[-1]
@@ -106,7 +171,7 @@ async def list_records(
             else (float(v) if sql_type == "numeric" else v),
             str(last.id),
         )
-    return {"items": [_row(table, r, principal) for r in page], "next_cursor": next_cursor}
+    return {"items": items, "next_cursor": next_cursor}
 
 
 async def get_record(
@@ -125,9 +190,11 @@ async def get_record(
                 {"i": record_id, **scope_params},
             )
         ).first()
-    if r is None:
-        raise NotFound("That record does not exist.")
-    return _row(table, r, principal)
+        if r is None:
+            raise NotFound("That record does not exist.")
+        out = _row(table, r, principal)
+        await _attach_refs(s, app, table, [out])
+    return out
 
 
 async def get_history(

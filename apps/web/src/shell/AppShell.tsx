@@ -66,6 +66,9 @@ export function AppShell() {
       {can(perms, 'audit.read') && (
         <NavLink to="/activity" icon={<ClipboardList className="size-4" aria-hidden />} onNavigate={close}>Activity</NavLink>
       )}
+      {can(perms, 'workspace.manage') && (
+        <NavLink to="/settings" icon={<Settings2 className="size-4" aria-hidden />} onNavigate={close}>Settings</NavLink>
+      )}
       {can(perms, 'invitation.send') && (
         <NavLink to="/team" icon={<UserPlus className="size-4" aria-hidden />} onNavigate={close}>Team</NavLink>
       )}

@@ -63,3 +63,22 @@ async def test_r11_contact_must_belong_to_the_requirements_client(
     assert ok.status_code == 201, ok.text
     assert ok.json()["data"]["min_experience"] == 60
     assert ok.json()["data"]["budget_max"] == 3000000.0
+
+
+async def test_filter_search_and_reference_labels(client: httpx.AsyncClient) -> None:
+    a = Agency(client, "Find Co", f"f-{uuid.uuid4().hex[:8]}@find.test")
+    await a.sign_up("recruitment")
+    aurora = await _make(client, a, "client", {"name": "Aurora Fintech", "status": "Active"})
+    zenith = await _make(client, a, "client", {"name": "Zenith Labs", "status": "Active"})
+    await _make(client, a, "contact", {"name": "Meera Iyer", "client": zenith})
+    await _make(client, a, "contact", {"name": "Karan Shah", "client": aurora})
+    r = await client.get(f"/v1/records/contact?f.client={aurora}", headers=a.h())
+    items = r.json()["items"]
+    assert [i["data"]["name"] for i in items] == ["Karan Shah"]
+    assert items[0]["refs"]["client"]["label"] == "Aurora Fintech"
+    typo = await client.get("/v1/records/contact?q=meera", headers=a.h())
+    assert [i["data"]["name"] for i in typo.json()["items"]] == ["Meera Iyer"]
+    fuzzy = await client.get("/v1/records/client?q=zenth", headers=a.h())
+    assert [i["data"]["name"] for i in fuzzy.json()["items"]] == ["Zenith Labs"]
+    bad = await client.get("/v1/records/contact?f.nope=1", headers=a.h())
+    assert bad.status_code == 422

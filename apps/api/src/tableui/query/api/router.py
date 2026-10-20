@@ -1,7 +1,7 @@
 import uuid
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 
 from tableui.identity.api.deps import PrincipalDep
 from tableui.metadata.api.deps import LiveAppDep
@@ -19,13 +19,25 @@ async def list_(
     p: PrincipalDep,
     app: LiveAppDep,
     db: DbDep,
+    request: Request,
     sort: str = "updated_at",
     direction: str = "desc",
     cursor: str | None = None,
     limit: int = 50,
+    q: str | None = None,
 ) -> dict[str, Any]:
+    filters = {k[2:]: v for k, v in request.query_params.items() if k.startswith("f.")}
     return await records.list_records(
-        db, p, app, table, sort=sort, direction=direction, cursor=cursor, limit=limit
+        db,
+        p,
+        app,
+        table,
+        sort=sort,
+        direction=direction,
+        cursor=cursor,
+        limit=limit,
+        filters=filters,
+        q=q,
     )
 
 

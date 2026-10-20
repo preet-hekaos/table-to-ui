@@ -48,6 +48,33 @@ export const workspace = {
   choosePack: (pack_id: string) => cast<{ pack_id: string; step: string }>(api.POST('/v1/workspace/pack' as never, { body: { pack_id } } as never)),
 }
 
+const g = <T>(path: string) => cast<T>(api.GET(path as never))
+const send = <T>(method: 'POST' | 'PUT' | 'DELETE', path: string, body?: unknown) => {
+  const call = (api as never as Record<string, ((p: string, o?: unknown) => Promise<unknown>) | undefined>)[method]
+  return cast<T>(call!.call(api, path, body === undefined ? {} : { body }))
+}
+
+export interface RoleRow { key: string; name: string; description: string; members: number; grants: string[]; scopes: Record<string, string>; field_deny: string[] }
+export interface PersonRow { id: string; email: string; full_name: string; active: boolean; role: string; teams: string[] }
+export interface TeamRow { id: string; name: string; members: string[] }
+export interface WorkspaceSettings { brand: { app_name: string; accent: string; logo_file_id: string | null }; regional: Record<string, string> }
+
+export const admin = {
+  home: () => g<{ workspace: string; pack_id: string | null; release_version: number | null; checklist: { key: string; label: string; done: boolean; to: string }[]; pack_updates: unknown[] }>('/v1/workspace/home'),
+  people: () => g<PersonRow[]>('/v1/workspace/people'),
+  setActive: (id: string, active: boolean) => send<void>('POST', `/v1/workspace/people/${id}/${active ? 'activate' : 'deactivate'}`),
+  setRole: (id: string, role: string) => send<void>('PUT', `/v1/workspace/people/${id}/role`, { role }),
+  teams: () => g<TeamRow[]>('/v1/workspace/teams'),
+  createTeam: (name: string) => send<TeamRow>('POST', '/v1/workspace/teams', { name }),
+  setMembers: (id: string, user_ids: string[]) => send<void>('PUT', `/v1/workspace/teams/${id}/members`, { user_ids }),
+  roles: () => g<RoleRow[]>('/v1/workspace/roles'),
+  saveRole: (r: Omit<RoleRow, 'members'>, isNew: boolean) =>
+    send<void>(isNew ? 'POST' : 'PUT', isNew ? '/v1/workspace/roles' : `/v1/workspace/roles/${r.key}`, r),
+  settings: () => g<WorkspaceSettings>('/v1/workspace/settings'),
+  saveBrand: (b: { app_name: string; accent: string }) => send<WorkspaceSettings['brand']>('PUT', '/v1/workspace/settings/brand', b),
+  saveRegional: (r: Record<string, string>) => send<Record<string, string>>('PUT', '/v1/workspace/settings/regional', r),
+}
+
 export const studio = {
   tables: () => cast<StudioTable[]>(api.GET('/v1/studio/tables')),
   releases: () => cast<ReleaseRow[]>(api.GET('/v1/apps/current/releases')),

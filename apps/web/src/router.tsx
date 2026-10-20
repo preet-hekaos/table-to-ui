@@ -17,6 +17,7 @@ import { Home } from '@/features/home/Home'
 import { Onboarding, onboardingKey } from '@/features/onboarding/Onboarding'
 import { OpsShell, OpsSignIn, TenantDirectory } from '@/features/ops/Ops'
 import { Activity } from '@/features/studio/Activity'
+import { Settings } from '@/features/settings/Settings'
 import { Studio } from '@/features/studio/Studio'
 import { Team } from '@/features/studio/Team'
 import { NotFound } from '@/design-system'
@@ -96,6 +97,7 @@ const detail = createRoute({
 })
 const studio = createRoute({ getParentRoute: () => shell, path: '/studio', component: Studio })
 const activity = createRoute({ getParentRoute: () => shell, path: '/activity', component: Activity })
+const settings = createRoute({ getParentRoute: () => shell, path: '/settings', component: Settings })
 const security = createRoute({ getParentRoute: () => shell, path: '/security', component: MfaSetup })
 const team = createRoute({ getParentRoute: () => shell, path: '/team', component: Team })
 
@@ -108,7 +110,7 @@ const tree = root.addChildren([
   signIn,
   mfa,
   accept,
-  shell.addChildren([onboarding, home, screenRoute, list, create, detail, studio, activity, security, team]),
+  shell.addChildren([onboarding, home, screenRoute, list, create, detail, studio, activity, security, team, settings]),
   opsSignIn,
   opsShell.addChildren([opsTenants]),
 ])
