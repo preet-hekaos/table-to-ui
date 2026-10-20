@@ -1,6 +1,6 @@
 import createClient, { type Middleware } from 'openapi-fetch'
 import type { paths } from './schema'
-import { tokens } from './session'
+import { preview, tokens } from './session'
 
 export interface FieldError {
   field: string
@@ -33,6 +33,8 @@ const auth: Middleware = {
     const ops = new URL(request.url).pathname.startsWith('/v1/ops')
     const token = ops ? tokens.getOps() : tokens.get()
     if (token && !request.headers.has('Authorization')) request.headers.set('Authorization', `Bearer ${token}`)
+    if (!ops && preview.role) request.headers.set('X-Preview-Role', preview.role)
+    if (!ops && preview.env) request.headers.set('X-Preview-Env', preview.env)
     return request
   },
 }

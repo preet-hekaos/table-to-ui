@@ -33,6 +33,7 @@ from tableui.platform.messaging import LocalBus, Publisher
 from tableui.platform.messaging_sqs import SqsConsumer, SqsPublisher, make_client
 from tableui.platform.web import new_request_id
 from tableui.query.api.router import router as query_router
+from tableui.rules.api.router import router as fixtures_router
 from tableui.tenancy.public import Tenant, provision_tenant
 from tableui.workspace.public import router as workspace_router
 
@@ -210,6 +211,7 @@ def create_app(
         audit_router,
         ops_router,
         workspace_router,
+        fixtures_router,
     ):
         app.include_router(r)
     return app

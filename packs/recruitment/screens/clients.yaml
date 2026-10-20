@@ -1,4 +1,7 @@
 key: clients
 title: Clients
-pattern: searchable_table
+pattern: master_detail
 table: client
+config:
+  columns: [name, status]
+  empty_text: Add your first client to see its contacts, requirements and terms here.

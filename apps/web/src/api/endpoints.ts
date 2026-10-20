@@ -10,6 +10,7 @@ import type {
   RecordRow,
   ReleaseRow,
   RuleOutcome,
+  FieldDef,
   StudioTable,
   TableDef,
   TenantRow,
@@ -49,7 +50,7 @@ export const workspace = {
 }
 
 const g = <T>(path: string) => cast<T>(api.GET(path as never))
-const send = <T>(method: 'POST' | 'PUT' | 'DELETE', path: string, body?: unknown) => {
+const send = <T>(method: 'POST' | 'PUT' | 'PATCH' | 'DELETE', path: string, body?: unknown) => {
   const call = (api as never as Record<string, ((p: string, o?: unknown) => Promise<unknown>) | undefined>)[method]
   return cast<T>(call!.call(api, path, body === undefined ? {} : { body }))
 }
@@ -77,11 +78,34 @@ export const admin = {
 
 export const studio = {
   tables: () => cast<StudioTable[]>(api.GET('/v1/studio/tables')),
+  createTable: (body: { label: string; plural_label?: string; title_label?: string; description?: string }) =>
+    send<StudioTable>('POST', '/v1/studio/tables', body),
+  addField: (table: string, body: Partial<FieldDef> & { label: string; type: string }) =>
+    send<FieldDef>('POST', `/v1/studio/tables/${table}/fields`, body),
+  updateField: (table: string, field: string, body: Partial<FieldDef>) =>
+    send<FieldDef>('PATCH', `/v1/studio/tables/${table}/fields/${field}`, body),
+  removeField: (table: string, field: string) => send<void>('DELETE', `/v1/studio/tables/${table}/fields/${field}`),
+  screens: () => g<DraftScreen[]>('/v1/studio/screens'),
+  saveScreen: (key: string, body: Omit<DraftScreen, 'key' | 'version' | 'source'>) => send<DraftScreen>('PUT', `/v1/studio/screens/${key}`, body),
+  navigation: () => g<DraftNav[]>('/v1/studio/navigation'),
+  saveNavigation: (items: Omit<DraftNav, 'version'>[]) => send<DraftNav[]>('PUT', '/v1/studio/navigation', { items }),
+  status: () => g<{ live_version: number | null; draft_changed: boolean; changes: ManifestDiff }>('/v1/studio/status'),
+  compare: (from: string | number, to: string | number = 'draft') => g<ManifestDiff>(`/v1/apps/current/compare?from=${from}&to=${to}`),
+  approvals: () => g<Approval[]>('/v1/apps/current/approvals'),
+  runFixtures: (env: 'test' | 'live') => send<unknown>('POST', `/v1/apps/current/fixtures/run?env=${env}`),
+  decide: (id: string, approve: boolean) => send<{ status: string; version: number }>('POST', `/v1/apps/current/approvals/${id}`, { approve }),
   releases: () => cast<ReleaseRow[]>(api.GET('/v1/apps/current/releases')),
   publishTest: () => cast<{ version: number }>(api.POST('/v1/apps/current/releases')),
-  promote: (version: number) => cast<{ version: number }>(api.POST('/v1/apps/current/releases/{version}/promote', { params: { path: { version } } })),
+  promote: (version: number) =>
+    send<{ version: number; status: 'live' | 'pending_approval' }>('POST', `/v1/apps/current/releases/${version}/promote`),
   rollback: () => cast<{ version: number }>(api.POST('/v1/apps/current/rollback')),
 }
+
+export interface DraftScreen { key: string; title: string; pattern: string; table: string; config: Record<string, unknown>; roles: string[]; version: number; source?: string }
+export interface DraftNav { key: string; label: string; screen: string; icon: string; section: string; order: number; roles: string[]; version: number; source?: string }
+export interface Approval { approval_id: string; version: number; status: 'pending' | 'approved' | 'rejected'; requested_by: string; requested_at: string; decided_at: string | null }
+export interface DiffItem { key: string; change: 'added' | 'removed' | 'changed'; attributes?: string[]; fields?: { field: string; change: string; label: string; attributes?: Record<string, { from: unknown; to: unknown }> }[] }
+export interface ManifestDiff { changed: boolean; tables: DiffItem[]; screens: DiffItem[]; navs: DiffItem[]; rules: DiffItem[]; measures: DiffItem[] }
 
 export const app = {
   table: (table: string) => cast<{ release_version: number; table: TableDef }>(api.GET('/v1/app/tables/{table}', { params: { path: { table } } })),

@@ -1,4 +1,5 @@
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from '@tanstack/react-table'
+import { Fragment } from 'react'
 import { Button, Table, Td, Th, type SortDirection } from '@/design-system'
 
 export interface SortState {
@@ -17,6 +18,7 @@ export function SearchableTable<T>({
   hasMore,
   onLoadMore,
   loadingMore,
+  groupOf,
 }: {
   caption: string
   columns: ColumnDef<T, unknown>[]
@@ -27,6 +29,8 @@ export function SearchableTable<T>({
   hasMore: boolean
   onLoadMore: () => void
   loadingMore?: boolean
+  /** Rows arrive sorted by the grouping field; a heading row starts each group. */
+  groupOf?: (row: T) => string
 }) {
   const table = useReactTable({ data: rows, columns, getCoreRowModel: getCoreRowModel(), manualSorting: true })
   return (
@@ -49,13 +53,26 @@ export function SearchableTable<T>({
           ))}
         </thead>
         <tbody>
-          {table.getRowModel().rows.map((r) => (
-            <tr key={r.id} className="hover:bg-canvas">
-              {r.getVisibleCells().map((c) => (
-                <Td key={c.id}>{flexRender(c.column.columnDef.cell, c.getContext())}</Td>
-              ))}
-            </tr>
-          ))}
+          {table.getRowModel().rows.map((r, i, all) => {
+            const g = groupOf?.(r.original)
+            const startsGroup = groupOf && (i === 0 || groupOf(all[i - 1]!.original) !== g)
+            return (
+              <Fragment key={r.id}>
+                {startsGroup && (
+                  <tr className="bg-soft">
+                    <th scope="colgroup" colSpan={columns.length} className="px-3 py-1.5 text-left text-xs font-bold text-ink">
+                      {g}
+                    </th>
+                  </tr>
+                )}
+                <tr className="hover:bg-canvas">
+                  {r.getVisibleCells().map((c) => (
+                    <Td key={c.id}>{flexRender(c.column.columnDef.cell, c.getContext())}</Td>
+                  ))}
+                </tr>
+              </Fragment>
+            )
+          })}
         </tbody>
       </Table>
       {hasMore && (

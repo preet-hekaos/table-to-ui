@@ -4,7 +4,7 @@ import { Bell, ClipboardList, Home, LayoutGrid, LogOut, Menu, Search, Settings2,
 import { useState, type ReactNode } from 'react'
 import { ApiError } from '@/api/client'
 import { app, auth } from '@/api/endpoints'
-import { tokens } from '@/api/session'
+import { preview, tokens } from '@/api/session'
 import { can, useMe } from '@/features/auth/useMe'
 import { Button, LoadingState } from '@/design-system'
 
@@ -116,7 +116,12 @@ export function AppShell() {
             <Button variant="secondary" size="sm" onClick={() => void signOut()}><LogOut className="size-4" aria-hidden /> Sign out</Button>
           </div>
         </header>
-        {!me.data.mfa_enabled && (
+        {preview.role && (
+          <div role="status" className="bg-accent-soft px-4 py-2 text-sm text-accent-ink" data-testid="preview-banner">
+            Previewing as <b className="capitalize">{preview.role.replace('_', ' ')}</b> on {preview.env === 'test' ? 'Test' : 'Live'}. Read-only.
+          </div>
+        )}
+        {!me.data.mfa_enabled && !preview.role && (
           <div role="status" className="flex flex-wrap items-center gap-2 bg-warn-soft px-4 py-2 text-sm text-warn-ink">
             Protect your account with two-step sign-in.
             <Link to="/security" className="font-semibold underline">Set it up</Link>

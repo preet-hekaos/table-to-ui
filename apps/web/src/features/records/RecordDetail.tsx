@@ -15,7 +15,7 @@ function describe(before: Record<string, unknown> | null, after: Record<string, 
 }
 
 /** Thin 3.5: one record with its fields grouped as the pack defines them, and its history. */
-export function RecordDetail({ tableKey, id }: { tableKey: string; id: string }) {
+export function RecordDetail({ tableKey, id, embedded = false }: { tableKey: string; id: string; embedded?: boolean }) {
   const me = useMe()
   const def = useQuery({ queryKey: ['table', tableKey], queryFn: () => app.table(tableKey), retry: false })
   const rec = useQuery({ queryKey: ['record', tableKey, id], queryFn: () => app.get(tableKey, id), retry: false })
@@ -32,11 +32,13 @@ export function RecordDetail({ tableKey, id }: { tableKey: string; id: string })
   const title = String(rec.data.data[table.title_field] ?? table.label)
   return (
     <div className="flex flex-col gap-4">
-      <Link to="/records/$table" params={{ table: tableKey }} className="inline-flex items-center gap-1 text-sm text-muted hover:text-ink">
-        <ArrowLeft className="size-4" aria-hidden /> {table.plural_label}
-      </Link>
+      {!embedded && (
+        <Link to="/records/$table" params={{ table: tableKey }} className="inline-flex items-center gap-1 text-sm text-muted hover:text-ink">
+          <ArrowLeft className="size-4" aria-hidden /> {table.plural_label}
+        </Link>
+      )}
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-xl font-bold text-ink">{title}</h1>
+        {embedded ? <h2 className="text-lg font-bold text-ink">{title}</h2> : <h1 className="text-xl font-bold text-ink">{title}</h1>}
         <Badge tone="accent">Version {rec.data.version}</Badge>
         <span className="text-xs text-muted">Updated {new Date(rec.data.updated_at).toLocaleString()}</span>
         {can(me.data?.permissions, `record.${tableKey}.update`) && (

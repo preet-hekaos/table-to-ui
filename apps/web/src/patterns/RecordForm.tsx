@@ -6,7 +6,7 @@ import { ApiError } from '@/api/client'
 import { app } from '@/api/endpoints'
 import type { FieldDef, RecordRow, RuleOutcome, TableDef } from '@/api/types'
 import { Button, Dialog, DialogContent, Field, Input, RuleBlocked, Select, VersionConflict } from '@/design-system'
-import { formatMonths } from './format'
+import { fieldGroups, formatMonths } from './format'
 
 type Values = Record<string, string>
 
@@ -164,12 +164,12 @@ export function RecordForm({
     }
   })
 
-  const groups = table.groups.length ? table.groups : [{ key: '_', label: 'Details' }]
+  const groups = fieldGroups(table)
   return (
     <form onSubmit={submit} noValidate className="flex max-w-3xl flex-col gap-5" aria-label={`${initial ? 'Edit' : 'Add'} ${table.label.toLowerCase()}`}>
       {/* eslint-disable-next-line react-hooks/refs -- react-hook-form register() returns ref callbacks by design */}
       {groups.map((g) => {
-        const fields = table.fields.filter((f) => (table.groups.length ? f.group === g.key : true))
+        const fields = g.fields
         return (
           <fieldset key={g.key} className="rounded-lg border border-line bg-surface p-4">
             <legend className="px-1 text-sm font-semibold text-ink">{g.label}</legend>

@@ -1,0 +1,62 @@
+# The pack's promises, checked whenever a version is published (M1-S16, M1-S27).
+- id: FX-01
+  title: A new candidate with a fresh email and phone is allowed
+  table: candidate
+  record: {full_name: Arjun Menon, email: arjun@gmail.com, phone: "+91 98450 12345", status: Active}
+  expect: allowed
+- id: FX-02
+  title: The same email in a different case is blocked by R-01
+  table: candidate
+  given:
+    - {table: candidate, id: c1, data: {full_name: Arjun Menon, email: arjun@gmail.com, phone: "+91 98450 12345"}}
+  record: {full_name: Someone Else, email: ARJUN@Gmail.com, phone: "+91 90000 00000"}
+  expect: blocked
+  checks: [R-01.email]
+- id: FX-03
+  title: The same mobile number written differently is blocked by R-01
+  table: candidate
+  given:
+    - {table: candidate, id: c1, data: {full_name: Arjun Menon, email: arjun@gmail.com, phone: "+91 98450 12345"}}
+  record: {full_name: A Menon, email: a.menon@yahoo.com, phone: "098450 12345"}
+  expect: blocked
+  checks: [R-01.phone]
+- id: FX-04
+  title: A very similar name at the same employer only warns
+  table: candidate
+  given:
+    - {table: candidate, id: c1, data: {full_name: Arjun Menon, email: arjun@gmail.com, phone: "+91 98450 12345", current_employer: Infosys}}
+  record: {full_name: Arjun  Menon., email: arjun.m@outlook.com, phone: "+91 91111 22222", current_employer: infosys}
+  expect: warned
+  checks: [R-01.name-employer]
+- id: FX-05
+  title: Editing a candidate does not clash with itself
+  table: candidate
+  op: update
+  record_id: c1
+  given:
+    - {table: candidate, id: c1, data: {full_name: Arjun Menon, email: arjun@gmail.com, phone: "+91 98450 12345"}}
+  record: {email: Arjun@gmail.com}
+  expect: allowed
+- id: FX-06
+  title: A candidate without an email is refused
+  table: candidate
+  record: {full_name: No Email, phone: "+91 92222 33333"}
+  expect: invalid
+- id: FX-07
+  title: A requirement's contact must work for its client (R-11)
+  table: requirement
+  given:
+    - {table: client, id: 00000000-0000-4000-8000-0000000000a1, data: {name: Acme}}
+    - {table: client, id: 00000000-0000-4000-8000-0000000000a2, data: {name: Zen}}
+    - {table: contact, id: 00000000-0000-4000-8000-0000000000b1, data: {name: Kavya, client: 00000000-0000-4000-8000-0000000000a2}}
+  record: {title: Java lead, client: 00000000-0000-4000-8000-0000000000a1, contact: 00000000-0000-4000-8000-0000000000b1}
+  expect: blocked
+  checks: [R-11.contact]
+- id: FX-08
+  title: A contact from the same client is fine
+  table: requirement
+  given:
+    - {table: client, id: 00000000-0000-4000-8000-0000000000a1, data: {name: Acme}}
+    - {table: contact, id: 00000000-0000-4000-8000-0000000000b2, data: {name: Ravi, client: 00000000-0000-4000-8000-0000000000a1}}
+  record: {title: Java lead, client: 00000000-0000-4000-8000-0000000000a1, contact: 00000000-0000-4000-8000-0000000000b2}
+  expect: allowed

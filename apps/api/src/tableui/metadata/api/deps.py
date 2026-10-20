@@ -15,7 +15,7 @@ async def get_live_app(
     if principal.tenant_id is None:
         raise NotFound("No workspace.")
     async with db.control() as s:
-        return await live_app(s, principal.tenant_id)
+        return await live_app(s, principal.tenant_id, principal.app_env)
 
 
 LiveAppDep = Annotated[RuntimeApp, Depends(get_live_app)]

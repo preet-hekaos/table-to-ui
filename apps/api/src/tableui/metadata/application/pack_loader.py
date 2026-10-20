@@ -9,6 +9,7 @@ import yaml
 from pydantic import BaseModel, ValidationError
 
 from tableui.metadata.domain.models import (
+    FixtureDef,
     MeasureDef,
     NavItem,
     Pack,
@@ -106,6 +107,21 @@ def load_pack(root: Path) -> Pack:
             if rd:
                 roles.append(rd)
 
+    fixtures: list[FixtureDef] = []
+    if manifest.fixtures:
+        raw = _read_yaml(root, manifest.fixtures, issues)
+        by_key = {t.key for t in tables}
+        for i, item in enumerate(raw or []):
+            fx = _parse(FixtureDef, item, f"{manifest.fixtures}[{i}]", issues)
+            if fx is None:
+                continue
+            for tk in {fx.table, *(g.table for g in fx.given)}:
+                if tk not in by_key:
+                    issues.append(
+                        PackIssue(f"{manifest.fixtures}[{i}]", "table", f"unknown table '{tk}'")
+                    )
+            fixtures.append(fx)
+
     _cross_check(tables, rules, measures, files, issues)
     _check_generality(tables, screens, navigation, roles, manifest, issues)
     if issues:
@@ -121,6 +137,8 @@ def load_pack(root: Path) -> Pack:
         screens=screens,
         navigation=navigation,
         roles=roles,
+        fixtures=fixtures,
+        compatible_with=manifest.compatible_with,
     )
 
 

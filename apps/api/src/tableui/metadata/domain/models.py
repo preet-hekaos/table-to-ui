@@ -190,6 +190,28 @@ class RoleDef(_Strict):
     field_deny: list[str] = []  # "table.field" the role never sees
 
 
+class FixtureRecord(_Strict):
+    """A record that already exists when a fixture runs."""
+
+    table: Key
+    id: str
+    data: dict[str, Any]
+
+
+class FixtureDef(_Strict):
+    """An example change and the outcome the pack promises for it: the pack's own test."""
+
+    id: str
+    title: str
+    table: Key
+    op: Literal["create", "update"] = "create"
+    given: list[FixtureRecord] = []
+    record: dict[str, Any]
+    record_id: str | None = None  # for an update: which given record is being changed
+    expect: Literal["allowed", "blocked", "warned", "invalid"]
+    checks: list[str] = []  # rule checks that must fire (for blocked or warned)
+
+
 class PackManifest(_Strict):
     id: Key
     version: str
@@ -201,6 +223,8 @@ class PackManifest(_Strict):
     screens: list[str] = []
     navigation: str | None = None
     roles: str | None = None
+    fixtures: str | None = None  # a YAML file holding a list of fixtures
+    compatible_with: str = ">=1.0"
 
 
 class Pack(_Strict):
@@ -214,6 +238,8 @@ class Pack(_Strict):
     screens: list[ScreenDef] = []
     navigation: list[NavItem] = []
     roles: list[RoleDef] = []
+    fixtures: list[FixtureDef] = []
+    compatible_with: str = ">=1.0"
 
     def table(self, key: str) -> TableDef | None:
         return next((t for t in self.tables if t.key == key), None)

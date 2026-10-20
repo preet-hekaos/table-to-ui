@@ -12,7 +12,13 @@ export async function signUpWithPack(page: Page, name: string, email: string, pa
   await page.getByLabel(/^Password/).fill(PASSWORD)
   await page.getByRole('button', { name: 'Create workspace' }).click()
   await expect(page.getByRole('heading', { name: /^Set up / })).toBeVisible()
-  await page.getByLabel(pack === 'blank' ? /Start blank/ : pack).check()
-  await page.getByRole('button', { name: 'Set up workspace' }).click()
+  await page.waitForLoadState('networkidle')
+  const choice = page.getByLabel(pack === 'blank' ? /Start blank/ : pack)
+  const go = page.getByRole('button', { name: 'Set up workspace' })
+  await expect(async () => {
+    await choice.check()
+    await expect(go).toBeEnabled({ timeout: 1000 })
+  }).toPass()
+  await go.click()
   await expect(page.getByTestId('app-name')).toHaveText(name)
 }

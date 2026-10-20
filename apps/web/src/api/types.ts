@@ -86,10 +86,10 @@ export interface ReleaseRow {
     measures: Record<string, { version: number; hash: string }>
   }
 }
-export interface StudioTable {
-  key: string
-  label: string
-  fields: { key: string; label: string; type: string; required: boolean; source: string }[]
+export interface StudioTable extends TableDef {
+  source: 'pack' | 'agency'
+  description?: string
+  version: number
 }
 export interface Measure {
   key: string
@@ -113,4 +113,14 @@ export interface ActivityRow {
   subject_id: string | null
   at: string
   actor: string | null
+}
+
+/** How a builder tuned a screen in the configurator. Every key is optional; patterns fall back to sensible defaults. */
+export interface ScreenConfig {
+  columns?: string[]
+  filters?: string[]
+  group_by?: string
+  fields?: string[]
+  actions?: string[]
+  empty_text?: string
 }

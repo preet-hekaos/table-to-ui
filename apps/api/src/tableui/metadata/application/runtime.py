@@ -60,21 +60,23 @@ def _from_manifest(
     )
 
 
-async def live_app(session: AsyncSession, tenant_id: uuid.UUID) -> RuntimeApp:
-    """The release currently live for a tenant. Manifests are immutable, so they are cached."""
+async def live_app(session: AsyncSession, tenant_id: uuid.UUID, env: str = "live") -> RuntimeApp:
+    """The release currently in an environment (Live by default). Manifests are immutable, so they are cached."""
     row = (
         await session.execute(
             text(
                 "SELECT r.id AS release_id, r.version, r.manifest_id FROM control.release_deployment d "
                 "JOIN control.release r ON r.id = d.release_id "
-                "WHERE d.tenant_id = :t AND d.environment = 'live' ORDER BY d.id DESC LIMIT 1"
+                "WHERE d.tenant_id = :t AND d.environment = :e ORDER BY d.id DESC LIMIT 1"
             ),
-            {"t": tenant_id},
+            {"t": tenant_id, "e": env},
         )
     ).first()
     if row is None:
         raise NotFound(
-            "This app has not been published yet. Publish it to Live in the Studio first.",
+            "This app has not been published yet. Publish it to Live in the Studio first."
+            if env == "live"
+            else "Nothing has been published to Test yet."
         )
     cached = _cache.get(row.manifest_id)
     if cached is not None and cached.release_id == row.release_id:

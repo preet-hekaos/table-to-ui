@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import type { TableDef } from '@/api/types'
 import type { RecordRef } from '@/api/types'
 import { Card, CardTitle } from '@/design-system'
-import { formatField } from './format'
+import { fieldGroups, formatField } from './format'
 
 export function formatValue(v: unknown): ReactNode {
   if (v === null || v === undefined || v === '') return <span className="text-muted">Not set</span>
@@ -12,17 +12,16 @@ export function formatValue(v: unknown): ReactNode {
 
 /** Pattern: a record's fields grouped as the pack defines them. */
 export function ProfileFields({ table, data, refs }: { table: TableDef; data: Record<string, unknown>; refs?: Record<string, RecordRef> }) {
-  const groups = table.groups.length ? table.groups : [{ key: '_', label: 'Details' }]
+  const groups = fieldGroups(table)
   return (
     <div className="grid gap-4 md:grid-cols-2">
       {groups.map((g) => {
-        const fields = table.fields.filter((f) => (table.groups.length ? f.group === g.key : true))
-        if (!fields.length) return null
+        const fields = g.fields
         return (
           <Card key={g.key}>
             <CardTitle>{g.label}</CardTitle>
             <dl className="grid grid-cols-[10rem_1fr] gap-x-3 gap-y-2 text-sm">
-              {fields.filter((f) => !f.hidden).map((f) => (
+              {fields.map((f) => (
                 <div key={f.key} className="contents">
                   <dt className="text-muted">{f.label}</dt>
                   <dd className="text-ink">{formatField(f, data[f.key], refs?.[f.key])}</dd>

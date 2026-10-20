@@ -19,6 +19,7 @@ from tableui.metadata.domain.ddl import (
 from tableui.metadata.domain.models import (
     ContextLoader,
     FieldDef,
+    FixtureDef,
     MeasureDef,
     Pack,
     RuleCheck,
@@ -40,6 +41,7 @@ __all__ = [
     "table_ddl_sql",
     "ContextLoader",
     "FieldDef",
+    "FixtureDef",
     "MeasureDef",
     "Pack",
     "PackInvalid",

@@ -19,7 +19,7 @@ import { Onboarding, onboardingKey } from '@/features/onboarding/Onboarding'
 import { OpsShell, OpsSignIn, TenantDirectory } from '@/features/ops/Ops'
 import { Activity } from '@/features/studio/Activity'
 import { Settings } from '@/features/settings/Settings'
-import { Studio } from '@/features/studio/Studio'
+import { Studio, type StudioTab } from '@/features/studio/Studio'
 import { Team } from '@/features/studio/Team'
 import { NotFound } from '@/design-system'
 import { AppShell } from '@/shell/AppShell'
@@ -106,7 +106,18 @@ const edit = createRoute({
     return <RecordEdit tableKey={table} id={id} />
   },
 })
-const studio = createRoute({ getParentRoute: () => shell, path: '/studio', component: Studio })
+const studio = createRoute({
+  getParentRoute: () => shell,
+  path: '/studio',
+  validateSearch: (s: Record<string, unknown>): { tab?: StudioTab; table?: string } => ({
+    tab: typeof s.tab === 'string' ? (s.tab as StudioTab) : undefined,
+    table: typeof s.table === 'string' ? s.table : undefined,
+  }),
+  component: function StudioRoute() {
+    const { tab, table } = studio.useSearch()
+    return <Studio tab={tab} table={table} />
+  },
+})
 const activity = createRoute({ getParentRoute: () => shell, path: '/activity', component: Activity })
 const settings = createRoute({ getParentRoute: () => shell, path: '/settings', component: Settings })
 const security = createRoute({ getParentRoute: () => shell, path: '/security', component: MfaSetup })

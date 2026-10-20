@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
-import type { FieldDef, RecordRef } from '@/api/types'
+import type { FieldDef, RecordRef, TableDef } from '@/api/types'
 import { Badge } from '@/design-system'
 
 const inr = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })
@@ -48,4 +48,16 @@ export function formatField(f: FieldDef | undefined, v: unknown, ref?: RecordRef
     default:
       return String(v)
   }
+}
+
+/** A table's visible fields in the groups the pack defines; fields in no group (for example ones a
+ *  builder added) come last under "More details". */
+export function fieldGroups(table: TableDef): { key: string; label: string; fields: FieldDef[] }[] {
+  const shown = table.fields.filter((f) => !f.hidden)
+  if (!table.groups.length) return [{ key: '_', label: 'Details', fields: shown }]
+  const known = new Set(table.groups.map((g) => g.key))
+  const out = table.groups.map((g) => ({ key: g.key, label: g.label, fields: shown.filter((f) => f.group === g.key) }))
+  const rest = shown.filter((f) => !f.group || !known.has(f.group))
+  if (rest.length) out.push({ key: '_more', label: 'More details', fields: rest })
+  return out.filter((g) => g.fields.length)
 }

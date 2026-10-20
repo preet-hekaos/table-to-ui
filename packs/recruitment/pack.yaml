@@ -4,6 +4,7 @@ title: Recruitment agency
 description: Candidates, clients, requirements and placements for a staffing or search
   firm.
 roles: roles.yaml
+fixtures: fixtures.yaml
 screens:
 - screens/candidates.yaml
 - screens/clients.yaml

@@ -4,8 +4,8 @@ import uuid
 
 import httpx
 
-from tests.conftest import PASSWORD, Agency
 from tableui.platform.mail import InMemoryMailer
+from tests.conftest import PASSWORD, Agency
 
 
 async def _team_mate(

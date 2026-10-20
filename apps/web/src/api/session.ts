@@ -24,3 +24,15 @@ export const tokens = {
   getOps: () => read(OPS_KEY),
   setOps: (t: string | null) => write(OPS_KEY, t),
 }
+
+/** Studio preview: an embedded copy of the app runs as another role, against Test or Live, read-only.
+ *  Read once from the page address so each preview frame keeps its own setting. */
+function readPreview(): { role: string | null; env: string | null } {
+  try {
+    const q = new URLSearchParams(window.location.search)
+    return { role: q.get('preview_role'), env: q.get('preview_env') }
+  } catch {
+    return { role: null, env: null }
+  }
+}
+export const preview = readPreview()
