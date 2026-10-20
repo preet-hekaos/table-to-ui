@@ -88,9 +88,11 @@ function Roles() {
     mutationFn: (r: RoleRow) => admin.saveRole(r, false),
     onMutate: async (r: RoleRow) => {
       // Optimistic: the grid shows the change at once and rolls back if the server refuses it.
-      await qc.cancelQueries({ queryKey: ['roles'] }) // a refetch in flight must not undo the change
+      // Change the grid in the same tick as the click (a controlled checkbox snaps back otherwise),
+      // then stop any refetch in flight without reverting that change.
       const before = qc.getQueryData<RoleRow[]>(['roles'])
       qc.setQueryData<RoleRow[]>(['roles'], (rows) => rows?.map((x) => (x.key === r.key ? r : x)))
+      await qc.cancelQueries({ queryKey: ['roles'] }, { revert: false })
       return { before }
     },
     onSuccess: () => { toast({ title: 'Saved. It applies on the next request.', tone: 'ok' }); return qc.invalidateQueries({ queryKey: ['roles'] }) },
