@@ -30,6 +30,7 @@ from tableui.platform.db import Database
 from tableui.platform.errors import ProblemError, TenantContextMissing
 from tableui.platform.mail import LogMailer, Mailer, SmtpMailer
 from tableui.platform.messaging import LocalBus, Publisher
+from tableui.platform.messaging_sqs import SqsConsumer, SqsPublisher, make_client
 from tableui.platform.web import new_request_id
 from tableui.query.api.router import router as query_router
 from tableui.tenancy.public import Tenant, provision_tenant
@@ -85,6 +86,17 @@ def create_app(
         app.state.provisioner = provisioner
         await insights.ensure_schema(app.state.analytics)
         bus: Publisher = publisher or LocalBus()
+        consumer_task: asyncio.Task[None] | None = None
+        if publisher is None and settings.events_queue_url:
+            sqs = make_client(settings.aws_region, settings.aws_endpoint_url)
+            bus = SqsPublisher(sqs, settings.events_queue_url)
+
+            async def project_sqs(event: dict[str, Any]) -> None:
+                await insights.handle_event(app.state.analytics, event)
+
+            consumer_task = asyncio.create_task(
+                SqsConsumer(sqs, settings.events_queue_url, project_sqs).run_forever()
+            )
         if isinstance(bus, LocalBus) and not bus._handlers:  # noqa: SLF001
 
             async def project(event: dict[str, Any]) -> None:
@@ -117,10 +129,11 @@ def create_app(
         try:
             yield
         finally:
-            if task:
-                task.cancel()
-                with contextlib.suppress(asyncio.CancelledError):
-                    await task
+            for t in (task, consumer_task):
+                if t:
+                    t.cancel()
+                    with contextlib.suppress(asyncio.CancelledError):
+                        await t
             if db is None:
                 await app.state.db.dispose()
             if analytics is None:

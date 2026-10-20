@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     outbox_poll_seconds: float = 1.0
     run_outbox_relay: bool = True
     cors_origins: list[str] = ["http://localhost:5173"]
+    events_queue_url: str | None = None  # set in AWS; empty uses the in-process bus
+    aws_region: str = "ap-south-1"
+    aws_endpoint_url: str | None = None
     mail_backend: str = "smtp"  # smtp | log
     smtp_host: str = "localhost"
     smtp_port: int = 1025
