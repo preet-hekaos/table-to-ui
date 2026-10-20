@@ -1,7 +1,7 @@
 - key: manager
   name: Manager
   description: Runs a team. Sees and edits everything, reads reports and the audit trail.
-  grants: [metadata.read, "record.*.read", "record.*.create", "record.*.update", measure.read, audit.read, search.saved.manage, matching.configure, document.upload, import.run]
+  grants: [metadata.read, "record.*.read", "record.*.create", "record.*.update", measure.read, audit.read, search.saved.manage, matching.configure, document.upload, import.run, rule.override, approval.decide]
 - key: account_manager
   name: Account manager
   description: Looks after clients, their contacts and requirements.

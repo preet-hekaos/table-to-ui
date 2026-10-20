@@ -1,0 +1,14 @@
+id: R-03
+title: One entry per candidate per requirement
+table: submission
+applies_to: [create, update]
+context:
+  same_entry:
+    kind: count
+    table: submission
+    match: {candidate: candidate, requirement: requirement}
+checks:
+  - id: R-03.duplicate
+    severity: block
+    when: "ctx.same_entry > 0"
+    message: "This candidate is already on this requirement."

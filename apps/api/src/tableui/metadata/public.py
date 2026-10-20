@@ -25,7 +25,9 @@ from tableui.metadata.domain.models import (
     Pack,
     RuleCheck,
     RuleDef,
+    StageDef,
     TableDef,
+    WorkflowDef,
 )
 from tableui.metadata.domain.values import (
     normalise,
@@ -51,7 +53,9 @@ __all__ = [
     "RuleCheck",
     "RuleDef",
     "RuntimeApp",
+    "StageDef",
     "TableDef",
+    "WorkflowDef",
     "build_manifest",
     "list_releases",
     "live_app",

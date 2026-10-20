@@ -77,6 +77,12 @@ class RuleBlocked(ProblemError):
     title = "A business rule blocked this change"
 
 
+class ApprovalRequired(ProblemError):
+    status = 409
+    type_slug = "approval-required"
+    title = "This change needs approval"
+
+
 class IdempotencyConflict(ProblemError):
     status = 422
     type_slug = "idempotency-key-reuse"

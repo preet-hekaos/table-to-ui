@@ -1,0 +1,11 @@
+id: R-09
+title: No new movement on a closed or filled requirement
+table: submission
+applies_to: [create, update]
+context:
+  req_status: {kind: lookup, ref_field: requirement, field: status}
+checks:
+  - id: R-09.closed
+    severity: block
+    when: "ctx.req_status in ['Filled', 'Closed'] && before.stage != record.stage && !(record.stage in ['Rejected', 'Withdrawn', 'On hold'])"
+    message: "This requirement is filled or closed. Reopen it before adding or moving candidates."

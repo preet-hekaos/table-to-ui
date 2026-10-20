@@ -9,3 +9,5 @@ fields:
   - {key: mode, label: Mode, type: select, options: [Phone, Video, In person], default: Video}
   - {key: status, label: Status, type: select, required: true, default: Scheduled, options: [Scheduled, Done, Cancelled, No show], filterable: true}
   - {key: feedback, label: Feedback, type: long_text}
+  - {key: outcome, label: Outcome, type: select, options: [Pass, Fail], filterable: true}
+  - {key: panel, label: Panel (client side), type: text}

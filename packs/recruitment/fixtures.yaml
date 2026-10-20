@@ -60,3 +60,117 @@
     - {table: contact, id: 00000000-0000-4000-8000-0000000000b2, data: {name: Ravi, client: 00000000-0000-4000-8000-0000000000a1}}
   record: {title: Java lead, client: 00000000-0000-4000-8000-0000000000a1, contact: 00000000-0000-4000-8000-0000000000b2}
   expect: allowed
+- id: FX-09
+  title: Submitting a candidate without consent is blocked (R-02)
+  table: submission
+  op: update
+  record_id: 00000000-0000-4000-8000-0000000000d1
+  given:
+    - {table: candidate, id: 00000000-0000-4000-8000-0000000000c1, data: {full_name: Arjun Menon, email: arjun@gmail.com}}
+    - {table: requirement, id: 00000000-0000-4000-8000-0000000000e1, data: {title: Java lead, client: 00000000-0000-4000-8000-0000000000a1, status: Open}}
+    - {table: submission, id: 00000000-0000-4000-8000-0000000000d1, data: {summary: Arjun for Java lead, candidate: 00000000-0000-4000-8000-0000000000c1, requirement: 00000000-0000-4000-8000-0000000000e1, stage: Screened}}
+  record: {stage: Submitted}
+  expect: blocked
+  checks: [R-02.consent]
+- id: FX-10
+  title: With consent on record the same move is allowed
+  table: submission
+  op: update
+  record_id: 00000000-0000-4000-8000-0000000000d1
+  given:
+    - {table: candidate, id: 00000000-0000-4000-8000-0000000000c1, data: {full_name: Arjun Menon, email: arjun@gmail.com}}
+    - {table: consent_record, id: 00000000-0000-4000-8000-0000000000f1, data: {candidate: 00000000-0000-4000-8000-0000000000c1, purpose: Share with clients, status: Given}}
+    - {table: requirement, id: 00000000-0000-4000-8000-0000000000e1, data: {title: Java lead, client: 00000000-0000-4000-8000-0000000000a1, status: Open}}
+    - {table: submission, id: 00000000-0000-4000-8000-0000000000d1, data: {summary: Arjun for Java lead, candidate: 00000000-0000-4000-8000-0000000000c1, requirement: 00000000-0000-4000-8000-0000000000e1, stage: Screened}}
+  record: {stage: Submitted}
+  expect: allowed
+- id: FX-11
+  title: A candidate cannot be on the same requirement twice (R-03)
+  table: submission
+  given:
+    - {table: candidate, id: 00000000-0000-4000-8000-0000000000c1, data: {full_name: Arjun Menon, email: arjun@gmail.com}}
+    - {table: requirement, id: 00000000-0000-4000-8000-0000000000e1, data: {title: Java lead, client: 00000000-0000-4000-8000-0000000000a1, status: Open}}
+    - {table: submission, id: 00000000-0000-4000-8000-0000000000d1, data: {summary: Arjun for Java lead, candidate: 00000000-0000-4000-8000-0000000000c1, requirement: 00000000-0000-4000-8000-0000000000e1, stage: Sourced}}
+  record: {summary: Arjun again, candidate: 00000000-0000-4000-8000-0000000000c1, requirement: 00000000-0000-4000-8000-0000000000e1}
+  expect: blocked
+  checks: [R-03.duplicate]
+- id: FX-12
+  title: Skipping stages is blocked (R-05)
+  table: submission
+  op: update
+  record_id: 00000000-0000-4000-8000-0000000000d1
+  given:
+    - {table: candidate, id: 00000000-0000-4000-8000-0000000000c1, data: {full_name: Arjun Menon, email: arjun@gmail.com}}
+    - {table: requirement, id: 00000000-0000-4000-8000-0000000000e1, data: {title: Java lead, client: 00000000-0000-4000-8000-0000000000a1, status: Open}}
+    - {table: submission, id: 00000000-0000-4000-8000-0000000000d1, data: {summary: Arjun for Java lead, candidate: 00000000-0000-4000-8000-0000000000c1, requirement: 00000000-0000-4000-8000-0000000000e1, stage: Sourced}}
+  record: {stage: Interview}
+  expect: blocked
+  checks: [R-05.transition]
+- id: FX-13
+  title: An offer needs a passed interview (R-06)
+  table: submission
+  op: update
+  record_id: 00000000-0000-4000-8000-0000000000d1
+  given:
+    - {table: candidate, id: 00000000-0000-4000-8000-0000000000c1, data: {full_name: Arjun Menon, email: arjun@gmail.com}}
+    - {table: requirement, id: 00000000-0000-4000-8000-0000000000e1, data: {title: Java lead, client: 00000000-0000-4000-8000-0000000000a1, status: Open}}
+    - {table: submission, id: 00000000-0000-4000-8000-0000000000d1, data: {summary: Arjun for Java lead, candidate: 00000000-0000-4000-8000-0000000000c1, requirement: 00000000-0000-4000-8000-0000000000e1, stage: Interview}}
+  record: {stage: Offer}
+  expect: blocked
+  checks: [R-06.interview]
+- id: FX-14
+  title: With a passed interview the move to Offer is allowed
+  table: submission
+  op: update
+  record_id: 00000000-0000-4000-8000-0000000000d1
+  given:
+    - {table: candidate, id: 00000000-0000-4000-8000-0000000000c1, data: {full_name: Arjun Menon, email: arjun@gmail.com}}
+    - {table: consent_record, id: 00000000-0000-4000-8000-0000000000f1, data: {candidate: 00000000-0000-4000-8000-0000000000c1, purpose: Share with clients, status: Given}}
+    - {table: requirement, id: 00000000-0000-4000-8000-0000000000e1, data: {title: Java lead, client: 00000000-0000-4000-8000-0000000000a1, status: Open}}
+    - {table: submission, id: 00000000-0000-4000-8000-0000000000d1, data: {summary: Arjun for Java lead, candidate: 00000000-0000-4000-8000-0000000000c1, requirement: 00000000-0000-4000-8000-0000000000e1, stage: Interview}}
+    - {table: interview, id: 00000000-0000-4000-8000-0000000000g1, data: {summary: Round 1, submission: 00000000-0000-4000-8000-0000000000d1, status: Done, outcome: Pass}}
+  record: {stage: Offer}
+  expect: allowed
+- id: FX-15
+  title: Rejecting without a reason is blocked (R-12)
+  table: submission
+  op: update
+  record_id: 00000000-0000-4000-8000-0000000000d1
+  given:
+    - {table: candidate, id: 00000000-0000-4000-8000-0000000000c1, data: {full_name: Arjun Menon, email: arjun@gmail.com}}
+    - {table: requirement, id: 00000000-0000-4000-8000-0000000000e1, data: {title: Java lead, client: 00000000-0000-4000-8000-0000000000a1, status: Open}}
+    - {table: submission, id: 00000000-0000-4000-8000-0000000000d1, data: {summary: Arjun for Java lead, candidate: 00000000-0000-4000-8000-0000000000c1, requirement: 00000000-0000-4000-8000-0000000000e1, stage: Submitted}}
+  record: {stage: Rejected}
+  expect: blocked
+  checks: [R-12.reason]
+- id: FX-16
+  title: A filled requirement takes no new candidates (R-09)
+  table: submission
+  given:
+    - {table: candidate, id: 00000000-0000-4000-8000-0000000000c1, data: {full_name: Arjun Menon, email: arjun@gmail.com}}
+    - {table: requirement, id: 00000000-0000-4000-8000-0000000000e1, data: {title: Java lead, client: 00000000-0000-4000-8000-0000000000a1, status: Filled}}
+  record: {summary: Arjun for Java lead, candidate: 00000000-0000-4000-8000-0000000000c1, requirement: 00000000-0000-4000-8000-0000000000e1}
+  expect: blocked
+  checks: [R-09.closed]
+- id: FX-17
+  title: A longer notice period than the requirement allows only warns (R-04)
+  table: submission
+  given:
+    - {table: candidate, id: 00000000-0000-4000-8000-0000000000c1, data: {full_name: Arjun Menon, email: arjun@gmail.com, notice_period_days: 90}}
+    - {table: requirement, id: 00000000-0000-4000-8000-0000000000e1, data: {title: Java lead, client: 00000000-0000-4000-8000-0000000000a1, status: Open, max_notice_days: 30}}
+  record: {summary: Arjun for Java lead, candidate: 00000000-0000-4000-8000-0000000000c1, requirement: 00000000-0000-4000-8000-0000000000e1}
+  expect: warned
+  checks: [R-04.notice]
+- id: FX-18
+  title: A placement needs an accepted offer (R-08)
+  table: submission
+  op: update
+  record_id: 00000000-0000-4000-8000-0000000000d1
+  given:
+    - {table: candidate, id: 00000000-0000-4000-8000-0000000000c1, data: {full_name: Arjun Menon, email: arjun@gmail.com}}
+    - {table: requirement, id: 00000000-0000-4000-8000-0000000000e1, data: {title: Java lead, client: 00000000-0000-4000-8000-0000000000a1, status: Open}}
+    - {table: submission, id: 00000000-0000-4000-8000-0000000000d1, data: {summary: Arjun for Java lead, candidate: 00000000-0000-4000-8000-0000000000c1, requirement: 00000000-0000-4000-8000-0000000000e1, stage: Offer}}
+    - {table: offer, id: 00000000-0000-4000-8000-0000000000h1, data: {summary: Offer, submission: 00000000-0000-4000-8000-0000000000d1, status: Sent}}
+  record: {stage: Placed}
+  expect: blocked
+  checks: [R-08.offer]

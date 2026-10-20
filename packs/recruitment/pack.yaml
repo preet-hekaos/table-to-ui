@@ -1,5 +1,5 @@
 id: recruitment
-version: 1.0.0
+version: 1.1.0
 title: Recruitment agency
 description: Candidates, clients, requirements and placements for a staffing or search
   firm.
@@ -39,6 +39,13 @@ tables:
 - tables/task.yaml
 rules:
 - rules/R-01-no-duplicate-candidates.yaml
+- rules/R-02-consent-before-submission.yaml
+- rules/R-03-one-entry-per-candidate.yaml
+- rules/R-04-requirement-fit.yaml
+- rules/R-06-interview-before-offer.yaml
+- rules/R-08-placement-needs-accepted-offer.yaml
+- rules/R-09-requirement-open.yaml
 - rules/R-11-contact-belongs-to-client.yaml
+- rules/R-12-rejection-needs-reason.yaml
 measures:
 - measures/active-candidates.yaml

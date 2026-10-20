@@ -1,0 +1,16 @@
+id: R-06
+title: A passed interview before an offer
+table: submission
+applies_to: [update]
+context:
+  passed:
+    kind: count
+    table: interview
+    match: {submission: $id}
+    where: {status: Done, outcome: Pass}
+checks:
+  - id: R-06.interview
+    severity: block
+    overridable: true
+    when: "record.stage == 'Offer' && before.stage != 'Offer' && ctx.passed == 0"
+    message: "There is no passed interview for this candidate yet."

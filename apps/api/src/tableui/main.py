@@ -23,6 +23,7 @@ import tableui.imports.public as imports
 import tableui.insights.public as insights
 import tableui.matching.public as matching
 import tableui.search.public as search
+import tableui.workflow.public as workflow
 from tableui.audit.api.router import router as audit_router
 from tableui.commands.api.router import router as commands_router
 from tableui.identity.api.router import router as identity_router
@@ -232,6 +233,7 @@ def create_app(
         imports.router,
         search.router,
         matching.router,
+        workflow.router,
         catalog.router,
     ):
         app.include_router(r)

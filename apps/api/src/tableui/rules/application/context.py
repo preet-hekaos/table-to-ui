@@ -17,13 +17,16 @@ async def load_context(
     shadow: dict[str, str | None],
     exclude_id: uuid.UUID | None,
     record: dict[str, Any] | None = None,
+    tables: dict[str, TableDef] | None = None,
 ) -> dict[str, Any]:
     ctx: dict[str, Any] = {}
     for name, loader in rule.context.items():
         if loader.kind == "lookup":
             ctx[name] = await _lookup(
-                session, table, loader.ref_field or "", loader.field or "", record or {}
+                session, table, loader.ref_field or "", loader.field or "", record or {}, tables
             )
+        elif loader.kind == "count":
+            ctx[name] = await _count(session, table, loader, record or {}, exclude_id)
         elif loader.kind == "normalised_match":
             ctx[name] = await _normalised(session, table, loader.field or "", shadow, exclude_id)
         else:
@@ -105,17 +108,65 @@ async def _fuzzy(
 
 
 async def _lookup(
-    session: AsyncSession, table: TableDef, ref_field: str, field: str, record: dict[str, Any]
+    session: AsyncSession,
+    table: TableDef,
+    ref_field: str,
+    field: str,
+    record: dict[str, Any],
+    tables: dict[str, TableDef] | None = None,
 ) -> Any:
-    """The value of ``field`` on the record this record points at through ``ref_field``."""
-    ref = table.field(ref_field)
-    target = record.get(ref_field)
-    if ref is None or not ref.ref_table or not target:
-        return None
-    row = (
-        await session.execute(
-            text(f'SELECT data FROM "{ref.ref_table}" WHERE id = :i'),  # noqa: S608 - identifiers are validated metadata keys
-            {"i": target},
-        )
-    ).first()
-    return (row.data or {}).get(field) if row else None
+    """The value of ``field`` on the record reached by following ``ref_field`` (a.b follows links)."""
+    current_table, data = table, record
+    for hop in ref_field.split("."):
+        ref = current_table.field(hop)
+        target = data.get(hop)
+        if ref is None or not ref.ref_table or not target:
+            return None
+        row = (
+            await session.execute(
+                text(f'SELECT data FROM "{ref.ref_table}" WHERE id = :i'),  # noqa: S608 - identifiers are validated metadata keys
+                {"i": target},
+            )
+        ).first()
+        if row is None:
+            return None
+        data = row.data or {}
+        nxt = (tables or {}).get(ref.ref_table)
+        if nxt is None:
+            if hop != ref_field.split(".")[-1]:
+                return None
+        else:
+            current_table = nxt
+    return data.get(field)
+
+
+async def _count(
+    session: AsyncSession,
+    table: TableDef,
+    loader: Any,
+    record: dict[str, Any],
+    exclude_id: uuid.UUID | None,
+) -> int:
+    """How many records of ``loader.table`` point back at this record (or share its values)."""
+    conds: list[str] = []
+    params: dict[str, Any] = {}
+    for i, (other, mine) in enumerate(loader.match.items()):
+        value = (str(exclude_id) if exclude_id else None) if mine == "$id" else record.get(mine)
+        if value is None:
+            return 0
+        conds.append(f"data ->> '{other}' = :m{i}")
+        params[f"m{i}"] = str(value)
+    for j, (key, wanted) in enumerate(loader.where.items()):
+        conds.append(f"data ->> '{key}' = :w{j}")
+        params[f"w{j}"] = str(wanted).lower() if isinstance(wanted, bool) else str(wanted)
+    if exclude_id is not None and loader.table == table.key and "$id" not in loader.match.values():
+        conds.append("id <> CAST(:ex AS uuid)")
+        params["ex"] = str(exclude_id)
+    return int(
+        (
+            await session.execute(
+                text(f'SELECT count(*) FROM "{loader.table}" WHERE {" AND ".join(conds)}'),  # noqa: S608 - identifiers are validated metadata keys
+                params,
+            )
+        ).scalar_one()
+    )

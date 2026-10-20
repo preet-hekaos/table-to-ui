@@ -1,0 +1,25 @@
+id: R-04
+title: Candidate fits the requirement's hard filters
+table: submission
+applies_to: [create]
+context:
+  cand_notice: {kind: lookup, ref_field: candidate, field: notice_period_days}
+  req_notice: {kind: lookup, ref_field: requirement, field: max_notice_days}
+  cand_exp: {kind: lookup, ref_field: candidate, field: total_experience}
+  req_min_exp: {kind: lookup, ref_field: requirement, field: min_experience}
+  req_max_exp: {kind: lookup, ref_field: requirement, field: max_experience}
+  cand_pay: {kind: lookup, ref_field: candidate, field: expected_ctc}
+  req_budget: {kind: lookup, ref_field: requirement, field: budget_max}
+checks:
+  - id: R-04.notice
+    severity: warn
+    when: "ctx.cand_notice != null && ctx.req_notice != null && ctx.cand_notice > ctx.req_notice"
+    message: "The candidate's notice period is longer than the requirement allows."
+  - id: R-04.experience
+    severity: warn
+    when: "ctx.cand_exp != null && ((ctx.req_min_exp != null && ctx.cand_exp < ctx.req_min_exp) || (ctx.req_max_exp != null && ctx.cand_exp > ctx.req_max_exp))"
+    message: "The candidate's experience is outside the requirement's range."
+  - id: R-04.budget
+    severity: warn
+    when: "ctx.cand_pay != null && ctx.req_budget != null && ctx.cand_pay > ctx.req_budget"
+    message: "The candidate's expected pay is above the requirement's budget."

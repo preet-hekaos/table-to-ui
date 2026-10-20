@@ -1,0 +1,9 @@
+id: R-12
+title: A rejection needs a reason
+table: submission
+applies_to: [create, update]
+checks:
+  - id: R-12.reason
+    severity: block
+    when: "record.stage == 'Rejected' && (record.rejection_reason == null || record.rejection_reason == '')"
+    message: "Say why this candidate was rejected."

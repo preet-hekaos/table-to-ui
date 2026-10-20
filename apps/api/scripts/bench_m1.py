@@ -27,13 +27,59 @@ FIRST = ["Arjun", "Priya", "Rohan", "Ananya", "Vikram", "Kavya", "Rahul", "Sneha
          "Siddharth", "Pooja", "Nikhil", "Lakshmi", "Amit", "Neha", "Suresh", "Isha", "Farhan", "Zoya", "Joseph", "Tanvi"]  # fmt: skip
 LAST = ["Menon", "Sharma", "Iyer", "Patel", "Reddy", "Nair", "Gupta", "Rao", "Kulkarni", "Singh", "Das", "Joshi", "Pillai",
         "Verma", "Bose", "Shetty", "Chopra", "Mehta", "Banerjee", "Krishnan", "Khan", "DSouza", "Ghosh", "Agarwal"]  # fmt: skip
-CITIES = ["Bengaluru", "Pune", "Hyderabad", "Chennai", "Mumbai", "Gurugram", "Noida", "Kochi", "Kolkata", "Ahmedabad", "Jaipur", "Indore"]
-EMPLOYERS = ["Infosys", "TCS", "Wipro", "HCL", "Tech Mahindra", "Zoho", "Freshworks", "Razorpay", "Flipkart", "Accenture", "Cognizant", "Capgemini"]
+CITIES = [
+    "Bengaluru",
+    "Pune",
+    "Hyderabad",
+    "Chennai",
+    "Mumbai",
+    "Gurugram",
+    "Noida",
+    "Kochi",
+    "Kolkata",
+    "Ahmedabad",
+    "Jaipur",
+    "Indore",
+]
+EMPLOYERS = [
+    "Infosys",
+    "TCS",
+    "Wipro",
+    "HCL",
+    "Tech Mahindra",
+    "Zoho",
+    "Freshworks",
+    "Razorpay",
+    "Flipkart",
+    "Accenture",
+    "Cognizant",
+    "Capgemini",
+]
 SKILLS = ["Java", "Spring Boot", "Python", "SQL", "AWS", "React", "Node.js", "Docker", "Kubernetes", "Kafka", "PostgreSQL",
           "TypeScript", "Angular", "Selenium", "Power BI", "Excel", "Django", "Terraform", "Go", "Azure", "GCP", "Spark"]  # fmt: skip
-TITLES = ["Software Engineer", "Senior Engineer", "Data Analyst", "QA Engineer", "Product Manager", "DevOps Engineer", "Tech Lead"]
+TITLES = [
+    "Software Engineer",
+    "Senior Engineer",
+    "Data Analyst",
+    "QA Engineer",
+    "Product Manager",
+    "DevOps Engineer",
+    "Tech Lead",
+]
 PASSWORD = "correct-horse-battery"
-HEADER = ["Name", "Email", "Mobile", "Company", "Title", "City", "Experience", "Expected CTC", "Notice", "Key Skills", "Status"]
+HEADER = [
+    "Name",
+    "Email",
+    "Mobile",
+    "Company",
+    "Title",
+    "City",
+    "Experience",
+    "Expected CTC",
+    "Notice",
+    "Key Skills",
+    "Status",
+]
 
 
 def dataset(n: int, seed: int = 50_000) -> bytes:
@@ -69,10 +115,18 @@ def pct(samples: list[float], p: float) -> float:
 
 
 def summary(samples: list[float]) -> dict[str, float]:
-    return {"n": len(samples), "p50_ms": pct(samples, 50), "p95_ms": pct(samples, 95), "p99_ms": pct(samples, 99), "mean_ms": round(statistics.mean(samples), 1)}
+    return {
+        "n": len(samples),
+        "p50_ms": pct(samples, 50),
+        "p95_ms": pct(samples, 95),
+        "p99_ms": pct(samples, 99),
+        "mean_ms": round(statistics.mean(samples), 1),
+    }
 
 
-async def timed(c: httpx.AsyncClient, method: str, url: str, **kw: Any) -> tuple[float, httpx.Response]:
+async def timed(
+    c: httpx.AsyncClient, method: str, url: str, **kw: Any
+) -> tuple[float, httpx.Response]:
     t0 = time.perf_counter()
     r = await c.request(method, url, **kw)
     return (time.perf_counter() - t0) * 1000, r
@@ -80,23 +134,45 @@ async def timed(c: httpx.AsyncClient, method: str, url: str, **kw: Any) -> tuple
 
 async def workspace(c: httpx.AsyncClient) -> dict[str, str]:
     email = f"bench-{uuid.uuid4().hex[:8]}@bench.test"
-    r = await c.post("/v1/auth/signup", json={"agency_name": "Bench Agency", "full_name": "Bench Owner", "email": email, "password": PASSWORD})
+    r = await c.post(
+        "/v1/auth/signup",
+        json={
+            "agency_name": "Bench Agency",
+            "full_name": "Bench Owner",
+            "email": email,
+            "password": PASSWORD,
+        },
+    )
     r.raise_for_status()
     h = {"Authorization": f"Bearer {r.json()['token']}"}
     secret = (await c.post("/v1/auth/mfa/enroll", headers=h)).json()["secret"]
-    (await c.post("/v1/auth/mfa/confirm", headers=h, json={"code": pyotp.TOTP(secret).now()})).raise_for_status()
-    (await c.post("/v1/workspace/pack", headers=h, json={"pack_id": "recruitment"})).raise_for_status()
+    (
+        await c.post("/v1/auth/mfa/confirm", headers=h, json={"code": pyotp.TOTP(secret).now()})
+    ).raise_for_status()
+    (
+        await c.post("/v1/workspace/pack", headers=h, json={"pack_id": "recruitment"})
+    ).raise_for_status()
     return h
 
 
-async def import_file(c: httpx.AsyncClient, h: dict[str, str], data: bytes, load: bool) -> dict[str, Any]:
+async def import_file(
+    c: httpx.AsyncClient, h: dict[str, str], data: bytes, load: bool
+) -> dict[str, Any]:
     out: dict[str, Any] = {"rows": data.count(b"\n") - 1, "bytes": len(data)}
     t0 = time.perf_counter()
-    f = (await c.post("/v1/files", headers=h, data={"kind": "import"}, files={"file": ("bench.csv", data)})).json()
-    job = (await c.post("/v1/imports", headers=h, json={"file_id": f["id"], "table": "candidate"})).json()
+    f = (
+        await c.post(
+            "/v1/files", headers=h, data={"kind": "import"}, files={"file": ("bench.csv", data)}
+        )
+    ).json()
+    job = (
+        await c.post("/v1/imports", headers=h, json={"file_id": f["id"], "table": "candidate"})
+    ).json()
     out["upload_and_profile_s"] = round(time.perf_counter() - t0, 1)
     mapping = {**job["mapping"], "Status": "status", "Title": "current_title", "City": "location"}
-    (await c.put(f"/v1/imports/{job['id']}/mapping", headers=h, json={"mapping": mapping})).raise_for_status()
+    (
+        await c.put(f"/v1/imports/{job['id']}/mapping", headers=h, json={"mapping": mapping})
+    ).raise_for_status()
     t1 = time.perf_counter()
     v = await c.post(f"/v1/imports/{job['id']}/validate", headers=h)
     v.raise_for_status()
@@ -134,7 +210,13 @@ async def main(api: str, rows: int, big: int, samples: int) -> dict[str, Any]:
                 c.get("/v1/app/screens/candidates", headers=h),
                 c.get("/v1/app/tables/candidate", headers=h),
                 c.get("/v1/records/candidate", headers=h, params={"limit": 50}),
-                c.get("/v1/records/candidate/facets", headers=h, params={"fields": "skills,location,total_experience,notice_period_days,expected_ctc"}),
+                c.get(
+                    "/v1/records/candidate/facets",
+                    headers=h,
+                    params={
+                        "fields": "skills,location,total_experience,notice_period_days,expected_ctc"
+                    },
+                ),
             )
             screen.append((time.perf_counter() - t0) * 1000)
         result["screen_load"] = summary(screen)
@@ -157,7 +239,12 @@ async def main(api: str, rows: int, big: int, samples: int) -> dict[str, Any]:
                     {"limit": 50, "f.location": r.choice(CITIES)},
                     {"limit": 50, "f.skills": r.choice(SKILLS)},
                     {"limit": 50, "f.status": "Active", "r.total_experience": "60..120"},
-                    {"limit": 50, "f.location": r.choice(CITIES), "f.skills": r.choice(SKILLS), "sort": "updated_at"},
+                    {
+                        "limit": 50,
+                        "f.location": r.choice(CITIES),
+                        "f.skills": r.choice(SKILLS),
+                        "sort": "updated_at",
+                    },
                 ]
             )
             ms, _ = await timed(c, "GET", "/v1/records/candidate", headers=h, params=params)
@@ -167,22 +254,34 @@ async def main(api: str, rows: int, big: int, samples: int) -> dict[str, Any]:
         searches = []
         words = [*FIRST, *LAST, *SKILLS, *EMPLOYERS, "arjn", "menn", "kubernets", "pythn"]
         for _ in range(samples):
-            ms, _ = await timed(c, "GET", "/v1/records/candidate", headers=h, params={"limit": 50, "q": r.choice(words)})
+            ms, _ = await timed(
+                c,
+                "GET",
+                "/v1/records/candidate",
+                headers=h,
+                params={"limit": 50, "q": r.choice(words)},
+            )
             searches.append(ms)
         result["keyword_search"] = summary(searches)
 
         bar = []
         for _ in range(samples):
-            ms, _ = await timed(c, "GET", "/v1/search", headers=h, params={"q": r.choice(FIRST)[:4]})
+            ms, _ = await timed(
+                c, "GET", "/v1/search", headers=h, params={"q": r.choice(FIRST)[:4]}
+            )
             bar.append(ms)
         result["command_bar"] = summary(bar)
 
-        req = (await c.post("/v1/records/client", headers=h, json={"data": {"name": "Bench Client"}})).json()
+        req = (
+            await c.post("/v1/records/client", headers=h, json={"data": {"name": "Bench Client"}})
+        ).json()
         rq = (await c.post("/v1/records/requirement", headers=h, json={"data": {"title": "Java lead", "client": req["id"],
               "skills": ["Java", "Kafka", "SQL"], "location": "Pune", "min_experience": 48, "max_experience": 120, "budget_max": 3000000, "max_notice_days": 60}})).json()  # fmt: skip
         matches = []
         for _ in range(max(10, samples // 10)):
-            ms, resp = await timed(c, "GET", f"/v1/matching/requirement_matches/{rq['id']}", headers=h)
+            ms, resp = await timed(
+                c, "GET", f"/v1/matching/requirement_matches/{rq['id']}", headers=h
+            )
             matches.append(ms)
         result["ranked_matches"] = {**summary(matches), "considered": resp.json()["considered"]}
 
