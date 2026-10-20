@@ -1,0 +1,14 @@
+id: R-11
+title: A contact belongs to the requirement's client
+table: requirement
+applies_to: [create, update]
+context:
+  contact_client:
+    kind: lookup
+    ref_field: contact
+    field: client
+checks:
+  - id: R-11.contact
+    severity: block
+    when: "ctx.contact_client != null && ctx.contact_client != record.client"
+    message: "This contact works for a different client. Pick a contact from the requirement's client."

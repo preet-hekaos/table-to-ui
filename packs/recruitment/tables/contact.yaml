@@ -1,0 +1,11 @@
+key: contact
+label: Contact
+plural_label: Contacts
+title_field: name
+fields:
+  - {key: name, label: Name, type: text, required: true, searchable: true}
+  - {key: client, label: Client, type: reference, ref_table: client, required: true, filterable: true}
+  - {key: designation, label: Designation, type: text}
+  - {key: email, label: Email, type: email, normalize: email, searchable: true}
+  - {key: phone, label: Phone, type: phone, normalize: phone}
+  - {key: is_primary, label: Primary contact, type: boolean}

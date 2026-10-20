@@ -1,0 +1,7 @@
+key: skill
+label: Skill
+plural_label: Skills
+title_field: name
+fields:
+  - {key: name, label: Name, type: text, required: true, normalize: text, unique: true, searchable: true}
+  - {key: category, label: Category, type: text, filterable: true}

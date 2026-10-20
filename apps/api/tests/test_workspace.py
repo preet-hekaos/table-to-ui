@@ -28,7 +28,7 @@ async def test_choosing_a_pack_installs_tables_and_roles_once(client: httpx.Asyn
     a = await _blank(client)
     await a.choose_pack("recruitment")
     tables = (await client.get("/v1/app/tables", headers=a.h())).json()["tables"]
-    assert [t["key"] for t in tables] == ["candidate"]
+    assert len(tables) == 13
     assert (await a.create_candidate(candidate())).status_code == 201
     again = await client.post("/v1/workspace/pack", headers=a.h(), json={"pack_id": "recruitment"})
     assert again.status_code == 422
@@ -102,4 +102,4 @@ async def test_navigation_is_filtered_by_role(client: httpx.AsyncClient) -> None
     a = await _blank(client)
     await a.choose_pack("recruitment")
     nav = (await client.get("/v1/app/navigation", headers=a.h())).json()["items"]
-    assert [n["screen"] for n in nav] == ["candidates"]
+    assert nav[0]["screen"] == "candidates" and len(nav) == 13

@@ -1,0 +1,4 @@
+key: tasks
+title: Tasks
+pattern: searchable_table
+table: task

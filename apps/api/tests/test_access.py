@@ -40,7 +40,8 @@ async def test_own_scope_hides_other_peoples_records(
         db,
         boss.tenant_id,
         "INSERT INTO control.tenant_role_scope (tenant_id, role_key, table_key, scope) "
-        "VALUES (:t, 'recruiter', 'candidate', 'own')",
+        "VALUES (:t, 'recruiter', 'candidate', 'own') "
+        "ON CONFLICT (tenant_id, role_key, table_key) DO UPDATE SET scope = 'own'",
     )
     rec = await _member(client, boss, mailer, "recruiter")
     mine = await rec.create_candidate(candidate(full_name="Mine One", status="Active"))
@@ -80,7 +81,12 @@ async def test_denied_field_is_hidden_and_unwritable(
         db,
         boss.tenant_id,
         "INSERT INTO control.tenant_field_deny (tenant_id, role_key, table_key, field_key) "
-        "VALUES (:t, 'recruiter', 'candidate', 'phone')",
+        "VALUES (:t, 'recruiter', 'candidate', 'phone') ON CONFLICT DO NOTHING",
+    )
+    await _setup(
+        db,
+        boss.tenant_id,
+        "UPDATE control.tenant_role_scope SET scope = 'all' WHERE tenant_id = :t AND role_key = 'recruiter'",
     )
     rec = await _member(client, boss, mailer, "recruiter")
     made = await boss.create_candidate(

@@ -14,7 +14,7 @@ def test_pack_loads_candidate_table_rule_and_measure() -> None:
     candidate = pack.table("candidate")
     assert candidate is not None
     assert {f.key for f in candidate.fields} >= {"full_name", "email", "phone", "status"}
-    assert [r.id for r in pack.rules] == ["R-01"]
+    assert [r.id for r in pack.rules] == ["R-01", "R-11"]
     assert [m.key for m in pack.measures] == ["active_candidates"]
 
 

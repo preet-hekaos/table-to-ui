@@ -1,0 +1,11 @@
+key: submission
+label: Submission
+plural_label: Submissions
+title_field: summary
+fields:
+  - {key: summary, label: Summary, type: text, required: true, searchable: true}
+  - {key: candidate, label: Candidate, type: reference, ref_table: candidate, required: true, filterable: true}
+  - {key: requirement, label: Requirement, type: reference, ref_table: requirement, required: true, filterable: true}
+  - {key: status, label: Status, type: select, required: true, default: Submitted, options: [Submitted, Shortlisted, Rejected, On hold], filterable: true}
+  - {key: submitted_on, label: Submitted on, type: date}
+  - {key: note, label: Note, type: long_text}

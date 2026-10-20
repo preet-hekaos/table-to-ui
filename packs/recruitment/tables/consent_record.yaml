@@ -1,0 +1,9 @@
+key: consent_record
+label: Consent record
+plural_label: Consent records
+title_field: purpose
+fields:
+  - {key: candidate, label: Candidate, type: reference, ref_table: candidate, required: true, filterable: true}
+  - {key: purpose, label: Purpose, type: select, required: true, options: [Store profile, Share with clients, Contact for new roles], filterable: true}
+  - {key: status, label: Status, type: select, required: true, default: Given, options: [Given, Withdrawn], filterable: true}
+  - {key: given_on, label: Date, type: date}

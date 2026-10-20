@@ -82,7 +82,7 @@ async def _evaluate_rules(
     for rule in ctx.app.rules:
         if rule.table != table.key or action not in rule.applies_to:
             continue
-        rule_ctx = await load_context(s, table, rule, shadow, exclude_id)
+        rule_ctx = await load_context(s, table, rule, shadow, exclude_id, clean)
         outcomes += evaluate(compile_rule(rule), clean, rule_ctx)
     return outcomes
 

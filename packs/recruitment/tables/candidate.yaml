@@ -3,6 +3,10 @@ label: Candidate
 plural_label: Candidates
 title_field: full_name
 groups:
+  - key: profile
+    label: Profile
+  - key: pay
+    label: Pay
   - key: identity
     label: Identity
   - key: contact
@@ -15,6 +19,7 @@ fields:
   - key: full_name
     label: Full name
     type: text
+    searchable: true
     required: true
     group: identity
     normalize: text
@@ -22,6 +27,7 @@ fields:
   - key: email
     label: Email
     type: email
+    searchable: true
     required: true
     group: contact
     normalize: email
@@ -35,15 +41,19 @@ fields:
   - key: current_title
     label: Current title
     type: text
+    searchable: true
     group: employment
   - key: current_employer
     label: Current employer
     type: text
+    searchable: true
     group: employment
     normalize: text
   - key: location
     label: Location
     type: text
+    searchable: true
+    filterable: true
     group: employment
   - key: notice_period_days
     label: Notice period (days)
@@ -59,3 +69,30 @@ fields:
     default: Active
     options: [Active, Placed, Archived]
     analytics: true
+    filterable: true
+  - key: skills
+    label: Skills
+    type: tags
+    group: profile
+    searchable: true
+    filterable: true
+  - key: total_experience
+    label: Total experience
+    type: months
+    group: profile
+    filterable: true
+  - key: source
+    label: Source
+    type: select
+    group: profile
+    options: [Referral, Job board, LinkedIn, Walk-in, Import, Other]
+    filterable: true
+  - key: current_ctc
+    label: Current CTC
+    type: money
+    group: pay
+  - key: expected_ctc
+    label: Expected CTC
+    type: money
+    group: pay
+    filterable: true

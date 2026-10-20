@@ -1,0 +1,4 @@
+key: contacts
+title: Contacts
+pattern: searchable_table
+table: contact

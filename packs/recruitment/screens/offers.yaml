@@ -1,0 +1,4 @@
+key: offers
+title: Offers
+pattern: searchable_table
+table: offer
