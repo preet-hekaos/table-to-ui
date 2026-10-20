@@ -41,7 +41,7 @@ export function OpsSignIn() {
   }
 
   return (
-    <AuthLayout title="Operator sign-in" subtitle="For platform staff only. This is separate from every agency workspace.">
+    <AuthLayout title="Operator sign-in" subtitle="For platform staff only. This is separate from every customer workspace.">
       <form onSubmit={submit} className="flex flex-col gap-4">
         {step === 'password' ? (
           <>
@@ -117,7 +117,7 @@ export function TenantDirectory() {
         <Table aria-label="Tenants">
           <thead>
             <tr>
-              <Th>Agency</Th>
+              <Th>Workspace</Th>
               <Th>Plan</Th>
               <Th>Cluster</Th>
               <Th>Schema</Th>

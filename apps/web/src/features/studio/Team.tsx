@@ -32,7 +32,7 @@ export function Team() {
     onError: (e) => setError(e.message),
   })
   if (!me.data) return null
-  if (!can(me.data.permissions, 'invitation.send')) return <PermissionDenied what="Only agency admins can invite teammates." />
+  if (!can(me.data.permissions, 'invitation.send')) return <PermissionDenied what="Only workspace admins can invite teammates." />
 
   function submit(e: FormEvent) {
     e.preventDefault()

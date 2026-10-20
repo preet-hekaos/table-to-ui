@@ -16,11 +16,14 @@ const arjun = { full_name: 'Arjun Menon', email: `arjun.menon.${run}@gmail.com`,
 
 async function signUp(page: Page, who: { agency: string; name: string; email: string }) {
   await page.goto('/signup')
-  await page.getByLabel(/Agency name/).fill(who.agency)
+  await page.getByLabel(/Workspace name/).fill(who.agency)
   await page.getByLabel(/Your name/).fill(who.name)
   await page.getByLabel(/Work email/).fill(who.email)
   await page.getByLabel(/^Password/).fill(PASSWORD)
   await page.getByRole('button', { name: 'Create workspace' }).click()
+  await expect(page.getByRole('heading', { name: /^Set up / })).toBeVisible()
+  await page.getByLabel(/Recruitment agency/).check()
+  await page.getByRole('button', { name: 'Set up workspace' }).click()
   await expect(page.getByTestId('app-name')).toHaveText(who.agency)
 }
 
@@ -88,14 +91,11 @@ test('M0 demo script', async ({ browser }) => {
     await expect(row).toContainText('email')
     await expect(row).toContainText('Yes')
     await expect(row).toContainText('Pack')
-    await expect(a.page.getByRole('group', { name: 'Environments' })).toContainText('Live not published')
+    await expect(a.page.getByRole('group', { name: 'Environments' })).toContainText('Live v1')
   })
 
-  await test.step('5. She publishes to Test, then Live; the version list shows v1 with its manifest', async () => {
+  await test.step('5. Choosing the pack already published v1 Live; the version list shows its manifest', async () => {
     await a.page.getByRole('tab', { name: 'Versions' }).click()
-    await a.page.getByRole('button', { name: 'Publish Draft to Test' }).click()
-    await expect(a.page.getByTestId('release-v1')).toBeVisible()
-    await a.page.getByRole('button', { name: 'Make Live' }).click()
     const v1 = a.page.getByTestId('release-v1')
     await expect(v1).toContainText('Live')
     await v1.getByText('Manifest', { exact: true }).click()
@@ -151,13 +151,7 @@ test('M0 demo script', async ({ browser }) => {
   })
 
   await test.step('10. Logged in as Crestline, nothing from Northstar is visible', async () => {
-    // Crestline has not published yet, so first publish; then look for Arjun.
-    await c.page.goto('/studio')
-    await c.page.getByRole('tab', { name: 'Versions' }).click()
-    await c.page.getByRole('button', { name: 'Publish Draft to Test' }).click()
-    await expect(c.page.getByTestId('release-v1')).toBeVisible()
-    await c.page.getByRole('button', { name: 'Make Live' }).click()
-    await expect(c.page.getByTestId('release-v1')).toContainText('Live')
+    // Crestline set up its own workspace; look for Arjun.
     await c.page.goto('/records/candidate')
     await expect(c.page.getByText('No candidates yet')).toBeVisible()
     await c.page.goto(arjunUrl)
@@ -202,11 +196,6 @@ test.describe('accessibility of the slice screens (WCAG 2.2 AA)', () => {
     const { ctx, page } = await newUserPage(browser)
     const who = { agency: `A11y Agency ${run}`, name: 'Asha Iyer', email: `asha-${run}@a11y.test` }
     await signUp(page, who)
-    await page.goto('/studio')
-    await page.getByRole('tab', { name: 'Versions' }).click()
-    await page.getByRole('button', { name: 'Publish Draft to Test' }).click()
-    await page.getByRole('button', { name: 'Make Live' }).click()
-    await expect(page.getByTestId('release-v1')).toContainText('Live')
     for (const path of ['/', '/records/candidate', '/records/candidate/new', '/studio', '/activity', '/security', '/team']) {
       await page.goto(path)
       await page.waitForLoadState('networkidle')

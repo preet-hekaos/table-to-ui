@@ -68,7 +68,7 @@ function DataTab() {
                   <Td className="font-semibold text-ink">{f.label}</Td>
                   <Td>{f.type.replace('_', ' ')}</Td>
                   <Td>{f.required ? 'Yes' : 'No'}</Td>
-                  <Td><Badge tone={sourceTone(f.source)}>{f.source === 'pack' ? 'Pack' : 'Agency'}</Badge></Td>
+                  <Td><Badge tone={sourceTone(f.source)}>{f.source === 'pack' ? 'Pack' : 'Workspace'}</Badge></Td>
                 </tr>
               ))}
             </tbody>
@@ -169,7 +169,7 @@ export function Studio() {
   const me = useMe()
   const releases = useQuery({ queryKey: ['releases'], queryFn: studio.releases, enabled: !!me.data, retry: false })
   if (!me.data) return null
-  if (!can(me.data.permissions, 'metadata.read')) return <PermissionDenied what="The Studio is for agency admins and managers." />
+  if (!can(me.data.permissions, 'metadata.read')) return <PermissionDenied what="The Studio is for workspace admins." />
   if (releases.isLoading) return <LoadingState label="Loading the Studio" />
   if (releases.isError) return <ErrorState requestId={(releases.error as ApiError).requestId} onRetry={() => void releases.refetch()} />
   const data = releases.data ?? []

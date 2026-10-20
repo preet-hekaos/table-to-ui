@@ -33,7 +33,7 @@ export function Home() {
               Publish it to Test, then Live, in the <Link to="/studio" className="font-semibold underline">Studio</Link>.
             </>
           ) : (
-            'Ask your agency admin to publish it.'
+            'Ask your workspace admin to publish it.'
           )}
         </EmptyState>
       ) : measures.error ? (

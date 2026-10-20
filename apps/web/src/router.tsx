@@ -8,11 +8,12 @@ import { MfaSetup } from '@/features/auth/MfaSetup'
 import { SignIn } from '@/features/auth/SignIn'
 import { SignUp } from '@/features/auth/SignUp'
 import { meKey } from '@/features/auth/useMe'
-import { auth } from '@/api/endpoints'
+import { auth, workspace } from '@/api/endpoints'
 import { RecordDetail } from '@/features/records/RecordDetail'
 import { RecordNew } from '@/features/records/RecordNew'
 import { RecordsList } from '@/features/records/RecordsList'
 import { Home } from '@/features/home/Home'
+import { Onboarding, onboardingKey } from '@/features/onboarding/Onboarding'
 import { OpsShell, OpsSignIn, TenantDirectory } from '@/features/ops/Ops'
 import { Activity } from '@/features/studio/Activity'
 import { Studio } from '@/features/studio/Studio'
@@ -43,11 +44,14 @@ const accept = createRoute({
 const shell = createRoute({
   getParentRoute: () => root,
   id: 'app',
-  beforeLoad: async ({ context }) => {
+  beforeLoad: async ({ context, location }) => {
     if (!tokens.get()) throw redirect({ to: '/sign-in' })
     try {
       const me = await context.queryClient.ensureQueryData({ queryKey: meKey, queryFn: auth.me, staleTime: 60_000 })
       if (me.mfa_enabled && !me.mfa_verified) throw redirect({ to: '/mfa' })
+      const ob = await context.queryClient.fetchQuery({ queryKey: onboardingKey, queryFn: workspace.onboarding, staleTime: 0 })
+      const path = location.pathname
+      if (ob.step !== 'done' && path !== '/onboarding' && path !== '/security') throw redirect({ to: '/onboarding' })
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
         tokens.set(null)
@@ -58,6 +62,7 @@ const shell = createRoute({
   },
   component: AppShell,
 })
+const onboarding = createRoute({ getParentRoute: () => shell, path: '/onboarding', component: Onboarding })
 const home = createRoute({ getParentRoute: () => shell, path: '/', component: Home })
 const list = createRoute({
   getParentRoute: () => shell,
@@ -95,7 +100,7 @@ const tree = root.addChildren([
   signIn,
   mfa,
   accept,
-  shell.addChildren([home, list, create, detail, studio, activity, security, team]),
+  shell.addChildren([onboarding, home, list, create, detail, studio, activity, security, team]),
   opsSignIn,
   opsShell.addChildren([opsTenants]),
 ])

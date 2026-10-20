@@ -37,6 +37,17 @@ export const auth = {
   invite: (body: { email: string; role: string }) => cast<{ id: string }>(api.POST('/v1/invitations', { body })),
 }
 
+export const workspace = {
+  onboarding: () =>
+    cast<{
+      workspace: string
+      step: string
+      pack_id: string | null
+      packs: { id: string; title: string; description: string; tables: string[]; roles: string[] }[]
+    }>(api.GET('/v1/workspace/onboarding' as never)),
+  choosePack: (pack_id: string) => cast<{ pack_id: string; step: string }>(api.POST('/v1/workspace/pack' as never, { body: { pack_id } } as never)),
+}
+
 export const studio = {
   tables: () => cast<StudioTable[]>(api.GET('/v1/studio/tables')),
   releases: () => cast<ReleaseRow[]>(api.GET('/v1/apps/current/releases')),
