@@ -81,13 +81,16 @@ async def _fuzzy(
     exact_v, fuzzy_v = shadow.get(f"{exact}_norm"), shadow.get(f"{fuzzy}_norm")
     if exact_v is None or fuzzy_v is None:
         return None
+    # Closest names first (trigram similarity), so a large group sharing the exact value is never cut
+    # off arbitrarily; the deterministic scorer below makes the decision.
     rows = (
         await session.execute(
             text(
                 f'SELECT id, data, "{fuzzy}_norm" AS fz FROM "{table.key}" WHERE "{exact}_norm" = :e '  # noqa: S608 - identifiers are validated metadata keys
-                "AND (CAST(:ex AS uuid) IS NULL OR id <> CAST(:ex AS uuid)) LIMIT 200"
+                "AND (CAST(:ex AS uuid) IS NULL OR id <> CAST(:ex AS uuid)) "
+                f'ORDER BY public.similarity("{fuzzy}_norm", :z) DESC, id LIMIT 50'
             ),
-            {"e": exact_v, "ex": exclude_id},
+            {"e": exact_v, "ex": exclude_id, "z": fuzzy_v},
         )
     ).all()
     best = None

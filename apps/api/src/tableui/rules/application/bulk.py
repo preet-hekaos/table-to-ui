@@ -7,7 +7,7 @@ the ordinary engine, so a file row and a form get the same answer.
 
 from typing import Any
 
-from rapidfuzz import fuzz
+from rapidfuzz import fuzz, process
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -113,12 +113,19 @@ async def bulk_outcomes(
                         sh.get(f"{loader.exact_field}_norm"),
                         sh.get(f"{loader.fuzzy_field}_norm"),
                     )
-                    best, score = None, 0.0
+                    best = None
                     if e and z:
-                        for cand_z, link in [*pre[name].get(e, []), *seen[name].get(e, [])]:
-                            sc = fuzz.token_sort_ratio(z, cand_z)
-                            if sc >= loader.threshold and sc > score:
-                                best, score = link, sc
+                        pool = [*pre[name].get(e, []), *seen[name].get(e, [])]
+                        if pool:
+                            # One vectorised pass (rapidfuzz): same scorer and threshold as a single save.
+                            hit = process.extractOne(
+                                z,
+                                [p[0] for p in pool],
+                                scorer=fuzz.token_sort_ratio,
+                                score_cutoff=loader.threshold,
+                            )
+                            if hit is not None:
+                                best = pool[hit[2]][1]
                         seen[name].setdefault(e, []).append(
                             (
                                 z,

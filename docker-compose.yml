@@ -41,6 +41,12 @@ services:
   mailpit:
     image: axllent/mailpit:latest
     ports: ["8025:8025", "1025:1025"]
+  clamav:
+    # Virus scanning for uploads (R-14). Optional locally: without CLAMD_HOST the API uses a
+    # signature scanner that only knows the EICAR test file.
+    image: clamav/clamav:1.4
+    ports: ["3310:3310"]
+    profiles: ["scan"]
   api:
     build: {context: ., dockerfile: apps/api/Dockerfile}
     environment:

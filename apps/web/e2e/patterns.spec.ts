@@ -5,7 +5,8 @@ import { run, signUpWithPack } from './helpers'
 const tags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 const PATTERNS = ['Searchable table', 'Profile', 'Master-detail', 'Form', 'Ranked list', 'Document review', 'Detail']
 const STATES = ['Ready', 'Loading', 'Empty', 'Error', 'No access', 'Not found', 'Blocked by a rule', 'Changed by someone else', 'AI unavailable']
-const shot = (n: string) => `../../docs/screens/patterns/${n.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.png`
+// Screenshots for sign-off are written only when SCREENSHOTS is set.
+const shot = (n: string) => (process.env.SCREENSHOTS ? `../../docs/screens/patterns/${n.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.png` : undefined)
 
 /** M1-S26: every pattern in every state passes axe, works by keyboard and fits 360 px. Screenshots for sign-off. */
 test('pattern library: seven patterns, eight states, keyboard and 360 px', async ({ page }) => {
