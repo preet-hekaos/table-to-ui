@@ -1,6 +1,8 @@
 id: recruitment
 version: 1.0.0
 title: Recruitment agency
+description: Candidates, clients, requirements and placements for a staffing or search firm.
+roles: roles.yaml
 tables:
   - tables/candidate.yaml
 rules:

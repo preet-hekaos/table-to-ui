@@ -31,9 +31,23 @@ def normalise(kind: str, value: Any) -> str | None:
     return re.sub(r"\s+", " ", text).casefold()
 
 
-_MONEY = re.compile(r"^\s*(?:rs\.?|inr|₹)?\s*([\d,]+(?:\.\d+)?)\s*(lpa|l|lac|lakh|lakhs|cr|crore|crores|k|m)?\s*(?:p\.?a\.?|pa)?\s*$", re.I)
-_MULT = {None: 1, "k": 1_000, "m": 1_000_000, "l": 100_000, "lac": 100_000, "lakh": 100_000, "lakhs": 100_000,
-         "lpa": 100_000, "cr": 10_000_000, "crore": 10_000_000, "crores": 10_000_000}
+_MONEY = re.compile(
+    r"^\s*(?:rs\.?|inr|₹)?\s*([\d,]+(?:\.\d+)?)\s*(lpa|l|lac|lakh|lakhs|cr|crore|crores|k|m)?\s*(?:p\.?a\.?|pa)?\s*$",
+    re.I,
+)
+_MULT = {
+    None: 1,
+    "k": 1_000,
+    "m": 1_000_000,
+    "l": 100_000,
+    "lac": 100_000,
+    "lakh": 100_000,
+    "lakhs": 100_000,
+    "lpa": 100_000,
+    "cr": 10_000_000,
+    "crore": 10_000_000,
+    "crores": 10_000_000,
+}
 _DUR = re.compile(r"(\d+(?:\.\d+)?)\s*(years?|yrs?|y|months?|mos?|mo|m)\b", re.I)
 
 

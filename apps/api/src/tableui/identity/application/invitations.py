@@ -47,8 +47,8 @@ async def send_invitation(
         )
     role = (
         await s.execute(
-            text("SELECT key FROM control.role WHERE key = :k AND key <> 'platform_operator'"),
-            {"k": role_key},
+            text("SELECT key FROM control.tenant_role WHERE tenant_id = :t AND key = :k"),
+            {"t": principal.tenant_id, "k": role_key},
         )
     ).first()
     if role is None:

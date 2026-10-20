@@ -129,7 +129,9 @@ def table_ddl_sql(schema: str, table: TableDef) -> str:
 
 def add_shadow_column_sql(schema: str, table_key: str, field_key: str, unique: bool) -> str:
     """DDL when a builder adds a field that needs a normalised shadow column (unique or matched)."""
-    out = [f'ALTER TABLE "{schema}"."{table_key}" ADD COLUMN IF NOT EXISTS "{field_key}_norm" text;']
+    out = [
+        f'ALTER TABLE "{schema}"."{table_key}" ADD COLUMN IF NOT EXISTS "{field_key}_norm" text;'
+    ]
     if unique:
         out.append(
             f'CREATE UNIQUE INDEX IF NOT EXISTS "{table_key}_{field_key}_unique" ON "{schema}"."{table_key}" '

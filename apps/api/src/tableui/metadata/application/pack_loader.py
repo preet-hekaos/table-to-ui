@@ -8,7 +8,16 @@ import cel
 import yaml
 from pydantic import BaseModel, ValidationError
 
-from tableui.metadata.domain.models import MeasureDef, Pack, PackManifest, RuleDef, TableDef
+from tableui.metadata.domain.models import (
+    MeasureDef,
+    NavItem,
+    Pack,
+    PackManifest,
+    RoleDef,
+    RuleDef,
+    ScreenDef,
+    TableDef,
+)
 
 
 @dataclass(frozen=True)
@@ -76,7 +85,29 @@ def load_pack(root: Path) -> Pack:
             measures.append(m)
             files[id(m)] = rel
 
+    screens: list[ScreenDef] = []
+    for rel in manifest.screens:
+        sc = _parse(ScreenDef, _read_yaml(root, rel, issues), rel, issues)
+        if sc:
+            screens.append(sc)
+            files[id(sc)] = rel
+    navigation: list[NavItem] = []
+    if manifest.navigation:
+        raw = _read_yaml(root, manifest.navigation, issues)
+        for i, item in enumerate(raw or []):
+            n = _parse(NavItem, item, f"{manifest.navigation}[{i}]", issues)
+            if n:
+                navigation.append(n)
+    roles: list[RoleDef] = []
+    if manifest.roles:
+        raw = _read_yaml(root, manifest.roles, issues)
+        for i, item in enumerate(raw or []):
+            rd = _parse(RoleDef, item, f"{manifest.roles}[{i}]", issues)
+            if rd:
+                roles.append(rd)
+
     _cross_check(tables, rules, measures, files, issues)
+    _check_generality(tables, screens, navigation, roles, manifest, issues)
     if issues:
         raise PackInvalid(issues)
     return Pack(
@@ -86,6 +117,10 @@ def load_pack(root: Path) -> Pack:
         tables=tables,
         rules=rules,
         measures=measures,
+        description=manifest.description,
+        screens=screens,
+        navigation=navigation,
+        roles=roles,
     )
 
 
@@ -104,6 +139,21 @@ def _cross_check(
             issues.append(PackIssue(f, "table", f"unknown table '{r.table}'"))
             continue
         for name, loader in r.context.items():
+            if loader.kind == "lookup":
+                ref = table.field(loader.ref_field or "")
+                if ref is None or ref.type != "reference" or not ref.ref_table:
+                    issues.append(
+                        PackIssue(f, f"context.{name}.ref_field", "must name a reference field")
+                    )
+                else:
+                    target = by_key.get(ref.ref_table)
+                    if target is None or target.field(loader.field or "") is None:
+                        issues.append(
+                            PackIssue(
+                                f, f"context.{name}.field", f"unknown field on '{ref.ref_table}'"
+                            )
+                        )
+                continue
             for attr in ("field", "exact_field", "fuzzy_field"):
                 key = getattr(loader, attr)
                 if key and table.field(key) is None:
@@ -134,4 +184,44 @@ def _cross_check(
             elif not fld.analytics:
                 issues.append(
                     PackIssue(f, f"where.{i}.field", f"field '{flt.field}' is not analytics: true")
+                )
+
+
+def _check_generality(
+    tables: list[TableDef],
+    screens: list[ScreenDef],
+    navigation: list[NavItem],
+    roles: list[RoleDef],
+    manifest: PackManifest,
+    issues: list[PackIssue],
+) -> None:
+    """Screens, navigation, roles and reference fields must point at things that exist."""
+    by_key = {t.key: t for t in tables}
+    for t in tables:
+        for fld in t.fields:
+            if fld.type == "reference" and fld.ref_table not in by_key:
+                issues.append(
+                    PackIssue(
+                        "tables", f"{t.key}.{fld.key}.ref_table", f"unknown table '{fld.ref_table}'"
+                    )
+                )
+    screen_keys = {s.key for s in screens}
+    role_keys = {r.key for r in roles}
+    for s in screens:
+        if s.table and s.table not in by_key:
+            issues.append(PackIssue(f"screen {s.key}", "table", f"unknown table '{s.table}'"))
+        for r in s.roles:
+            if role_keys and r not in role_keys:
+                issues.append(PackIssue(f"screen {s.key}", "roles", f"unknown role '{r}'"))
+    for n in navigation:
+        if n.screen not in screen_keys:
+            issues.append(
+                PackIssue(
+                    manifest.navigation or "navigation", n.key, f"unknown screen '{n.screen}'"
+                )
+            )
+        for r in n.roles:
+            if role_keys and r not in role_keys:
+                issues.append(
+                    PackIssue(manifest.navigation or "navigation", n.key, f"unknown role '{r}'")
                 )

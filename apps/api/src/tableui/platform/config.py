@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     smtp_port: int = 1025
     mail_sender: str = "no-reply@tableui.local"
     web_base_url: str = "http://localhost:5173"
-    pack_dir: Path = Path(__file__).resolve().parents[5] / "packs" / "recruitment"
+    packs_dir: Path = Path(__file__).resolve().parents[5] / "packs"
 
 
 @lru_cache

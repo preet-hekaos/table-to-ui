@@ -15,10 +15,10 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import tableui.catalog.public as catalog
 import tableui.commands.public as commands
 import tableui.identity.public as identity
 import tableui.insights.public as insights
-import tableui.metadata.public as metadata
 from tableui.audit.api.router import router as audit_router
 from tableui.commands.api.router import router as commands_router
 from tableui.identity.api.router import router as identity_router
@@ -34,6 +34,7 @@ from tableui.platform.messaging_sqs import SqsConsumer, SqsPublisher, make_clien
 from tableui.platform.web import new_request_id
 from tableui.query.api.router import router as query_router
 from tableui.tenancy.public import Tenant, provision_tenant
+from tableui.workspace.public import router as workspace_router
 
 log = logging.getLogger("tableui")
 PROBLEM = "application/problem+json"
@@ -73,15 +74,14 @@ def create_app(
             else SmtpMailer(settings.smtp_host, settings.smtp_port, settings.mail_sender)
         )
         app.state.org = identity.LocalOrganisationProvider()
-        pack = metadata.load_pack(settings.pack_dir)  # fail fast on a broken pack
-        app.state.pack = pack
+        app.state.catalog = catalog.PackCatalog.load(
+            settings.packs_dir
+        )  # fail fast on a broken pack
 
         async def provisioner(
             session: AsyncSession, *, name: str, workos_org_id: str | None
         ) -> Tenant:
-            return await provision_tenant(
-                session, name=name, pack=pack, workos_org_id=workos_org_id
-            )
+            return await provision_tenant(session, name=name, workos_org_id=workos_org_id)
 
         app.state.provisioner = provisioner
         await insights.ensure_schema(app.state.analytics)
@@ -209,6 +209,7 @@ def create_app(
         insights_router,
         audit_router,
         ops_router,
+        workspace_router,
     ):
         app.include_router(r)
     return app

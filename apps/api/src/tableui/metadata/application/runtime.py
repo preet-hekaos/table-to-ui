@@ -9,7 +9,7 @@ from typing import Any
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from tableui.metadata.domain.models import MeasureDef, RuleDef, TableDef
+from tableui.metadata.domain.models import MeasureDef, NavItem, RuleDef, ScreenDef, TableDef
 from tableui.platform.errors import NotFound
 
 
@@ -21,6 +21,8 @@ class RuntimeApp:
     tables: dict[str, TableDef]
     rules: list[RuleDef]
     measures: list[MeasureDef]
+    screens: dict[str, ScreenDef]
+    navigation: list[NavItem]
 
     def table(self, key: str) -> TableDef:
         t = self.tables.get(key)
@@ -47,6 +49,14 @@ def _from_manifest(
         tables={k: TableDef.model_validate(v["definition"]) for k, v in content["tables"].items()},
         rules=[RuleDef.model_validate(v["definition"]) for v in content["rules"].values()],
         measures=[MeasureDef.model_validate(v["definition"]) for v in content["measures"].values()],
+        screens={
+            k: ScreenDef.model_validate(v["definition"])
+            for k, v in content.get("screens", {}).items()
+        },
+        navigation=sorted(
+            (NavItem.model_validate(v["definition"]) for v in content.get("navs", {}).values()),
+            key=lambda n: (n.section, n.order),
+        ),
     )
 
 

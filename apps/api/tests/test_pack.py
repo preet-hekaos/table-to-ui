@@ -10,7 +10,7 @@ from tableui.platform.config import get_settings
 
 
 def test_pack_loads_candidate_table_rule_and_measure() -> None:
-    pack = load_pack(get_settings().pack_dir)
+    pack = load_pack(get_settings().packs_dir / "recruitment")
     candidate = pack.table("candidate")
     assert candidate is not None
     assert {f.key for f in candidate.fields} >= {"full_name", "email", "phone", "status"}
@@ -32,7 +32,7 @@ def test_core_code_contains_no_recruitment_terms() -> None:
 
 def _copy(tmp_path: Path) -> Path:
     dst = tmp_path / "pack"
-    shutil.copytree(get_settings().pack_dir, dst)
+    shutil.copytree(get_settings().packs_dir / "recruitment", dst)
     return dst
 
 

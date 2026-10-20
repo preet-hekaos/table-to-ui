@@ -1,0 +1,24 @@
+- key: manager
+  name: Manager
+  description: Runs a team. Sees and edits all records, reads reports and the audit trail.
+  grants: [metadata.read, "record.*.read", "record.*.create", "record.*.update", measure.read, audit.read]
+- key: recruiter
+  name: Recruiter
+  description: Works candidates, clients and requirements day to day.
+  grants: ["record.*.read", "record.*.create", "record.*.update", measure.read]
+- key: sourcer
+  name: Sourcer
+  description: Finds and adds candidates.
+  grants: ["record.*.read", "record.candidate.create"]
+- key: coordinator
+  name: Coordinator
+  description: Schedules and follows up. Reads records.
+  grants: ["record.*.read"]
+- key: finance
+  name: Finance
+  description: Reads records and reports for billing.
+  grants: ["record.*.read", measure.read]
+- key: viewer
+  name: Viewer
+  description: Read-only access.
+  grants: ["record.*.read", measure.read]

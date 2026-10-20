@@ -145,7 +145,13 @@ class MeasureDef(_Strict):
 
 
 Pattern = Literal[
-    "searchable_table", "profile", "master_detail", "form", "ranked_list", "document_review", "detail"
+    "searchable_table",
+    "profile",
+    "master_detail",
+    "form",
+    "ranked_list",
+    "document_review",
+    "detail",
 ]
 Scope = Literal["all", "own_team", "own"]
 
