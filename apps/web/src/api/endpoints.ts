@@ -61,7 +61,7 @@ export interface TeamRow { id: string; name: string; members: string[] }
 export interface WorkspaceSettings { brand: { app_name: string; accent: string; logo_file_id: string | null }; regional: Record<string, string> }
 
 export const admin = {
-  home: () => g<{ workspace: string; pack_id: string | null; release_version: number | null; checklist: { key: string; label: string; done: boolean; to: string }[]; pack_updates: unknown[] }>('/v1/workspace/home'),
+  home: () => g<{ workspace: string; pack_id: string | null; pack_version: string | null; release_version: number | null; checklist: { key: string; label: string; done: boolean; to: string }[]; pack_updates: unknown[] }>('/v1/workspace/home'),
   people: () => g<PersonRow[]>('/v1/workspace/people'),
   setActive: (id: string, active: boolean) => send<void>('POST', `/v1/workspace/people/${id}/${active ? 'activate' : 'deactivate'}`),
   setRole: (id: string, role: string) => send<void>('PUT', `/v1/workspace/people/${id}/role`, { role }),
@@ -72,7 +72,7 @@ export const admin = {
   saveRole: (r: Omit<RoleRow, 'members'>, isNew: boolean) =>
     send<void>(isNew ? 'POST' : 'PUT', isNew ? '/v1/workspace/roles' : `/v1/workspace/roles/${r.key}`, r),
   settings: () => g<WorkspaceSettings>('/v1/workspace/settings'),
-  saveBrand: (b: { app_name: string; accent: string }) => send<WorkspaceSettings['brand']>('PUT', '/v1/workspace/settings/brand', b),
+  saveBrand: (b: { app_name: string; accent: string; logo_file_id?: string | null }) => send<WorkspaceSettings['brand']>('PUT', '/v1/workspace/settings/brand', b),
   saveRegional: (r: Record<string, string>) => send<Record<string, string>>('PUT', '/v1/workspace/settings/regional', r),
 }
 
@@ -164,4 +164,16 @@ export const ops = {
   verify: (code: string, token: string) =>
     cast<void>(api.POST('/v1/ops/auth/mfa/verify', { body: { code }, headers: { Authorization: `Bearer ${token}` }, parseAs: 'text' })),
   tenants: () => cast<TenantRow[]>(api.GET('/v1/ops/tenants')),
+}
+
+export interface StoredFile { id: string; kind: string; name: string; content_type: string; size_bytes: number; sha256: string; scan_status: 'pending' | 'clean' | 'infected' | 'error'; created_at: string }
+
+export const files = {
+  upload: (kind: 'logo' | 'cv' | 'import', file: File) => {
+    const body = new FormData()
+    body.append('kind', kind)
+    body.append('file', file)
+    return cast<StoredFile>(api.POST('/v1/files' as never, { body, bodySerializer: (b: FormData) => b } as never))
+  },
+  describe: (id: string) => g<StoredFile>(`/v1/files/${id}`),
 }

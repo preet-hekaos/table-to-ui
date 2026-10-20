@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { admin, app, type RoleRow } from '@/api/endpoints'
+import { admin, app, files, type RoleRow } from '@/api/endpoints'
 import { Badge, Button, Card, CardTitle, Field, Input, LoadingState, PermissionDenied, Select, Table, Tabs, TabsContent, TabsList, TabsTrigger, Td, Th, useToast } from '@/design-system'
 import { can, useMe } from '@/features/auth/useMe'
+import { useFileUrl } from '@/features/workspace/useBrand'
 
 const errMsg = (e: unknown) => (e instanceof Error ? e.message : 'Something went wrong')
 
@@ -152,22 +153,53 @@ function Branding() {
   const s = useQuery({ queryKey: ['ws-settings'], queryFn: admin.settings })
   const [name, setName] = useState<string>()
   const [accent, setAccent] = useState<string>()
+  const [logoId, setLogoId] = useState<string | null>()
   const [err, setErr] = useState<string>()
+  const [logoErr, setLogoErr] = useState<string>()
   const [suggest, setSuggest] = useState<string>()
+  const currentLogo = logoId === undefined ? (s.data?.brand.logo_file_id ?? null) : logoId
+  const logoUrl = useFileUrl(currentLogo)
+  const upload = useMutation({
+    mutationFn: (f: File) => files.upload('logo', f),
+    onSuccess: (f) => {
+      setLogoErr(undefined)
+      if (f.scan_status !== 'clean') setLogoErr('This file did not pass the virus scan.')
+      else setLogoId(f.id)
+    },
+    onError: (e) => setLogoErr(errMsg(e)),
+  })
   const save = useMutation({
-    mutationFn: () => admin.saveBrand({ app_name: name ?? s.data!.brand.app_name, accent: accent ?? s.data!.brand.accent }),
+    mutationFn: () =>
+      admin.saveBrand({ app_name: name ?? s.data!.brand.app_name, accent: accent ?? s.data!.brand.accent, logo_file_id: currentLogo }),
     onSuccess: () => { setErr(undefined); setSuggest(undefined); toast({ title: 'Branding saved', tone: 'ok' }); return qc.invalidateQueries({ queryKey: ['ws-settings'] }) },
     onError: (e) => { setErr(errMsg(e)); setSuggest((e as { body?: { suggestion?: string } }).body?.suggestion) },
   })
   if (!s.data) return <LoadingState label="Loading branding" />
+  const shownAccent = accent ?? s.data.brand.accent
+  const valid = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(shownAccent)
   return (
     <form className="flex max-w-md flex-col gap-4" onSubmit={(e) => { e.preventDefault(); save.mutate() }}>
       <Field label="App name"><Input value={name ?? s.data.brand.app_name} onChange={(e) => setName(e.target.value)} /></Field>
-      <Field label="Accent colour" hint="White text must stay readable on it (4.5:1)." error={err}>
-        <Input type="text" value={accent ?? s.data.brand.accent} onChange={(e) => setAccent(e.target.value)} />
+      <Field label="Logo" hint="PNG, JPEG or WebP, up to 1 MB. Shown in the menu." error={logoErr}>
+        <Input type="file" accept="image/png,image/jpeg,image/webp" className="pt-1.5" onChange={(e) => { const f = e.target.files?.[0]; if (f) upload.mutate(f) }} />
       </Field>
+      {logoUrl && (
+        <div className="flex items-center gap-3">
+          <img src={logoUrl} alt="Current logo" className="size-12 rounded-lg border border-line object-contain" />
+          <Button type="button" size="sm" variant="ghost" onClick={() => setLogoId(null)}>Remove logo</Button>
+        </div>
+      )}
+      <Field label="Accent colour" hint="White text must stay readable on it (4.5:1)." error={err}>
+        <Input type="text" value={shownAccent} onChange={(e) => setAccent(e.target.value)} />
+      </Field>
+      {valid && (
+        <div className="flex items-center gap-2 text-sm" aria-hidden>
+          <span className="rounded-md px-3 py-1.5 font-semibold text-white" style={{ background: shownAccent }}>Sample button</span>
+          <span className="text-muted">Preview</span>
+        </div>
+      )}
       {suggest && <Button type="button" variant="secondary" onClick={() => { setAccent(suggest); setErr(undefined) }}>Use {suggest} instead</Button>}
-      <Button type="submit" variant="primary" loading={save.isPending}>Save branding</Button>
+      <Button type="submit" variant="primary" loading={save.isPending || upload.isPending}>Save branding</Button>
     </form>
   )
 }
@@ -191,14 +223,14 @@ function Regional() {
 }
 
 /** Workspace settings: people, teams, roles and permissions, branding, regional formats. */
-export function Settings() {
+export function Settings({ tab = 'people' }: { tab?: string }) {
   const me = useMe()
   if (!me.data) return null
   if (!can(me.data.permissions, 'workspace.manage')) return <PermissionDenied what="Only workspace admins can change settings." />
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-xl font-bold text-ink">Settings</h1>
-      <Tabs defaultValue="people">
+      <Tabs defaultValue={tab}>
         <TabsList aria-label="Settings sections">
           {['people', 'teams', 'roles', 'branding', 'regional'].map((t) => <TabsTrigger key={t} value={t}>{t[0]!.toUpperCase() + t.slice(1)}</TabsTrigger>)}
         </TabsList>

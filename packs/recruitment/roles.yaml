@@ -1,7 +1,7 @@
 - key: manager
   name: Manager
   description: Runs a team. Sees and edits everything, reads reports and the audit trail.
-  grants: [metadata.read, "record.*.read", "record.*.create", "record.*.update", measure.read, audit.read, search.saved.manage, matching.configure]
+  grants: [metadata.read, "record.*.read", "record.*.create", "record.*.update", measure.read, audit.read, search.saved.manage, matching.configure, document.upload, import.run]
 - key: account_manager
   name: Account manager
   description: Looks after clients, their contacts and requirements.
@@ -9,12 +9,12 @@
 - key: recruiter
   name: Recruiter
   description: Works candidates against requirements. Sees their own and their team's candidates.
-  grants: ["record.*.read", "record.candidate.create", "record.candidate.update", "record.candidate_document.create", "record.submission.create", "record.submission.update", "record.interview.create", "record.interview.update", "record.interaction.create", "record.task.create", "record.task.update", "record.consent_record.create", measure.read]
+  grants: ["record.*.read", "record.candidate.create", "record.candidate.update", "record.candidate_document.create", "record.submission.create", "record.submission.update", "record.interview.create", "record.interview.update", "record.interaction.create", "record.task.create", "record.task.update", "record.consent_record.create", measure.read, document.upload]
   scopes: {candidate: own_team}
 - key: sourcer
   name: Sourcer
   description: Finds and adds candidates. Does not see pay.
-  grants: ["record.candidate.read", "record.candidate.create", "record.candidate_document.create", "record.skill.read", "record.requirement.read"]
+  grants: ["record.candidate.read", "record.candidate.create", "record.candidate_document.create", "record.skill.read", "record.requirement.read", document.upload]
   scopes: {candidate: own}
   field_deny: [candidate.current_ctc, candidate.expected_ctc]
 - key: coordinator

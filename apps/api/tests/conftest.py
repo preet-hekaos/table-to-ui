@@ -1,8 +1,10 @@
 """Test harness. Uses a real PostgreSQL 16 (TEST_DATABASE_URL, or a Testcontainers container)."""
 
 import os
+import tempfile
 import uuid
 from collections.abc import AsyncIterator
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -84,6 +86,7 @@ async def app(
         analytics_database_url=urls["analytics"],
         run_outbox_relay=False,
         web_base_url="http://web.test",
+        files_dir=Path(tempfile.mkdtemp(prefix="tableui-files-")),
     )
     application = create_app(
         settings, mailer=mailer, publisher=LocalBus(), db=db, analytics=analytics

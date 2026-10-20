@@ -3,8 +3,22 @@ import type { ReactNode } from 'react'
 import type { FieldDef, RecordRef, TableDef } from '@/api/types'
 import { Badge } from '@/design-system'
 
-const inr = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })
-const date = new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+let regional = { currency: 'INR', locale: 'en-IN' }
+let money = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })
+let date = new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+
+/** The workspace's regional settings (S07). Called by the app frame once they load. */
+export function setRegional(r: { currency?: string; locale?: string }) {
+  const next = { currency: r.currency || 'INR', locale: r.locale || 'en-IN' }
+  if (next.currency === regional.currency && next.locale === regional.locale) return
+  regional = next
+  try {
+    money = new Intl.NumberFormat(next.locale, { style: 'currency', currency: next.currency, maximumFractionDigits: 0 })
+    date = new Intl.DateTimeFormat(next.locale, { day: '2-digit', month: 'short', year: 'numeric' })
+  } catch {
+    /* an unknown locale keeps the previous formats */
+  }
+}
 
 export function formatMonths(n: number): string {
   const y = Math.floor(n / 12)
@@ -12,8 +26,12 @@ export function formatMonths(n: number): string {
   return [y ? `${y} yr${y === 1 ? '' : 's'}` : '', m ? `${m} mo` : ''].filter(Boolean).join(' ') || '0 mo'
 }
 
+/** ₹12,50,000 · 12.5 LPA in India; plain currency elsewhere. */
 export function formatMoney(n: number): string {
-  return inr.format(n)
+  const base = money.format(n)
+  if (regional.currency !== 'INR' || Math.abs(n) < 100000) return base
+  const lpa = Math.round((n / 100000) * 10) / 10
+  return `${base} · ${lpa} LPA`
 }
 
 export function formatDate(s: string): string {

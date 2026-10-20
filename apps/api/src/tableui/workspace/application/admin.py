@@ -404,6 +404,19 @@ async def save_brand(
             errors=[{"field": "accent", "code": "low_contrast", "message": f"try {suggestion}"}],
             extra={"suggestion": suggestion, "ratio": round(ratio, 2)},
         )
+    if logo_file_id:
+        logo = (
+            await s.execute(
+                text(
+                    "SELECT kind, scan_status FROM control.file WHERE tenant_id = :t AND id::text = :i"
+                ),
+                {"t": tenant_id, "i": logo_file_id},
+            )
+        ).first()
+        if logo is None or logo.kind != "logo":
+            raise _bad("logo_file_id", "is not an uploaded logo")
+        if logo.scan_status != "clean":
+            raise _bad("logo_file_id", "did not pass the virus scan", "infected")
     brand = {"app_name": app_name.strip(), "accent": accent.lower(), "logo_file_id": logo_file_id}
     await s.execute(
         text(

@@ -119,7 +119,14 @@ const studio = createRoute({
   },
 })
 const activity = createRoute({ getParentRoute: () => shell, path: '/activity', component: Activity })
-const settings = createRoute({ getParentRoute: () => shell, path: '/settings', component: Settings })
+const settings = createRoute({
+  getParentRoute: () => shell,
+  path: '/settings',
+  validateSearch: (s: Record<string, unknown>): { tab?: string } => ({ tab: typeof s.tab === 'string' ? s.tab : undefined }),
+  component: function SettingsRoute() {
+    return <Settings tab={settings.useSearch().tab} />
+  },
+})
 const security = createRoute({ getParentRoute: () => shell, path: '/security', component: MfaSetup })
 const team = createRoute({ getParentRoute: () => shell, path: '/team', component: Team })
 

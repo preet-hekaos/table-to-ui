@@ -144,13 +144,13 @@ async def home(p: PrincipalDep, db: DbDep) -> dict[str, Any]:
             "key": "roles",
             "label": "Set roles and permissions",
             "done": "role.save" in did,
-            "to": "/settings/roles",
+            "to": "/settings?tab=roles",
         },
         {
             "key": "brand",
             "label": "Brand the app",
             "done": "brand" in settings,
-            "to": "/settings/brand",
+            "to": "/settings?tab=branding",
         },
     ]
     return {

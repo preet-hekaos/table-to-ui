@@ -1,12 +1,13 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, Outlet, useNavigate } from '@tanstack/react-router'
 import { Bell, ClipboardList, Home, LayoutGrid, LogOut, Menu, Search, Settings2, UserPlus, Users, X } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { useState, type CSSProperties, type ReactNode } from 'react'
 import { ApiError } from '@/api/client'
 import { app, auth } from '@/api/endpoints'
 import { preview, tokens } from '@/api/session'
 import { can, useMe } from '@/features/auth/useMe'
 import { Button, LoadingState } from '@/design-system'
+import { useBrand } from '@/features/workspace/useBrand'
 
 function NavLink({ to, params, icon, children, onNavigate }: { to: string; params?: Record<string, string>; icon: ReactNode; children: ReactNode; onNavigate: () => void }) {
   return (
@@ -30,6 +31,7 @@ export function AppShell() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const [open, setOpen] = useState(false)
+  const { brand, logo, style } = useBrand()
   const menu = useQuery({
     queryKey: ['navigation'],
     queryFn: app.navigation,
@@ -86,13 +88,17 @@ export function AppShell() {
   )
 
   return (
-    <div data-theme="agency" className="flex h-full">
+    <div data-theme="agency" className="flex h-full" style={style as CSSProperties | undefined}>
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-surface focus:p-2">Skip to content</a>
       <aside className={`${open ? 'fixed inset-0 z-40 flex' : 'hidden'} md:static md:flex`}>
         <div className="flex h-full w-56 flex-col gap-4 overflow-y-auto bg-nav p-3">
           <div className="flex items-center gap-2 px-1 text-sm font-bold text-white">
-            <span className="flex size-7 items-center justify-center rounded-lg bg-accent text-xs" aria-hidden>{me.data.tenant_name?.[0] ?? 'T'}</span>
-            <span className="truncate" data-testid="app-name">{me.data.tenant_name}</span>
+            {logo ? (
+              <img src={logo} alt="" className="size-7 rounded-lg bg-white object-contain" data-testid="app-logo" />
+            ) : (
+              <span className="flex size-7 items-center justify-center rounded-lg bg-accent text-xs" aria-hidden>{(brand?.app_name ?? me.data.tenant_name)?.[0] ?? 'T'}</span>
+            )}
+            <span className="truncate" data-testid="app-name">{brand?.app_name ?? me.data.tenant_name}</span>
           </div>
           {nav}
         </div>

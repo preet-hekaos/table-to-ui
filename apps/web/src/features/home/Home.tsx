@@ -1,11 +1,57 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { ApiError } from '@/api/client'
-import { app } from '@/api/endpoints'
-import { Card, EmptyState, ErrorState, LoadingState } from '@/design-system'
+import { admin, app } from '@/api/endpoints'
+import { Badge, Card, CardTitle, EmptyState, ErrorState, LoadingState } from '@/design-system'
+import { CheckCircle2, Circle } from 'lucide-react'
 import { can, useMe } from '@/features/auth/useMe'
 
-/** Home: governed measure cards. Values come from the analytics store, never from live tables. */
+/** Screen 1.5: the app and its version, the setup checklist and pack updates (owners), and the
+ *  governed measure cards, whose values come from the analytics store, never from live tables. */
+function SetupCard() {
+  const home = useQuery({ queryKey: ['ws-home'], queryFn: admin.home, retry: false })
+  if (!home.data) return null
+  const h = home.data
+  const done = h.checklist.filter((c) => c.done).length
+  return (
+    <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
+      <Card data-testid="setup-checklist">
+        <div className="flex items-center gap-2">
+          <CardTitle>Set up your workspace</CardTitle>
+          <Badge tone={done === h.checklist.length ? 'ok' : 'neutral'} className="ml-auto">
+            {done} of {h.checklist.length} done
+          </Badge>
+        </div>
+        <ul className="mt-2 flex flex-col gap-2">
+          {h.checklist.map((c) => (
+            <li key={c.key} className="flex items-center gap-2 text-sm">
+              {c.done ? <CheckCircle2 className="size-4 text-ok" aria-hidden /> : <Circle className="size-4 text-muted" aria-hidden />}
+              <a href={c.to} className={c.done ? 'text-muted line-through' : 'font-semibold text-accent-ink hover:underline'}>
+                {c.label}
+              </a>
+              <span className="sr-only">{c.done ? '(done)' : '(to do)'}</span>
+            </li>
+          ))}
+        </ul>
+      </Card>
+      <Card data-testid="app-version">
+        <CardTitle>Your app</CardTitle>
+        <dl className="mt-2 grid grid-cols-[7rem_1fr] gap-y-1 text-sm">
+          <dt className="text-muted">Starting point</dt>
+          <dd className="text-ink capitalize">{h.pack_id ? `${h.pack_id.replace('_', ' ')} ${h.pack_version ?? ''}` : 'Blank'}</dd>
+          <dt className="text-muted">Live version</dt>
+          <dd className="text-ink">{h.release_version ? `v${h.release_version}` : 'Not published'}</dd>
+          <dt className="text-muted">Pack updates</dt>
+          <dd className="text-ink">{h.pack_updates.length ? `${h.pack_updates.length} available` : 'Up to date'}</dd>
+        </dl>
+        <Link to="/studio" className="mt-3 inline-block text-sm font-semibold text-accent-ink hover:underline">
+          Open the Studio
+        </Link>
+      </Card>
+    </div>
+  )
+}
+
 export function Home() {
   const me = useMe()
   const measures = useQuery({
@@ -24,6 +70,7 @@ export function Home() {
         <h1 className="text-xl font-bold text-ink">Welcome, {me.data.full_name.split(' ')[0]}</h1>
         <p className="text-sm text-muted">{me.data.tenant_name}</p>
       </div>
+      {can(me.data.permissions, 'workspace.manage') && <SetupCard />}
       {measures.isLoading ? (
         <LoadingState label="Loading measures" />
       ) : notPublished ? (

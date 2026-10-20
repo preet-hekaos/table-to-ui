@@ -29,6 +29,11 @@ class Settings(BaseSettings):
     mail_sender: str = "no-reply@tableui.local"
     web_base_url: str = "http://localhost:5173"
     packs_dir: Path = Path(__file__).resolve().parents[5] / "packs"
+    files_dir: Path = Path(__file__).resolve().parents[3] / "var" / "files"  # local file store
+    clamd_host: str | None = None  # set to use ClamAV; empty uses the signature scanner
+    clamd_port: int = 3310
+    cv_parser: str = "rules"  # rules (built in) | rchilli
+    rchilli_api_key: str | None = None
 
 
 @lru_cache

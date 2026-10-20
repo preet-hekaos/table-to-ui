@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 import tableui.catalog.public as catalog
 import tableui.commands.public as commands
+import tableui.files.public as files
 import tableui.identity.public as identity
 import tableui.insights.public as insights
 from tableui.audit.api.router import router as audit_router
@@ -75,6 +76,12 @@ def create_app(
             else SmtpMailer(settings.smtp_host, settings.smtp_port, settings.mail_sender)
         )
         app.state.org = identity.LocalOrganisationProvider()
+        app.state.file_store = files.LocalFileStore(settings.files_dir)
+        app.state.scanner = (
+            files.ClamdScanner(settings.clamd_host, settings.clamd_port)
+            if settings.clamd_host
+            else files.SignatureScanner()
+        )
         app.state.catalog = catalog.PackCatalog.load(
             settings.packs_dir
         )  # fail fast on a broken pack
@@ -212,6 +219,7 @@ def create_app(
         ops_router,
         workspace_router,
         fixtures_router,
+        files.router,
     ):
         app.include_router(r)
     return app
