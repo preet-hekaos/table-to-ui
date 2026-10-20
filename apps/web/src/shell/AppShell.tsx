@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, Outlet, useNavigate } from '@tanstack/react-router'
-import { Bell, ClipboardList, Home, LayoutGrid, LogOut, Menu, Search, Settings2, Upload, UserPlus, Users, X } from 'lucide-react'
+import { Bell, ClipboardList, Home, LayoutGrid, LogOut, Menu, Settings2, Bookmark, Upload, UserPlus, Users, X } from 'lucide-react'
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { ApiError } from '@/api/client'
 import { app, auth } from '@/api/endpoints'
@@ -8,12 +8,15 @@ import { preview, tokens } from '@/api/session'
 import { can, useMe } from '@/features/auth/useMe'
 import { Button, LoadingState } from '@/design-system'
 import { useBrand } from '@/features/workspace/useBrand'
+import { CommandBar } from '@/features/search/CommandBar'
+import { search } from '@/api/endpoints'
 
-function NavLink({ to, params, icon, children, onNavigate }: { to: string; params?: Record<string, string>; icon: ReactNode; children: ReactNode; onNavigate: () => void }) {
+function NavLink({ to, params, search: q, icon, children, onNavigate }: { to: string; params?: Record<string, string>; search?: Record<string, string>; icon: ReactNode; children: ReactNode; onNavigate: () => void }) {
   return (
     <Link
       to={to}
       params={params}
+      search={q as never}
       onClick={onNavigate}
       className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium text-nav-text hover:text-white"
       activeProps={{ className: 'bg-nav-active !text-white font-semibold', 'aria-current': 'page' }}
@@ -32,6 +35,7 @@ export function AppShell() {
   const qc = useQueryClient()
   const [open, setOpen] = useState(false)
   const { brand, logo, style } = useBrand()
+  const saved = useQuery({ queryKey: ['saved-searches'], queryFn: search.saved, enabled: !!me.data, retry: false })
   const menu = useQuery({
     queryKey: ['navigation'],
     queryFn: app.navigation,
@@ -71,6 +75,19 @@ export function AppShell() {
           </div>
         )
       })}
+      {(saved.data?.length ?? 0) > 0 && (
+        <div className="flex flex-col gap-0.5" role="group" aria-label="Saved searches">
+          <p className="px-2.5 pt-3 pb-1 text-[11px] font-semibold tracking-wide text-nav-text uppercase">Saved searches</p>
+          {saved.data!.map((x) => {
+            const screen = x.query.screen ?? menu.data?.items.find((n) => n.table === x.table)?.screen
+            return screen ? (
+              <NavLink key={x.id} to="/s/$screen" params={{ screen }} search={{ saved: x.id }} icon={<Bookmark className="size-4" aria-hidden />} onNavigate={close}>
+                {x.name}
+              </NavLink>
+            ) : null
+          })}
+        </div>
+      )}
       {can(perms, 'metadata.read') && (
         <NavLink to="/studio" icon={<LayoutGrid className="size-4" aria-hidden />} onNavigate={close}>Studio</NavLink>
       )}
@@ -112,10 +129,7 @@ export function AppShell() {
           <Button variant="ghost" size="sm" className="md:hidden" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} onClick={() => setOpen((v) => !v)}>
             {open ? <X className="size-4" aria-hidden /> : <Menu className="size-4" aria-hidden />}
           </Button>
-          <div className="relative hidden max-w-md flex-1 sm:block">
-            <Search className="absolute top-2.5 left-2.5 size-4 text-muted" aria-hidden />
-            <input aria-label="Search" placeholder="Search candidates, jobs, clients (coming soon)" disabled className="h-9 w-full rounded-md border border-line bg-canvas pr-3 pl-8 text-sm" />
-          </div>
+          <CommandBar />
           <div className="ml-auto flex items-center gap-2">
             <Button variant="secondary" size="sm" aria-label="Notifications" disabled><Bell className="size-4" aria-hidden /></Button>
             <span className="hidden text-right text-xs leading-tight sm:block">

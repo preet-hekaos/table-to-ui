@@ -19,6 +19,7 @@ import { Onboarding, onboardingKey } from '@/features/onboarding/Onboarding'
 import { OpsShell, OpsSignIn, TenantDirectory } from '@/features/ops/Ops'
 import { Activity } from '@/features/studio/Activity'
 import { ImportWizard } from '@/features/imports/ImportWizard'
+import { RankedList } from '@/patterns/RankedList'
 import { Settings } from '@/features/settings/Settings'
 import { Studio, type StudioTab } from '@/features/studio/Studio'
 import { Team } from '@/features/studio/Team'
@@ -71,8 +72,9 @@ const home = createRoute({ getParentRoute: () => shell, path: '/', component: Ho
 const screenRoute = createRoute({
   getParentRoute: () => shell,
   path: '/s/$screen',
+  validateSearch: (s: Record<string, unknown>): { saved?: string } => ({ saved: typeof s.saved === 'string' ? s.saved : undefined }),
   component: function ScreenRoute() {
-    return <ScreenView screenKey={screenRoute.useParams().screen} />
+    return <ScreenView screenKey={screenRoute.useParams().screen} saved={screenRoute.useSearch().saved} />
   },
 })
 const list = createRoute({
@@ -127,6 +129,14 @@ const importRoute = createRoute({
     return <ImportWizard jobId={importRoute.useSearch().job} />
   },
 })
+const matchRoute = createRoute({
+  getParentRoute: () => shell,
+  path: '/match/$screen/$id',
+  component: function MatchRoute() {
+    const { screen, id } = matchRoute.useParams()
+    return <RankedList screenKey={screen} sourceId={id} />
+  },
+})
 const activity = createRoute({ getParentRoute: () => shell, path: '/activity', component: Activity })
 const settings = createRoute({
   getParentRoute: () => shell,
@@ -148,7 +158,7 @@ const tree = root.addChildren([
   signIn,
   mfa,
   accept,
-  shell.addChildren([onboarding, home, screenRoute, list, create, detail, edit, studio, importRoute, activity, security, team, settings]),
+  shell.addChildren([onboarding, home, screenRoute, list, create, detail, edit, studio, importRoute, matchRoute, activity, security, team, settings]),
   opsSignIn,
   opsShell.addChildren([opsTenants]),
 ])

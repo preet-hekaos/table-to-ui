@@ -26,6 +26,7 @@ export interface TableDef {
   title_field: string
   groups: { key: string; label: string }[]
   fields: FieldDef[]
+  counts?: { key: string; label: string; table: string; via: string; where: Record<string, unknown> }[]
 }
 export interface RecordRef {
   table: string
@@ -34,6 +35,8 @@ export interface RecordRef {
 }
 export interface RecordRow {
   refs?: Record<string, RecordRef>
+  owner?: { id: string; name: string | null } | null
+  counts?: Record<string, number>
   id: string
   table: string
   version: number
@@ -117,6 +120,7 @@ export interface ActivityRow {
 
 /** How a builder tuned a screen in the configurator. Every key is optional; patterns fall back to sensible defaults. */
 export interface ScreenConfig {
+  facets?: string[]
   columns?: string[]
   filters?: string[]
   group_by?: string

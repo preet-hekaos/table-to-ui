@@ -107,7 +107,68 @@ export interface Approval { approval_id: string; version: number; status: 'pendi
 export interface DiffItem { key: string; change: 'added' | 'removed' | 'changed'; attributes?: string[]; fields?: { field: string; change: string; label: string; attributes?: Record<string, { from: unknown; to: unknown }> }[] }
 export interface ManifestDiff { changed: boolean; tables: DiffItem[]; screens: DiffItem[]; navs: DiffItem[]; rules: DiffItem[]; measures: DiffItem[] }
 
+export interface ListQuery {
+  sort?: string
+  direction?: string
+  cursor?: string | null
+  limit?: number
+  q?: string
+  filters?: Record<string, string>
+  ranges?: Record<string, string>
+  has?: Record<string, string>
+  owner?: string
+}
+export interface Facet { label: string; kind: 'values' | 'range'; values: { value: string; label: string; count: number }[] }
+export interface ScreenDef { key: string; title: string; pattern: string; table: string; config: Record<string, unknown>; roles: string[] }
+export interface SavedSearch { id: string; table: string; name: string; query: { q?: string; filters?: Record<string, string>; ranges?: Record<string, string>; screen?: string | null } }
+export interface MatchPart { label: string; weight: number; fraction: number; points: number; why: string }
+export interface MatchResult {
+  screen: string
+  source: { table: string; id: string; label: unknown }
+  weights: Record<string, number>
+  defaults: Record<string, number>
+  considered: number
+  items: { id: string; score: number; parts: Record<string, MatchPart>; data: Record<string, unknown> }[]
+}
+
+const qs = (o: Record<string, string | number | undefined | null>) => {
+  const p = new URLSearchParams()
+  for (const [k, v] of Object.entries(o)) if (v !== undefined && v !== null && v !== '') p.set(k, String(v))
+  const t = p.toString()
+  return t ? `?${t}` : ''
+}
+
+export const search = {
+  bar: (q: string) =>
+    g<{ q: string; screens: { kind: 'screen'; screen: string; label: string }[]; records: { kind: 'record'; table: string; table_label: string; id: string; label: string | null }[] }>(
+      `/v1/search${qs({ q })}`,
+    ),
+  saved: () => g<SavedSearch[]>('/v1/search/saved'),
+  save: (body: { table: string; screen?: string; name: string; query: SavedSearch['query'] }) => send<SavedSearch>('POST', '/v1/search/saved', body),
+  remove: (id: string) => send<void>('DELETE', `/v1/search/saved/${id}`),
+}
+
+export const matching = {
+  get: (screen: string, id: string, weights?: Record<string, number>) =>
+    g<MatchResult>(`/v1/matching/${screen}/${id}${qs(Object.fromEntries(Object.entries(weights ?? {}).map(([k, v]) => [`w.${k}`, v])))}`),
+  saveWeights: (screen: string, weights: Record<string, number>) => send<Record<string, number>>('PUT', `/v1/matching/${screen}/weights`, { weights }),
+}
+
 export const app = {
+  facets: (table: string, query: ListQuery & { fields?: string[] }) => {
+    const { filters, ranges, has, q, owner, fields } = query
+    return g<{ total: number; facets: Record<string, Facet> }>(
+      `/v1/records/${table}/facets${qs({
+        q,
+        owner,
+        fields: fields?.join(','),
+        ...Object.fromEntries(Object.entries(filters ?? {}).map(([k, v]) => [`f.${k}`, v])),
+        ...Object.fromEntries(Object.entries(ranges ?? {}).map(([k, v]) => [`r.${k}`, v])),
+        ...Object.fromEntries(Object.entries(has ?? {}).map(([k, v]) => [`has.${k}`, v])),
+      })}`,
+    )
+  },
+  screens: (query: { table?: string; pattern?: string; source_table?: string }) => g<ScreenDef[]>(`/v1/app/screens${qs(query)}`),
   table: (table: string) => cast<{ release_version: number; table: TableDef }>(api.GET('/v1/app/tables/{table}', { params: { path: { table } } })),
   tables: () => cast<{ release_version: number; tables: { key: string; label: string; plural_label: string }[] }>(api.GET('/v1/app/tables')),
   relations: (table: string) =>
@@ -122,12 +183,13 @@ export const app = {
     cast<{ screen: { key: string; title: string; pattern: string; table: string; config: Record<string, unknown> } }>(
       api.GET('/v1/app/screens/{screen}' as never, { params: { path: { screen: key } } } as never),
     ),
-  list: (
-    table: string,
-    query: { sort?: string; direction?: string; cursor?: string | null; limit?: number; q?: string; filters?: Record<string, string> },
-  ) => {
-    const { filters, cursor, q, ...rest } = query
-    const extra = Object.fromEntries(Object.entries(filters ?? {}).filter(([, v]) => v).map(([k, v]) => [`f.${k}`, v]))
+  list: (table: string, query: ListQuery) => {
+    const { filters, ranges, has, cursor, q, ...rest } = query
+    const extra = {
+      ...Object.fromEntries(Object.entries(filters ?? {}).filter(([, v]) => v).map(([k, v]) => [`f.${k}`, v])),
+      ...Object.fromEntries(Object.entries(ranges ?? {}).filter(([, v]) => v).map(([k, v]) => [`r.${k}`, v])),
+      ...Object.fromEntries(Object.entries(has ?? {}).filter(([, v]) => v).map(([k, v]) => [`has.${k}`, v])),
+    }
     return cast<RecordPage>(
       api.GET('/v1/records/{table}', {
         params: { path: { table }, query: { ...rest, ...extra, cursor: cursor ?? undefined, q: q || undefined } as never },

@@ -196,7 +196,7 @@ test.describe('accessibility of the slice screens (WCAG 2.2 AA)', () => {
     const { ctx, page } = await newUserPage(browser)
     const who = { agency: `A11y Agency ${run}`, name: 'Asha Iyer', email: `asha-${run}@a11y.test` }
     await signUp(page, who)
-    for (const path of ['/', '/records/candidate', '/records/candidate/new', '/studio', '/activity', '/security', '/team', '/import', '/settings', '/s/clients', '/s/cv_intake']) {
+    for (const path of ['/', '/records/candidate', '/records/candidate/new', '/studio', '/activity', '/security', '/team', '/import', '/settings', '/s/clients', '/s/cv_intake', '/s/candidates', '/s/requirements']) {
       await page.goto(path)
       await page.waitForLoadState('networkidle')
       const r = await new AxeBuilder({ page }).withTags(tags).analyze()
