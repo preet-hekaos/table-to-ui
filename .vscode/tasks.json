@@ -1,0 +1,20 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    { "label": "1. Start database and mail inbox", "type": "shell", "command": "docker compose up -d --wait postgres mailpit", "problemMatcher": [] },
+    { "label": "2. Create analytics database (once)", "type": "shell", "command": "docker compose exec -T postgres psql -U app -d postgres -c \"create database tableui_analytics\"", "problemMatcher": [] },
+    { "label": "3. Install API dependencies", "type": "shell", "command": "uv sync", "options": { "cwd": "${workspaceFolder}/apps/api" }, "problemMatcher": [] },
+    { "label": "4. Migrate database", "type": "shell", "command": "uv run python -c \"import asyncio,os; from tableui.platform.migrate import upgrade_control; asyncio.run(upgrade_control(os.environ['DATABASE_URL']))\"",
+      "options": { "cwd": "${workspaceFolder}/apps/api", "env": { "DATABASE_URL": "postgresql+asyncpg://app:app@localhost:5432/tableui" } }, "problemMatcher": [] },
+    { "label": "5. Run web app", "type": "shell", "command": "pnpm install && pnpm exec vite --host 127.0.0.1 --port 5173",
+      "options": { "cwd": "${workspaceFolder}/apps/web", "env": { "API_URL": "http://127.0.0.1:8000" } }, "isBackground": true, "problemMatcher": [] },
+    { "label": "Run API (no debugger)", "type": "shell", "command": "uv run uvicorn tableui.main:create_app --factory --host 127.0.0.1 --port 8000 --reload",
+      "options": { "cwd": "${workspaceFolder}/apps/api", "env": {
+        "DATABASE_URL": "postgresql+asyncpg://app:app@localhost:5432/tableui",
+        "ANALYTICS_DATABASE_URL": "postgresql+asyncpg://app:app@localhost:5432/tableui_analytics",
+        "ENVIRONMENT": "local", "MAIL_BACKEND": "smtp", "SMTP_HOST": "localhost", "SMTP_PORT": "1025",
+        "PACK_DIR": "${workspaceFolder}/packs/recruitment" } }, "isBackground": true, "problemMatcher": [] },
+    { "label": "Check API (lint, types, boundaries)", "type": "shell", "command": "uv run ruff check . && uv run ruff format --check . && uv run mypy src && uv run lint-imports", "options": { "cwd": "${workspaceFolder}/apps/api" }, "problemMatcher": [] },
+    { "label": "Check web (lint, types, tests)", "type": "shell", "command": "pnpm lint && pnpm typecheck && pnpm test", "options": { "cwd": "${workspaceFolder}/apps/web" }, "problemMatcher": [] }
+  ]
+}

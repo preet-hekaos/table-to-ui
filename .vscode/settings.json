@@ -1,0 +1,10 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/apps/api/.venv",
+  "python.testing.pytestArgs": ["apps/api/tests"],
+  "python.testing.pytestEnabled": true,
+  "python.terminal.activateEnvironment": false,
+  "[python]": { "editor.defaultFormatter": "charliermarsh.ruff", "editor.formatOnSave": true },
+  "editor.formatOnSave": true,
+  "files.exclude": { "**/__pycache__": true, "**/node_modules": true },
+  "yaml.schemas": {}
+}

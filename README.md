@@ -23,6 +23,10 @@ cd apps/web && pnpm install && pnpm dev        # http://localhost:5173
 Create the first platform operator (password on stdin, prints the authenticator secret):
 `printf '<password>\n' | uv run python -m tableui.ops.cli create-operator --email you@example.com --name You --non-interactive`
 
+## Run it from VS Code
+
+Open the folder in VS Code and accept the recommended extensions. Then use *Terminal > Run Task*: **1** start database and mail inbox, **2** create the analytics database (once), **3** install API dependencies, **4** migrate, then press **F5** ("API (debug)") and run task **5** for the web app. Open http://127.0.0.1:5173. Tests appear in the Test Explorer.
+
 ## Test
 
 | What | Command |
