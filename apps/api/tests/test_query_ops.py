@@ -20,9 +20,9 @@ async def _bulk(db: Database, agency: Agency, n: int) -> None:
         user = (await s.execute(text("SELECT gen_random_uuid()"))).scalar_one()
         await s.execute(
             text(
-                "INSERT INTO candidate (id, tenant_id, data, full_name_norm, email_norm, created_by, updated_by, updated_at) "
+                "INSERT INTO candidate (id, tenant_id, data, full_name_norm, email_norm, owner_id, created_by, updated_by, updated_at) "
                 "SELECT gen_random_uuid(), :t, jsonb_build_object('full_name', 'Person ' || g, 'email', 'p' || g || '@bulk.test', 'status', 'Active', 'notice_period_days', g % 90), "
-                "'person ' || g, 'p' || g || '@bulk.test', :u, :u, now() - (g || ' seconds')::interval FROM generate_series(1, :n) g"
+                "'person ' || g, 'p' || g || '@bulk.test', :u, :u, :u, now() - (g || ' seconds')::interval FROM generate_series(1, :n) g"
             ),
             {"t": t, "u": user, "n": n},
         )

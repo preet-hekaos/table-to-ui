@@ -20,6 +20,7 @@ from tableui.identity.public import Principal
 from tableui.metadata.public import (
     RuntimeApp,
     TableDef,
+    search_document,
     shadow_columns,
     validate_record,
 )
@@ -199,14 +200,15 @@ async def create_record(
             row = (
                 await s.execute(
                     text(
-                        f'INSERT INTO "{table_key}" (id, tenant_id, data, created_by, updated_by'  # noqa: S608 - identifiers are validated metadata keys
-                        f"{', ' + cols if cols else ''}) VALUES (:id, :t, CAST(:d AS jsonb), :u, :u"
+                        f'INSERT INTO "{table_key}" (id, tenant_id, data, owner_id, search_doc, created_by, updated_by'  # noqa: S608 - identifiers are validated metadata keys
+                        f"{', ' + cols if cols else ''}) VALUES (:id, :t, CAST(:d AS jsonb), :u, :sd, :u, :u"
                         f"{', ' + vals if vals else ''}) RETURNING id, version, data, created_at, updated_at"
                     ),
                     {
                         "id": record_id,
                         "t": tenant_id,
                         "d": json.dumps(clean),
+                        "sd": search_document(table, clean),
                         "u": ctx.principal.user_id,
                         **{f"n_{i}": v for i, v in enumerate(shadow.values())},
                     },
@@ -296,12 +298,13 @@ async def update_record(
             row = (
                 await s.execute(
                     text(
-                        f'UPDATE "{table_key}" SET data = CAST(:d AS jsonb), version = version + 1, '  # noqa: S608 - identifiers are validated metadata keys
+                        f'UPDATE "{table_key}" SET data = CAST(:d AS jsonb), search_doc = :sd, version = version + 1, '  # noqa: S608 - identifiers are validated metadata keys
                         f"updated_at = now(), updated_by = :u{', ' + sets if sets else ''} "
                         "WHERE id = :id RETURNING id, version, data, created_at, updated_at"
                     ),
                     {
                         "d": json.dumps(merged_clean),
+                        "sd": search_document(table, merged_clean),
                         "u": ctx.principal.user_id,
                         "id": record_id,
                         **{f"n_{i}": v for i, v in enumerate(shadow.values())},
