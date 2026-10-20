@@ -48,20 +48,23 @@ async def suspected(
     p.require(f"record.{table_key}.read")
     table = app.table(table_key)
     exact, fuzzy, threshold = _detector(app, table)
+    # Each row looks up its near matches through the trigram index; the scan stops at SCAN_CAP.
     sql = (
-        f'SELECT a.id AS a_id, b.id AS b_id, a.data AS a_data, b.data AS b_data, a."{fuzzy}_norm" AS an, '  # noqa: S608 - identifiers are validated metadata keys
-        f'b."{fuzzy}_norm" AS bn FROM "{table_key}" a JOIN "{table_key}" b ON a.id < b.id '
-        f'AND a."{exact}_norm" = b."{exact}_norm" AND left(a."{fuzzy}_norm", 1) = left(b."{fuzzy}_norm", 1) '
-        f'AND public.similarity(a."{fuzzy}_norm", b."{fuzzy}_norm") >= 0.45 '
-        f'WHERE a."{exact}_norm" IS NOT NULL AND a."{fuzzy}_norm" IS NOT NULL '
-        f"AND NOT EXISTS (SELECT 1 FROM control.duplicate_dismissal d WHERE d.tenant_id = :t AND d.table_key = :k "
-        "AND d.a_id = a.id AND d.b_id = b.id) "
-        f'ORDER BY public.similarity(a."{fuzzy}_norm", b."{fuzzy}_norm") DESC, a.id, b.id LIMIT :cap'
+        f'SELECT a.id AS a_id, m.id AS b_id, a.data AS a_data, m.data AS b_data, a."{fuzzy}_norm" AS an, '  # noqa: S608 - identifiers are validated metadata keys
+        f'm."{fuzzy}_norm" AS bn FROM "{table_key}" a CROSS JOIN LATERAL ('
+        f'SELECT b.id, b.data, b."{fuzzy}_norm" FROM "{table_key}" b WHERE b.id > a.id '
+        f'AND b."{exact}_norm" = a."{exact}_norm" AND b."{fuzzy}_norm" OPERATOR(public.%) a."{fuzzy}_norm" '
+        f'AND left(b."{fuzzy}_norm", 1) = left(a."{fuzzy}_norm", 1) '
+        f"AND NOT EXISTS (SELECT 1 FROM control.duplicate_dismissal d WHERE d.tenant_id = :t "
+        f"AND d.table_key = :k AND d.a_id = a.id AND d.b_id = b.id) LIMIT 5) m "
+        f'WHERE a."{exact}_norm" IS NOT NULL AND a."{fuzzy}_norm" IS NOT NULL LIMIT :cap'
     )
     async with db.tenant(p.tenant_id) as s:
+        await s.execute(text("SET LOCAL pg_trgm.similarity_threshold = 0.45"))
         rows = (
             await s.execute(text(sql), {"t": p.tenant_id, "k": table_key, "cap": SCAN_CAP})
         ).all()
+    rows = sorted(rows, key=lambda r: (-fuzz.token_sort_ratio(r.an, r.bn), r.a_id, r.b_id))
     out: list[dict[str, Any]] = []
     for r in rows:
         score = fuzz.token_sort_ratio(r.an, r.bn)
