@@ -228,6 +228,27 @@ def _check_generality(
     for s in screens:
         if s.table and s.table not in by_key:
             issues.append(PackIssue(f"screen {s.key}", "table", f"unknown table '{s.table}'"))
+        if s.pattern == "document_review":
+            doc = by_key.get(str(s.config.get("document_table", "")))
+            if doc is None:
+                issues.append(
+                    PackIssue(f"screen {s.key}", "config.document_table", "unknown table")
+                )
+            else:
+                for k in ("link_field", "file_field", "name_field", "text_field", "scan_field"):
+                    fk = s.config.get(k)
+                    if fk and doc.field(fk) is None:
+                        issues.append(
+                            PackIssue(f"screen {s.key}", f"config.{k}", f"unknown field '{fk}'")
+                        )
+            target = by_key.get(s.table)
+            for src, dst in (s.config.get("mapping") or {}).items():
+                if target and target.field(dst) is None:
+                    issues.append(
+                        PackIssue(
+                            f"screen {s.key}", f"config.mapping.{src}", f"unknown field '{dst}'"
+                        )
+                    )
         for r in s.roles:
             if role_keys and r not in role_keys:
                 issues.append(PackIssue(f"screen {s.key}", "roles", f"unknown role '{r}'"))

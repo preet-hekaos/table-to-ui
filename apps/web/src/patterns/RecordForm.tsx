@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useBlocker } from '@tanstack/react-router'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useForm, type UseFormRegisterReturn } from 'react-hook-form'
 import { ApiError } from '@/api/client'
 import { app } from '@/api/endpoints'
@@ -10,7 +10,7 @@ import { fieldGroups, formatMonths } from './format'
 
 type Values = Record<string, string>
 
-function toPayload(table: TableDef, v: Values): Record<string, unknown> {
+export function toPayload(table: TableDef, v: Values): Record<string, unknown> {
   const out: Record<string, unknown> = {}
   for (const f of table.fields) {
     const raw = v[f.key]
@@ -28,7 +28,7 @@ function toPayload(table: TableDef, v: Values): Record<string, unknown> {
 }
 
 /** Stored value -> what the person edits: money and durations are shown in the words they type. */
-function toFormValue(f: FieldDef, v: unknown): string {
+export function toFormValue(f: FieldDef, v: unknown): string {
   if (v === null || v === undefined) return ''
   if (f.type === 'tags' && Array.isArray(v)) return v.join(', ')
   if (f.type === 'money') return String(v)
@@ -99,11 +99,22 @@ export function RecordForm({
   initial,
   prefill,
   onCreated,
+  save,
+  review,
+  blockedAction,
+  submitLabel,
 }: {
   table: TableDef
   initial?: RecordRow
   prefill?: Record<string, string>
   onCreated: (id: string) => void
+  /** Replaces the plain create, for flows such as confirming a read document. */
+  save?: (payload: Record<string, unknown>, idempotencyKey: string) => Promise<{ id: string }>
+  /** Fields to check by hand, for example ones a document reader was unsure about. */
+  review?: Set<string>
+  /** Something to offer beside a rule block, for example "attach to the existing record". */
+  blockedAction?: (o: RuleOutcome, markSaved: () => void) => ReactNode
+  submitLabel?: string
 }) {
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID())
   const defaults = initial
@@ -143,7 +154,9 @@ export function RecordForm({
     try {
       const rec = initial
         ? await app.update(table.key, initial.id, toPayload(table, values), initial.version, idempotencyKey)
-        : await app.create(table.key, toPayload(table, values), idempotencyKey)
+        : save
+          ? await save(toPayload(table, values), idempotencyKey)
+          : await app.create(table.key, toPayload(table, values), idempotencyKey)
       setIdempotencyKey(crypto.randomUUID())
       savedRef.current = true
       onCreated(rec.id)
@@ -179,10 +192,18 @@ export function RecordForm({
                   required: f.required ? `${f.label} is required` : false,
                   onBlur: f.unique || f.normalize === 'text' ? () => void instantCheck() : undefined,
                 })
+                const unsure = review?.has(f.key)
                 return (
-                  <Field key={f.key} label={f.label} required={f.required} error={formState.errors[f.key]?.message}>
-                    {control(f, reg, defaults[f.key], (v) => setValue(f.key, v))}
-                  </Field>
+                  <div key={f.key} className={unsure ? '-m-1.5 rounded-md bg-warn-soft p-1.5' : undefined} data-review={unsure ? 'true' : undefined}>
+                    <Field
+                      label={unsure ? `${f.label} (check this)` : f.label}
+                      required={f.required}
+                      hint={unsure ? 'Read with low confidence. Please check it.' : (f.help ?? undefined)}
+                      error={formState.errors[f.key]?.message}
+                    >
+                      {control(f, reg, defaults[f.key], (v) => setValue(f.key, v))}
+                    </Field>
+                  </div>
                 )
               })}
             </div>
@@ -203,6 +224,8 @@ export function RecordForm({
         ))}
       </div>
       {blocked && <RuleBlocked ruleId={blocked.rule} message={blocked.message} link={<OutcomeLink o={blocked} />} />}
+      {/* eslint-disable-next-line react-hooks/refs -- the callback writes the ref on click, not during render */}
+      {blocked && blockedAction?.(blocked, () => { savedRef.current = true })}
       {conflict && <VersionConflict onReload={() => window.location.reload()} />}
       {failure && (
         <p role="alert" className="rounded-md bg-bad-soft p-3 text-sm text-bad-ink">
@@ -211,7 +234,7 @@ export function RecordForm({
       )}
       <div className="flex gap-2">
         <Button type="submit" variant="primary" loading={formState.isSubmitting}>
-          Save {table.label.toLowerCase()}
+          {submitLabel ?? `Save ${table.label.toLowerCase()}`}
         </Button>
       </div>
       <Dialog open={blocker.status === 'blocked'} onOpenChange={(o) => !o && blocker.reset?.()}>

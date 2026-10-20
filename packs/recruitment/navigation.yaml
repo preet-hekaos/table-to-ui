@@ -4,6 +4,12 @@
   icon: users
   section: main
   order: 10
+- key: nav_cv_intake
+  label: Add from CV
+  screen: cv_intake
+  icon: upload
+  section: main
+  order: 15
 - key: nav_documents
   label: Documents
   screen: documents

@@ -4,6 +4,7 @@ import { app } from '@/api/endpoints'
 import type { ScreenConfig } from '@/api/types'
 import { ErrorState, LoadingState, NotFound } from '@/design-system'
 import { RecordsList } from '@/features/records/RecordsList'
+import { DocumentReview } from '@/patterns/DocumentReview'
 import { MasterDetail } from '@/patterns/MasterDetail'
 
 /** A screen is data: a pattern applied to a table, plus its configuration. This picks the pattern. */
@@ -15,6 +16,8 @@ export function ScreenView({ screenKey }: { screenKey: string }) {
   const { screen } = q.data
   const config = screen.config as ScreenConfig
   switch (screen.pattern) {
+    case 'document_review':
+      return <DocumentReview key={screen.key} screenKey={screen.key} tableKey={screen.table} title={screen.title} config={config} />
     case 'master_detail':
       return <MasterDetail tableKey={screen.table} title={screen.title} config={config} />
     default:

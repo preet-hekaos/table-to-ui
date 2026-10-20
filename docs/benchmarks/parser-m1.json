@@ -1,0 +1,37 @@
+{
+  "corpus": "200 synthetic CVs (half PDF, half DOCX, one in ten partly in Hindi); real sample set pending",
+  "parser": "rules",
+  "field_accuracy_pct": {
+    "name": 100.0,
+    "email": 100.0,
+    "phone": 100.0,
+    "title": 100.0,
+    "employer": 100.0,
+    "location": 100.0,
+    "experience_months": 100.0,
+    "skills": 99.5
+  },
+  "overall_field_accuracy_pct": 99.9,
+  "cvs_fully_correct_pct": 99.5,
+  "partly_hindi_field_accuracy_pct": 99.4,
+  "sample_misses": [
+    {
+      "cv": "cv-109.docx",
+      "field": "skills",
+      "want": [
+        "Excel",
+        "PostgreSQL",
+        "Terraform",
+        "Spring Boot"
+      ],
+      "got": [
+        "Java",
+        "Spring",
+        "Spring Boot",
+        "PostgreSQL",
+        "Excel",
+        "Terraform"
+      ]
+    }
+  ]
+}

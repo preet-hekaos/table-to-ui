@@ -35,6 +35,7 @@ dev = [
   "testcontainers>=4.15.0",
   "moto>=5.2.4",
   "httpx>=0.28.1",
+  "reportlab>=5.0.1",
 ]
 
 [build-system]

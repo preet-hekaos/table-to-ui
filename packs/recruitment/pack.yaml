@@ -7,6 +7,7 @@ roles: roles.yaml
 fixtures: fixtures.yaml
 screens:
 - screens/candidates.yaml
+- screens/cv_intake.yaml
 - screens/clients.yaml
 - screens/consent_records.yaml
 - screens/contacts.yaml

@@ -177,3 +177,23 @@ export const files = {
   },
   describe: (id: string) => g<StoredFile>(`/v1/files/${id}`),
 }
+
+export interface ParseState {
+  file_id: string
+  parser: string
+  status: 'queued' | 'parsed' | 'failed'
+  attempts: number
+  error: string | null
+  fields: Record<string, { value: unknown; confidence: number }>
+  review: string[]
+  has_text: boolean
+  text_preview: string
+  confirmed_record_id: string | null
+}
+
+export const documents = {
+  parse: (fileId: string) => send<ParseState>('POST', `/v1/documents/${fileId}/parse`),
+  state: (fileId: string) => g<ParseState>(`/v1/documents/${fileId}/parse`),
+  confirm: (fileId: string, body: { screen: string; data?: Record<string, unknown>; existing_id?: string }) =>
+    send<{ record: { table: string; id: string }; document: { table: string; id: string }; warnings: unknown[] }>('POST', `/v1/documents/${fileId}/confirm`, body),
+}

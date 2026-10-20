@@ -3,10 +3,14 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import Response
+from pydantic import BaseModel
 
-from tableui.files.application import files
+from tableui.commands.public import CommandContext
+from tableui.files.application import documents, files
 from tableui.identity.api.deps import PrincipalDep
+from tableui.metadata.api.deps import LiveAppDep
 from tableui.platform.db import Database
+from tableui.platform.errors import NotFound
 from tableui.platform.web import get_db, get_request_id
 
 router = APIRouter(prefix="/v1/files", tags=["files"])
@@ -63,4 +67,70 @@ async def content(file_id: uuid.UUID, request: Request, p: PrincipalDep, db: DbD
             "X-Content-Type-Options": "nosniff",
             "Cache-Control": "private, max-age=3600",
         },
+    )
+
+
+documents_router = APIRouter(prefix="/v1/documents", tags=["files"])
+
+
+@documents_router.post("/{file_id}/parse")
+async def parse_document(
+    file_id: uuid.UUID, request: Request, p: PrincipalDep, db: DbDep
+) -> dict[str, Any]:
+    """Read an uploaded document into fields. Refused unless it was scanned clean (R-14)."""
+    p.require("document.upload")
+    assert p.tenant_id
+    async with db.control() as s:
+        return await documents.parse(
+            s,
+            tenant_id=p.tenant_id,
+            user_id=p.user_id,
+            file_id=file_id,
+            store=request.app.state.file_store,
+            parser=request.app.state.document_parser,
+            request_id=get_request_id(request),
+        )
+
+
+@documents_router.get("/{file_id}/parse")
+async def parse_state(file_id: uuid.UUID, p: PrincipalDep, db: DbDep) -> dict[str, Any]:
+    assert p.tenant_id
+    async with db.control() as s:
+        return await documents.get_parse(s, p.tenant_id, file_id)
+
+
+class ConfirmIn(BaseModel):
+    screen: str
+    data: dict[str, Any] = {}
+    existing_id: uuid.UUID | None = None
+
+
+@documents_router.post("/{file_id}/confirm", status_code=201)
+async def confirm_document(
+    file_id: uuid.UUID,
+    body: ConfirmIn,
+    request: Request,
+    p: PrincipalDep,
+    db: DbDep,
+    app: LiveAppDep,
+) -> dict[str, Any]:
+    """document.confirm_parse: create the record from the reviewed fields and file the document."""
+    p.require("document.upload")
+    screen = app.screens.get(body.screen)
+    if screen is None or screen.pattern != "document_review":
+        raise NotFound(f"There is no document screen '{body.screen}'.")
+    ctx = CommandContext(
+        principal=p,
+        app=app,
+        app_version=request.app.state.settings.app_version,
+        request_id=get_request_id(request),
+    )
+    return await documents.confirm(
+        db,
+        ctx,
+        screen=screen,
+        file_id=file_id,
+        data=body.data,
+        existing_id=body.existing_id,
+        store=request.app.state.file_store,
     )

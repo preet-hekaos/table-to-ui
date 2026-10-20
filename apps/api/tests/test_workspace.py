@@ -102,4 +102,4 @@ async def test_navigation_is_filtered_by_role(client: httpx.AsyncClient) -> None
     a = await _blank(client)
     await a.choose_pack("recruitment")
     nav = (await client.get("/v1/app/navigation", headers=a.h())).json()["items"]
-    assert nav[0]["screen"] == "candidates" and len(nav) == 13
+    assert nav[0]["screen"] == "candidates" and len(nav) == 14

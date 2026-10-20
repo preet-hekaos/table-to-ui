@@ -1,0 +1,22 @@
+key: cv_intake
+title: Add from CV
+pattern: document_review
+table: candidate
+config:
+  parser: resume
+  document_table: candidate_document
+  link_field: candidate
+  file_field: file_id
+  name_field: file_name
+  text_field: parsed_text
+  scan_field: scan_status
+  defaults: {kind: CV}
+  mapping:
+    name: full_name
+    email: email
+    phone: phone
+    title: current_title
+    employer: current_employer
+    location: location
+    experience_months: total_experience
+    skills: skills

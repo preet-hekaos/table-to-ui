@@ -82,6 +82,11 @@ def create_app(
             if settings.clamd_host
             else files.SignatureScanner()
         )
+        app.state.document_parser = (
+            files.RChilliParser(settings.rchilli_api_key)
+            if settings.cv_parser == "rchilli"
+            else files.RuleParser()
+        )
         app.state.catalog = catalog.PackCatalog.load(
             settings.packs_dir
         )  # fail fast on a broken pack
@@ -220,6 +225,7 @@ def create_app(
         workspace_router,
         fixtures_router,
         files.router,
+        files.documents_router,
     ):
         app.include_router(r)
     return app
