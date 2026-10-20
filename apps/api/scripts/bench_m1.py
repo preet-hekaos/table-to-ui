@@ -32,7 +32,7 @@ EMPLOYERS = ["Infosys", "TCS", "Wipro", "HCL", "Tech Mahindra", "Zoho", "Freshwo
 SKILLS = ["Java", "Spring Boot", "Python", "SQL", "AWS", "React", "Node.js", "Docker", "Kubernetes", "Kafka", "PostgreSQL",
           "TypeScript", "Angular", "Selenium", "Power BI", "Excel", "Django", "Terraform", "Go", "Azure", "GCP", "Spark"]  # fmt: skip
 TITLES = ["Software Engineer", "Senior Engineer", "Data Analyst", "QA Engineer", "Product Manager", "DevOps Engineer", "Tech Lead"]
-PASSWORD = "correct-horse-battery"
+PASSWORD = "correct-horse-battery"  # noqa: S105 - benchmark data only
 HEADER = ["Name", "Email", "Mobile", "Company", "Title", "City", "Experience", "Expected CTC", "Notice", "Key Skills", "Status"]
 
 

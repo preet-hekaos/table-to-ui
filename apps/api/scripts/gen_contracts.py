@@ -1,5 +1,4 @@
 """Regenerate the import-linter contracts in pyproject.toml from the module list (run after adding a module)."""
-import re
 from pathlib import Path
 
 MODULES = ["audit", "metadata", "tenancy", "identity", "rules", "commands", "query", "insights", "ops",
