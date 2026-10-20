@@ -1,0 +1,4 @@
+key: jobs
+title: Jobs
+pattern: searchable_table
+table: job

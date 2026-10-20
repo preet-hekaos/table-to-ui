@@ -1,0 +1,4 @@
+key: candidates
+title: Candidates
+pattern: searchable_table
+table: candidate

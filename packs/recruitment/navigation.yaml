@@ -1,0 +1,5 @@
+- key: nav_candidates
+  label: Candidates
+  screen: candidates
+  icon: users
+  order: 10

@@ -1,0 +1,4 @@
+key: customers
+title: Customers
+pattern: searchable_table
+table: customer

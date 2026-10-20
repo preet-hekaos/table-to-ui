@@ -1,0 +1,4 @@
+key: technicians
+title: Technicians
+pattern: searchable_table
+table: technician

@@ -68,3 +68,38 @@ def test_wildcard_grants() -> None:
     p = _principal({"record.*.read"})
     assert p.allows("record.client.read") and not p.allows("record.client.update")
     assert not _principal({"record.candidate.read"}).allows("record.client.read")
+
+
+async def test_second_pack_installs_without_recruitment_and_serves_navigation(
+    client: httpx.AsyncClient,
+) -> None:
+    a = await _blank(client)
+    await a.choose_pack("field_services")
+    nav = (await client.get("/v1/app/navigation", headers=a.h())).json()["items"]
+    assert [n["label"] for n in nav] == ["Jobs", "Customers", "Technicians"]
+    assert (await client.get("/v1/app/tables/candidate", headers=a.h())).status_code == 404
+    c = await client.post(
+        "/v1/records/customer", headers=a.h(), json={"data": {"name": "Meera Iyer"}}
+    )
+    assert c.status_code == 201, c.text
+    j = await client.post(
+        "/v1/records/job",
+        headers=a.h(),
+        json={
+            "data": {
+                "title": "Fix AC",
+                "customer": c.json()["id"],
+                "status": "Booked",
+                "quote": "₹12,500",
+            }
+        },
+    )
+    assert j.status_code == 201, j.text
+    assert j.json()["data"]["quote"] == 12500.0
+
+
+async def test_navigation_is_filtered_by_role(client: httpx.AsyncClient) -> None:
+    a = await _blank(client)
+    await a.choose_pack("recruitment")
+    nav = (await client.get("/v1/app/navigation", headers=a.h())).json()["items"]
+    assert [n["screen"] for n in nav] == ["candidates"]

@@ -110,3 +110,39 @@ async def live_tables(app: LiveAppDep) -> dict[str, Any]:
             for t in app.tables.values()
         ],
     }
+
+
+def _visible(roles: list[str], role_key: str | None) -> bool:
+    return not roles or (role_key in roles)
+
+
+@router.get("/app/navigation")
+async def live_navigation(p: PrincipalDep, app: LiveAppDep) -> dict[str, Any]:
+    """Menu items for the signed-in user's role. Items whose table the user cannot read are left out."""
+    items = []
+    for n in app.navigation:
+        sc = app.screens.get(n.screen)
+        if sc is None or not _visible(n.roles, p.role_key) or not _visible(sc.roles, p.role_key):
+            continue
+        if not p.allows(f"record.{sc.table}.read"):
+            continue
+        items.append(
+            {
+                "key": n.key,
+                "label": n.label,
+                "icon": n.icon,
+                "section": n.section,
+                "screen": sc.key,
+                "pattern": sc.pattern,
+                "table": sc.table,
+            }
+        )
+    return {"release_version": app.release_version, "items": items}
+
+
+@router.get("/app/screens/{screen}")
+async def live_screen(screen: str, p: PrincipalDep, app: LiveAppDep) -> dict[str, Any]:
+    sc = app.screens.get(screen)
+    if sc is None or not _visible(sc.roles, p.role_key):
+        raise NotFound(f"There is no screen '{screen}'.")
+    return {"release_version": app.release_version, "screen": sc.model_dump(mode="json")}

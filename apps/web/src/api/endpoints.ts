@@ -59,6 +59,14 @@ export const studio = {
 export const app = {
   table: (table: string) => cast<{ release_version: number; table: TableDef }>(api.GET('/v1/app/tables/{table}', { params: { path: { table } } })),
   tables: () => cast<{ release_version: number; tables: { key: string; label: string; plural_label: string }[] }>(api.GET('/v1/app/tables')),
+  navigation: () =>
+    cast<{ items: { key: string; label: string; icon: string; section: string; screen: string; pattern: string; table: string }[] }>(
+      api.GET('/v1/app/navigation' as never),
+    ),
+  screen: (key: string) =>
+    cast<{ screen: { key: string; title: string; pattern: string; table: string; config: Record<string, unknown> } }>(
+      api.GET('/v1/app/screens/{screen}' as never, { params: { path: { screen: key } } } as never),
+    ),
   list: (table: string, query: { sort?: string; direction?: string; cursor?: string | null; limit?: number }) =>
     cast<RecordPage>(
       api.GET('/v1/records/{table}', {

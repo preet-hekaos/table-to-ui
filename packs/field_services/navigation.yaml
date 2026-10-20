@@ -1,0 +1,3 @@
+- {key: nav_jobs, label: Jobs, screen: jobs, icon: list, order: 10}
+- {key: nav_customers, label: Customers, screen: customers, icon: users, order: 20}
+- {key: nav_technicians, label: Technicians, screen: technicians, icon: users, order: 30}

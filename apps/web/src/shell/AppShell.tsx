@@ -30,9 +30,9 @@ export function AppShell() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const [open, setOpen] = useState(false)
-  const tables = useQuery({
-    queryKey: ['live-tables'],
-    queryFn: app.tables,
+  const menu = useQuery({
+    queryKey: ['navigation'],
+    queryFn: app.navigation,
     enabled: !!me.data,
     retry: (n, e) => !(e instanceof ApiError && e.status === 404) && n < 2,
   })
@@ -55,9 +55,9 @@ export function AppShell() {
   const nav = (
     <nav aria-label="Main" className="flex flex-col gap-0.5">
       <NavLink to="/" icon={<Home className="size-4" aria-hidden />} onNavigate={close}>Home</NavLink>
-      {tables.data?.tables.map((t) => (
-        <NavLink key={t.key} to="/records/$table" params={{ table: t.key }} icon={<Users className="size-4" aria-hidden />} onNavigate={close}>
-          {t.plural_label}
+      {menu.data?.items.map((n) => (
+        <NavLink key={n.key} to="/s/$screen" params={{ screen: n.screen }} icon={<Users className="size-4" aria-hidden />} onNavigate={close}>
+          {n.label}
         </NavLink>
       ))}
       {can(perms, 'metadata.read') && (

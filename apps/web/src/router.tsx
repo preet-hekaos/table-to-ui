@@ -11,6 +11,7 @@ import { meKey } from '@/features/auth/useMe'
 import { auth, workspace } from '@/api/endpoints'
 import { RecordDetail } from '@/features/records/RecordDetail'
 import { RecordNew } from '@/features/records/RecordNew'
+import { ScreenView } from '@/features/screens/ScreenView'
 import { RecordsList } from '@/features/records/RecordsList'
 import { Home } from '@/features/home/Home'
 import { Onboarding, onboardingKey } from '@/features/onboarding/Onboarding'
@@ -64,6 +65,13 @@ const shell = createRoute({
 })
 const onboarding = createRoute({ getParentRoute: () => shell, path: '/onboarding', component: Onboarding })
 const home = createRoute({ getParentRoute: () => shell, path: '/', component: Home })
+const screenRoute = createRoute({
+  getParentRoute: () => shell,
+  path: '/s/$screen',
+  component: function ScreenRoute() {
+    return <ScreenView screenKey={screenRoute.useParams().screen} />
+  },
+})
 const list = createRoute({
   getParentRoute: () => shell,
   path: '/records/$table',
@@ -100,7 +108,7 @@ const tree = root.addChildren([
   signIn,
   mfa,
   accept,
-  shell.addChildren([onboarding, home, list, create, detail, studio, activity, security, team]),
+  shell.addChildren([onboarding, home, screenRoute, list, create, detail, studio, activity, security, team]),
   opsSignIn,
   opsShell.addChildren([opsTenants]),
 ])
