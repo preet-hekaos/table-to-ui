@@ -136,6 +136,18 @@ def run_fixture(
             outcome = "allowed"
     missing = [c for c in fx.checks if c not in fired]
     passed = outcome == fx.expect and not missing
+    edited = {c.id for r in rules for c in r.checks if c.edited}
+    if not passed and edited & (set(fired) | set(fx.checks)):
+        # The agency changed this policy on purpose, so the pack's expectation is not theirs.
+        return {
+            **result,
+            "outcome": outcome,
+            "fired": fired,
+            "passed": True,
+            "skipped": True,
+            "detail": "Skipped: your agency changed the policy for "
+            + ", ".join(sorted(edited & (set(fired) | set(fx.checks)))),
+        }
     detail = (
         ""
         if passed

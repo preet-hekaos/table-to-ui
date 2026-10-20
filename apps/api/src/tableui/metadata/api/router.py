@@ -380,3 +380,46 @@ async def live_screen(screen: str, p: PrincipalDep, app: LiveAppDep) -> dict[str
     if sc is None or not _visible(sc.roles, p.role_key):
         raise NotFound(f"There is no screen '{screen}'.")
     return {"release_version": app.release_version, "screen": sc.model_dump(mode="json")}
+
+
+@router.put("/studio/tables/{table}/stages")
+async def update_stages(
+    table: str, body: dict[str, Any], p: PrincipalDep, db: DbDep, request: Request
+) -> dict[str, Any]:
+    p.require("metadata.write")
+    assert p.tenant_id
+    async with db.control() as s:
+        return await studio.update_stages(
+            s,
+            tenant_id=p.tenant_id,
+            user_id=p.user_id,
+            table_key=table,
+            body=body,
+            request_id=get_request_id(request),
+        )
+
+
+@router.put("/studio/rules/{rule}/checks/{check}")
+async def set_check_severity(
+    rule: str, check: str, body: dict[str, Any], p: PrincipalDep, db: DbDep, request: Request
+) -> dict[str, Any]:
+    p.require("metadata.write")
+    assert p.tenant_id
+    async with db.control() as s:
+        return await studio.set_check_severity(
+            s,
+            tenant_id=p.tenant_id,
+            user_id=p.user_id,
+            rule_id=rule,
+            check_id=check,
+            severity=str(body.get("severity", "")),
+            request_id=get_request_id(request),
+        )
+
+
+@router.get("/studio/rules")
+async def studio_rules(p: PrincipalDep, db: DbDep) -> list[dict[str, Any]]:
+    p.require("metadata.read")
+    assert p.tenant_id
+    async with db.control() as s:
+        return await studio.read_draft(s, p.tenant_id, "rule")

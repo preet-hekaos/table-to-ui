@@ -11,6 +11,7 @@ context:
 checks:
   - id: R-06.interview
     severity: block
+    editable: true
     overridable: true
     when: "record.stage == 'Offer' && before.stage != 'Offer' && ctx.passed == 0"
     message: "There is no passed interview for this candidate yet."

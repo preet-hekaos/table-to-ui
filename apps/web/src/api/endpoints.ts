@@ -90,6 +90,9 @@ export const studio = {
   updateField: (table: string, field: string, body: Partial<FieldDef>) =>
     send<FieldDef>('PATCH', `/v1/studio/tables/${table}/fields/${field}`, body),
   removeField: (table: string, field: string) => send<void>('DELETE', `/v1/studio/tables/${table}/fields/${field}`),
+  rules: () => g<{ id: string; checks: { id: string; severity: string; message: string; editable?: boolean; edited?: boolean }[] }[]>('/v1/studio/rules'),
+  saveStages: (table: string, body: { labels: Record<string, string>; add?: { key: string; after: string } }) => send<unknown>('PUT', `/v1/studio/tables/${table}/stages`, body),
+  setSeverity: (rule: string, check: string, severity: string) => send<unknown>('PUT', `/v1/studio/rules/${rule}/checks/${check}`, { severity }),
   screens: () => g<DraftScreen[]>('/v1/studio/screens'),
   saveScreen: (key: string, body: Omit<DraftScreen, 'key' | 'version' | 'source'>) => send<DraftScreen>('PUT', `/v1/studio/screens/${key}`, body),
   navigation: () => g<DraftNav[]>('/v1/studio/navigation'),

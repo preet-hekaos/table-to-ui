@@ -237,4 +237,16 @@ test('M2 demo: pipeline, guard rules, approvals, duplicates', async ({ browser }
     await ananya.getByRole('tab', { name: 'Versions' }).click()
     await expect(ananya.getByTestId('release-v1')).toBeVisible()
   })
+
+  await test.step('13. The owner renames a stage and relaxes a policy in the Studio, saved to Draft', async () => {
+    await ananya.goto('/studio?tab=flow')
+    const stage = ananya.getByLabel('Label for stage Interview')
+    await stage.fill('Client interview')
+    await ananya.getByRole('button', { name: 'Save names' }).first().click()
+    await expect(ananya.getByText('Stages saved in Draft')).toBeVisible()
+    const policy = ananya.getByLabel(/How strict: The candidate's notice period/)
+    await policy.selectOption('block')
+    await expect(ananya.getByText('Policy saved in Draft')).toBeVisible()
+    await shot(ananya, '10-studio-stages-and-rules')
+  })
 })

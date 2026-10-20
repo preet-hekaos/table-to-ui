@@ -7,5 +7,6 @@ context:
 checks:
   - id: R-10.fee
     severity: approval
+    editable: true
     when: "record.fee != null && ctx.floor != null && record.fee < ctx.floor"
     message: "The fee is below this client's minimum, so a manager has to approve it."

@@ -13,13 +13,16 @@ context:
 checks:
   - id: R-04.notice
     severity: warn
+    editable: true
     when: "ctx.cand_notice != null && ctx.req_notice != null && ctx.cand_notice > ctx.req_notice"
     message: "The candidate's notice period is longer than the requirement allows."
   - id: R-04.experience
     severity: warn
+    editable: true
     when: "ctx.cand_exp != null && ((ctx.req_min_exp != null && ctx.cand_exp < ctx.req_min_exp) || (ctx.req_max_exp != null && ctx.cand_exp > ctx.req_max_exp))"
     message: "The candidate's experience is outside the requirement's range."
   - id: R-04.budget
     severity: warn
+    editable: true
     when: "ctx.cand_pay != null && ctx.req_budget != null && ctx.cand_pay > ctx.req_budget"
     message: "The candidate's expected pay is above the requirement's budget."

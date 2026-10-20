@@ -127,6 +127,7 @@ export function Board({ tableKey, title, filter }: { tableKey: string; title: st
               title={def.title_field}
               field={data.field}
               refLabel={refLabel}
+              labels={Object.fromEntries(data.columns.map((c) => [c.stage, c.label]))}
               dragging={dragging}
               setDragging={setDragging}
               onDropCard={(id) => {
@@ -211,6 +212,7 @@ function Column({
   title,
   field,
   refLabel,
+  labels,
   dragging,
   setDragging,
   onDropCard,
@@ -220,6 +222,7 @@ function Column({
   title: string
   field: string
   refLabel: (c: RecordRow) => (string | null)[]
+  labels: Record<string, string>
   dragging: string | null
   setDragging: (id: string | null) => void
   onDropCard: (id: string) => void
@@ -279,7 +282,7 @@ function Column({
               >
                 <option value="">Move to…</option>
                 {col.next.map((s) => (
-                  <option key={s} value={s}>{s}</option>
+                  <option key={s} value={s}>{labels[s] ?? s}</option>
                 ))}
               </select>
             </>

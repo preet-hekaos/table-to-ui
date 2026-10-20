@@ -232,6 +232,8 @@ class RuleCheck(_Strict):
     overridable: bool = (
         False  # a block that a user with the override permission may pass, with a reason
     )
+    editable: bool = False  # a policy: builders may change its severity in the Studio
+    edited: bool = False  # the agency changed the severity, so pack fixtures no longer speak for it
 
 
 class RuleDef(_Strict):
