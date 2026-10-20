@@ -144,11 +144,19 @@ interface Relation { table: string; label: string; field: string; title_field: s
 function RelatedList({ id, rel, canCreate }: { id: string; rel: Relation; canCreate: boolean }) {
   const def = useQuery({ queryKey: ['table', rel.table], queryFn: () => app.table(rel.table) })
   const rows = useQuery({ queryKey: ['related', rel.table, rel.field, id], queryFn: () => app.related(rel.table, rel.field, id) })
+  const boards = useQuery({ queryKey: ['board-screens', rel.table], queryFn: () => app.screens({ table: rel.table, pattern: 'board' }), retry: false })
   if (rows.isLoading || def.isLoading) return <LoadingState label={`Loading ${rel.label.toLowerCase()}`} />
   if (rows.isError || !def.data) return <ErrorState onRetry={() => void rows.refetch()} />
   const fields = rel.columns.map((c) => def.data.table.fields.find((f) => f.key === c)).filter((f) => !!f && f.key !== rel.field)
   return (
     <div className="flex flex-col gap-3">
+      {boards.data?.[0] && (
+        <div>
+          <Link to="/s/$screen" params={{ screen: boards.data[0].key }} search={{ ref: rel.field, id }} className="text-sm font-semibold text-accent-ink hover:underline">
+            Open as a pipeline board
+          </Link>
+        </div>
+      )}
       {canCreate && (
         <div>
           <Link to="/records/$table/new" params={{ table: rel.table }} search={{ [rel.field]: id }}>

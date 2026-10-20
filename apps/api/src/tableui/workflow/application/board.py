@@ -52,6 +52,7 @@ async def board(
                 "count": counts.get(stage.key, 0),
                 "cards": page["items"],
                 "next": wf.transitions.get(stage.key, []),
+                "ask": stage.ask,
             }
         )
     return {

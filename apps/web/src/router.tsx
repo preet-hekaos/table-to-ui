@@ -15,6 +15,7 @@ import { RecordNew } from '@/features/records/RecordNew'
 import { ScreenView } from '@/features/screens/ScreenView'
 import { RecordsList } from '@/features/records/RecordsList'
 import { Home } from '@/features/home/Home'
+import { Approvals } from '@/features/approvals/Approvals'
 import { Onboarding, onboardingKey } from '@/features/onboarding/Onboarding'
 import { OpsShell, OpsSignIn, PackCatalog, TenantDirectory } from '@/features/ops/Ops'
 import { Activity } from '@/features/studio/Activity'
@@ -73,9 +74,14 @@ const home = createRoute({ getParentRoute: () => shell, path: '/', component: Ho
 const screenRoute = createRoute({
   getParentRoute: () => shell,
   path: '/s/$screen',
-  validateSearch: (s: Record<string, unknown>): { saved?: string } => ({ saved: typeof s.saved === 'string' ? s.saved : undefined }),
+  validateSearch: (s: Record<string, unknown>): { saved?: string; ref?: string; id?: string } => ({
+    saved: typeof s.saved === 'string' ? s.saved : undefined,
+    ref: typeof s.ref === 'string' ? s.ref : undefined,
+    id: typeof s.id === 'string' ? s.id : undefined,
+  }),
   component: function ScreenRoute() {
-    return <ScreenView screenKey={screenRoute.useParams().screen} saved={screenRoute.useSearch().saved} />
+    const { saved, ref, id } = screenRoute.useSearch()
+    return <ScreenView screenKey={screenRoute.useParams().screen} saved={saved} filter={ref && id ? { ref, id } : undefined} />
   },
 })
 const list = createRoute({
@@ -139,6 +145,7 @@ const matchRoute = createRoute({
   },
 })
 const patterns = createRoute({ getParentRoute: () => shell, path: '/patterns', component: PatternGallery })
+const approvalsRoute = createRoute({ getParentRoute: () => shell, path: '/approvals', component: Approvals })
 const activity = createRoute({ getParentRoute: () => shell, path: '/activity', component: Activity })
 const settings = createRoute({
   getParentRoute: () => shell,
@@ -161,7 +168,7 @@ const tree = root.addChildren([
   signIn,
   mfa,
   accept,
-  shell.addChildren([onboarding, home, screenRoute, list, create, detail, edit, studio, importRoute, matchRoute, patterns, activity, security, team, settings]),
+  shell.addChildren([onboarding, home, screenRoute, list, create, detail, edit, studio, importRoute, matchRoute, patterns, approvalsRoute, activity, security, team, settings]),
   opsSignIn,
   opsShell.addChildren([opsTenants, opsPacks]),
 ])

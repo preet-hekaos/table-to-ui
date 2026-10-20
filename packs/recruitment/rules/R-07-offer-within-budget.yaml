@@ -7,5 +7,5 @@ context:
 checks:
   - id: R-07.budget
     severity: approval
-    when: "record.annual_ctc != null && ctx.budget != null && record.annual_ctc > ctx.budget"
+    when: "record.annual_ctc != null && ctx.budget != null && record.annual_ctc > ctx.budget && (!has(before.annual_ctc) || before.annual_ctc != record.annual_ctc)"
     message: "The offer is above the requirement's budget, so a manager has to approve it."

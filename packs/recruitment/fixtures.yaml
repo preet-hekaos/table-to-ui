@@ -229,3 +229,16 @@
   record: {summary: Arjun at Aurora, candidate: 00000000-0000-4000-8000-0000000000c1, client: 00000000-0000-4000-8000-0000000000a1, requirement: 00000000-0000-4000-8000-0000000000e1, submission: 00000000-0000-4000-8000-0000000000d1}
   expect: blocked
   checks: [R-14.offer]
+- id: FX-24
+  title: Accepting an offer that was already approved above budget is allowed (R-07)
+  table: offer
+  op: update
+  record_id: 00000000-0000-4000-8000-0000000000h1
+  given:
+    - {table: candidate, id: 00000000-0000-4000-8000-0000000000c1, data: {full_name: Arjun Menon, email: arjun@gmail.com}}
+    - {table: client, id: 00000000-0000-4000-8000-0000000000a1, data: {name: Aurora}}
+    - {table: requirement, id: 00000000-0000-4000-8000-0000000000e1, data: {title: Java lead, client: 00000000-0000-4000-8000-0000000000a1, status: Open, budget_max: 3000000}}
+    - {table: submission, id: 00000000-0000-4000-8000-0000000000d1, data: {summary: Arjun for Java lead, candidate: 00000000-0000-4000-8000-0000000000c1, requirement: 00000000-0000-4000-8000-0000000000e1, stage: Offer}}
+    - {table: offer, id: 00000000-0000-4000-8000-0000000000h1, data: {summary: Offer, submission: 00000000-0000-4000-8000-0000000000d1, annual_ctc: 3500000, status: Sent}}
+  record: {status: Accepted}
+  expect: allowed

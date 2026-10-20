@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link, useBlocker } from '@tanstack/react-router'
+import { Link, useBlocker, useNavigate } from '@tanstack/react-router'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useForm, type UseFormRegisterReturn } from 'react-hook-form'
 import { ApiError } from '@/api/client'
+import { RequestApproval } from '@/features/approvals/RequestApproval'
 import { app } from '@/api/endpoints'
 import type { FieldDef, RecordRow, RuleOutcome, TableDef } from '@/api/types'
 import { Button, Dialog, DialogContent, Field, Input, RuleBlocked, Select, VersionConflict } from '@/design-system'
@@ -121,6 +122,7 @@ export function RecordForm({
     ? Object.fromEntries(table.fields.map((f) => [f.key, toFormValue(f, initial.data[f.key])]))
     : { ...Object.fromEntries(table.fields.filter((f) => f.default != null).map((f) => [f.key, String(f.default)])), ...prefill }
   const { register, handleSubmit, setError, getValues, setValue, formState } = useForm<Values>({ defaultValues: defaults })
+  const navigate = useNavigate()
   const savedRef = useRef(false) // a ref: the save navigates away in the same tick
   const dirty = formState.isDirty // read during render so react-hook-form tracks it
   const blocker = useBlocker({
@@ -131,6 +133,8 @@ export function RecordForm({
   const [outcomes, setOutcomes] = useState<RuleOutcome[]>([])
   const [blocked, setBlocked] = useState<RuleOutcome | null>(null)
   const [conflict, setConflict] = useState(false)
+  const [needsApproval, setNeedsApproval] = useState<RuleOutcome[] | null>(null)
+  const [askApproval, setAskApproval] = useState(false)
   const [failure, setFailure] = useState<string | null>(null)
   const checkSeq = useRef(0)
 
@@ -151,6 +155,7 @@ export function RecordForm({
     setBlocked(null)
     setFailure(null)
     setConflict(false)
+    setNeedsApproval(null)
     try {
       const rec = initial
         ? await app.update(table.key, initial.id, toPayload(table, values), initial.version, idempotencyKey)
@@ -164,6 +169,7 @@ export function RecordForm({
       if (!(e instanceof ApiError)) return setFailure('Something went wrong. Nothing was saved.')
       if (e.is('rule-blocked')) return setBlocked(e.body.rule as RuleOutcome)
       if (e.is('version-conflict')) return setConflict(true)
+      if (e.is('approval-required')) return setNeedsApproval((e.body.approval as { checks: RuleOutcome[] }).checks)
       if (e.status === 422 && e.errors.length) {
         let unplaced = false
         for (const fe of e.errors) {
@@ -227,6 +233,33 @@ export function RecordForm({
       {/* eslint-disable-next-line react-hooks/refs -- the callback writes the ref on click, not during render */}
       {blocked && blockedAction?.(blocked, () => { savedRef.current = true })}
       {conflict && <VersionConflict onReload={() => window.location.reload()} />}
+      {needsApproval && (
+        <div role="alert" className="flex flex-col gap-2 rounded-lg border border-warn bg-warn-soft p-3 text-sm text-warn-ink">
+          <p className="font-semibold">This needs a manager's approval</p>
+          {needsApproval.map((c) => <p key={c.check}>{c.message}</p>)}
+          <div>
+            <Button type="button" size="sm" onClick={() => setAskApproval(true)}>Request approval</Button>
+          </div>
+        </div>
+      )}
+      {needsApproval && (
+        <RequestApproval
+          open={askApproval}
+          onOpenChange={setAskApproval}
+          checks={needsApproval}
+          request={{
+            table: table.key,
+            action: initial ? 'update' : 'create',
+            data: toPayload(table, getValues()),
+            record_id: initial?.id,
+            version: initial?.version,
+          }}
+          onSent={() => {
+            savedRef.current = true
+            void navigate({ to: '/approvals' })
+          }}
+        />
+      )}
       {failure && (
         <p role="alert" className="rounded-md bg-bad-soft p-3 text-sm text-bad-ink">
           {failure}
