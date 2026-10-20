@@ -21,6 +21,8 @@ import tableui.files.public as files
 import tableui.identity.public as identity
 import tableui.imports.public as imports
 import tableui.insights.public as insights
+import tableui.matching.public as matching
+import tableui.search.public as search
 from tableui.audit.api.router import router as audit_router
 from tableui.commands.api.router import router as commands_router
 from tableui.identity.api.router import router as identity_router
@@ -228,6 +230,8 @@ def create_app(
         files.router,
         files.documents_router,
         imports.router,
+        search.router,
+        matching.router,
     ):
         app.include_router(r)
     return app

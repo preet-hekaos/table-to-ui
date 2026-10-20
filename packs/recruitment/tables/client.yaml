@@ -2,6 +2,8 @@ key: client
 label: Client
 plural_label: Clients
 title_field: name
+counts:
+  - {key: open_requirements, label: Open requirements, table: requirement, via: client, where: {status: Open}}
 groups: [{key: main, label: Company}, {key: terms, label: Commercial terms}]
 fields:
   - {key: name, label: Name, type: text, required: true, group: main, normalize: text, searchable: true}

@@ -66,6 +66,24 @@ class FieldDef(_Strict):
         return self
 
 
+class SearchInclude(_Strict):
+    """Keyword search on this table also looks in the searchable text of records that point at it
+    (for example the text of a document filed under the record)."""
+
+    table: Key
+    via: Key  # the reference field on that table that points here
+
+
+class CountDef(_Strict):
+    """A count shown beside each record, for example how many open orders a customer has."""
+
+    key: Key
+    label: str
+    table: Key
+    via: Key
+    where: dict[str, str | int | bool] = {}
+
+
 class TableDef(_Strict):
     key: Key
     label: str
@@ -76,6 +94,8 @@ class TableDef(_Strict):
     version: int = 1
     description: str = ""
     source: Literal["pack", "agency"] = "pack"
+    search_includes: list[SearchInclude] = []
+    counts: list[CountDef] = []
 
     @model_validator(mode="after")
     def _check(self) -> "TableDef":

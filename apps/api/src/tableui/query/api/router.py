@@ -13,6 +13,38 @@ router = APIRouter(prefix="/v1/records", tags=["records"])
 DbDep = Annotated[Database, Depends(get_db)]
 
 
+def _query_parts(request: Request) -> dict[str, Any]:
+    qp = request.query_params
+    return {
+        "filters": {k[2:]: v for k, v in qp.items() if k.startswith("f.") and v != ""},
+        "ranges": {k[2:]: v for k, v in qp.items() if k.startswith("r.") and v != ""},
+        "has": {k[4:]: v for k, v in qp.items() if k.startswith("has.") and v != ""},
+        "owner": qp.get("owner") or None,
+    }
+
+
+@router.get("/{table}/facets")
+async def facets(
+    table: str,
+    p: PrincipalDep,
+    app: LiveAppDep,
+    db: DbDep,
+    request: Request,
+    q: str | None = None,
+    fields: str | None = None,
+) -> dict[str, Any]:
+    """Counts per facet value under the current search (S23)."""
+    return await records.facet_counts(
+        db,
+        p,
+        app,
+        table,
+        fields=[x for x in (fields or "").split(",") if x] or None,
+        q=q,
+        **_query_parts(request),
+    )
+
+
 @router.get("/{table}")
 async def list_(
     table: str,
@@ -26,7 +58,6 @@ async def list_(
     limit: int = 50,
     q: str | None = None,
 ) -> dict[str, Any]:
-    filters = {k[2:]: v for k, v in request.query_params.items() if k.startswith("f.")}
     return await records.list_records(
         db,
         p,
@@ -36,8 +67,8 @@ async def list_(
         direction=direction,
         cursor=cursor,
         limit=limit,
-        filters=filters,
         q=q,
+        **_query_parts(request),
     )
 
 

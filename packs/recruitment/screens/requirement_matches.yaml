@@ -1,0 +1,17 @@
+key: requirement_matches
+title: Matches
+pattern: ranked_list
+table: candidate
+config:
+  source_table: requirement
+  columns: [full_name, current_title, location, total_experience, expected_ctc, notice_period_days, skills]
+  hard_filters:
+    - {target: status, op: eq, value: Active}
+    - {target: notice_period_days, op: lte_source, source: max_notice_days, tolerance: 30}
+    - {target: total_experience, op: gte_source, source: min_experience, tolerance: -12}
+  parts:
+    - {key: skills, label: Skills, weight: 40, kind: overlap, source: skills, target: skills}
+    - {key: experience, label: Experience, weight: 20, kind: within, source_min: min_experience, source_max: max_experience, target: total_experience, tolerance: 24}
+    - {key: location, label: Location, weight: 15, kind: same, source: location, target: location}
+    - {key: pay, label: Pay, weight: 15, kind: at_most, source: budget_max, target: expected_ctc, tolerance_pct: 20}
+    - {key: notice, label: Notice, weight: 10, kind: at_most, source: max_notice_days, target: notice_period_days, tolerance: 60}

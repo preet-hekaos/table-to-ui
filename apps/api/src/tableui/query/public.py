@@ -1,3 +1,9 @@
-from tableui.query.application.records import get_history, get_record, list_records
+from tableui.query.application.records import (
+    facet_counts,
+    get_history,
+    get_record,
+    list_records,
+    quick_search,
+)
 
-__all__ = ["get_history", "get_record", "list_records"]
+__all__ = ["facet_counts", "get_history", "get_record", "list_records", "quick_search"]

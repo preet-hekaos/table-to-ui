@@ -353,6 +353,23 @@ async def live_navigation(p: PrincipalDep, app: LiveAppDep) -> dict[str, Any]:
     return {"release_version": app.release_version, "items": items}
 
 
+@router.get("/app/screens")
+async def live_screens(
+    p: PrincipalDep, app: LiveAppDep, table: str | None = None, pattern: str | None = None, source_table: str | None = None
+) -> list[dict[str, Any]]:
+    """Screens of the live app (for example the profile of a table, or matches for a source table)."""
+    out = []
+    for sc in app.screens.values():
+        if not _visible(sc.roles, p.role_key) or not p.allows(f"record.{sc.table}.read"):
+            continue
+        if (table and sc.table != table) or (pattern and sc.pattern != pattern):
+            continue
+        if source_table and sc.config.get("source_table") != source_table:
+            continue
+        out.append(sc.model_dump(mode="json"))
+    return out
+
+
 @router.get("/app/screens/{screen}")
 async def live_screen(screen: str, p: PrincipalDep, app: LiveAppDep) -> dict[str, Any]:
     sc = app.screens.get(screen)

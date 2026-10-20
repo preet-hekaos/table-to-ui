@@ -87,6 +87,10 @@ def _table_ddl(s: str, t: TableDef) -> str:
         f'CREATE INDEX "{t.key}_search_fts" ON "{s}"."{t.key}" '
         f"USING gin (to_tsvector('simple', search_doc));"
     )
+    out.append(
+        f'CREATE INDEX "{t.key}_title_trgm" ON "{s}"."{t.key}" '
+        f"USING gin ((lower(COALESCE(data->>'{t.title_field}', ''))) gin_trgm_ops);"
+    )
     for f in t.fields:
         if f.type == "reference" or f.filterable:
             out.append(

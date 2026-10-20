@@ -1,0 +1,11 @@
+key: candidate_profile
+title: Candidate profile
+pattern: profile
+table: candidate
+config:
+  key_fields: [current_title, current_employer, location, total_experience, notice_period_days, expected_ctc, skills]
+  preview: {table: candidate_document, via: candidate, file_field: file_id, where: {kind: CV}}
+  badges:
+    - {label: Consent, table: consent_record, via: candidate, field: status}
+  timeline:
+    - {table: interaction, via: candidate, date_field: occurred_on}

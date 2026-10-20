@@ -2,3 +2,7 @@ key: candidates
 title: Candidates
 pattern: searchable_table
 table: candidate
+config:
+  columns: [full_name, current_title, location, total_experience, notice_period_days, status]
+  facets: [skills, location, total_experience, notice_period_days, expected_ctc]
+  actions: [create, export, import]
