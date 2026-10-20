@@ -104,7 +104,7 @@ def _table_ddl(s: str, t: TableDef) -> str:
             )
         elif f.normalize:
             out.append(f'CREATE INDEX "{t.key}_{f.key}_norm" ON "{s}"."{t.key}" ("{f.key}_norm");')
-            if f.type == "text":  # near-match candidates for duplicate review
+            if f.type == "text":  # lets duplicate review find near matches
                 out.append(
                     f'CREATE INDEX "{t.key}_{f.key}_norm_trgm" ON "{s}"."{t.key}" '
                     f'USING gin ("{f.key}_norm" public.gin_trgm_ops);'
