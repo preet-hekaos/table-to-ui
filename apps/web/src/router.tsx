@@ -20,6 +20,7 @@ import { OpsShell, OpsSignIn, PackCatalog, TenantDirectory } from '@/features/op
 import { Activity } from '@/features/studio/Activity'
 import { ImportWizard } from '@/features/imports/ImportWizard'
 import { RankedList } from '@/patterns/RankedList'
+import { PatternGallery } from '@/features/patterns/PatternGallery'
 import { Settings } from '@/features/settings/Settings'
 import { Studio, type StudioTab } from '@/features/studio/Studio'
 import { Team } from '@/features/studio/Team'
@@ -137,6 +138,7 @@ const matchRoute = createRoute({
     return <RankedList screenKey={screen} sourceId={id} />
   },
 })
+const patterns = createRoute({ getParentRoute: () => shell, path: '/patterns', component: PatternGallery })
 const activity = createRoute({ getParentRoute: () => shell, path: '/activity', component: Activity })
 const settings = createRoute({
   getParentRoute: () => shell,
@@ -159,7 +161,7 @@ const tree = root.addChildren([
   signIn,
   mfa,
   accept,
-  shell.addChildren([onboarding, home, screenRoute, list, create, detail, edit, studio, importRoute, matchRoute, activity, security, team, settings]),
+  shell.addChildren([onboarding, home, screenRoute, list, create, detail, edit, studio, importRoute, matchRoute, patterns, activity, security, team, settings]),
   opsSignIn,
   opsShell.addChildren([opsTenants, opsPacks]),
 ])

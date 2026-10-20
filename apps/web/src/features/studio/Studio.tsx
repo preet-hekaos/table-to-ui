@@ -317,6 +317,7 @@ export function Studio({ tab = 'data', table }: { tab?: StudioTab; table?: strin
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-xl font-bold text-ink">Studio</h1>
         <EnvironmentSwitch releases={releases.data ?? []} />
+        <a href="/patterns" className="ml-auto text-sm font-semibold text-accent-ink hover:underline">Pattern library</a>
       </div>
       <DraftBanner canPublish={canPublish} onReview={() => go({ tab: 'versions' })} />
       <Tabs value={tab} onValueChange={(v) => go({ tab: v as StudioTab })}>

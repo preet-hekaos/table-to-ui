@@ -194,7 +194,7 @@ export function RecordForm({
                 })
                 const unsure = review?.has(f.key)
                 return (
-                  <div key={f.key} className={unsure ? '-m-1.5 rounded-md bg-warn-soft p-1.5' : undefined} data-review={unsure ? 'true' : undefined}>
+                  <div key={f.key} className={unsure ? '-m-1.5 rounded-md bg-warn-soft p-1.5 [&_p]:text-warn-ink' : undefined} data-review={unsure ? 'true' : undefined}>
                     <Field
                       label={unsure ? `${f.label} (check this)` : f.label}
                       required={f.required}
