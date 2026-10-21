@@ -1,0 +1,11 @@
+key: average_offer_ctc
+label: Average offer CTC
+table: offer
+aggregate: avg
+field: annual_ctc
+help: Average annual CTC of offers sent in the chosen dates.
+order: 90
+time_field: sent_on
+where:
+  - field: sent_on
+    op: not_empty

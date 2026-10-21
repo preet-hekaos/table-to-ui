@@ -1,0 +1,12 @@
+key: offers_made
+label: Offers sent
+table: offer
+aggregate: count
+help: Offers by the date they were sent, per week.
+order: 50
+display: trend
+time_field: sent_on
+by_time: week
+where:
+  - field: sent_on
+    op: not_empty

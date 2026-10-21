@@ -96,11 +96,52 @@ export interface StudioTable extends TableDef {
   description?: string
   version: number
 }
+export interface MeasurePoint {
+  label: string
+  key?: string
+  value: number | null
+}
 export interface Measure {
   key: string
   label: string
-  value: number
+  value: number | null
   as_of: string | null
+  help: string | null
+  display: 'number' | 'trend' | 'bars'
+  table: string
+  aggregate: 'count' | 'sum' | 'avg' | 'distinct'
+  period: boolean
+  source: 'pack' | 'agency'
+  home: boolean
+  series: MeasurePoint[] | null
+}
+export interface MeasureRecords {
+  table: string
+  total: number
+  shown: number
+  capped: boolean
+  items: RecordRow[]
+  next_cursor: string | null
+}
+export interface MeasureDraft {
+  key: string
+  label: string
+  table: string
+  table_label: string
+  aggregate: 'count' | 'sum' | 'avg' | 'distinct'
+  field: string | null
+  where: { field: string; op: string; value?: string | number | boolean | string[] | null }[]
+  group_by: string | null
+  time_field: string | null
+  by_time: 'day' | 'week' | 'month' | null
+  display: 'number' | 'trend' | 'bars'
+  help: string | null
+  order: number
+  hidden: boolean
+  home: boolean
+  source: 'pack' | 'agency'
+  problems: string[]
+  fields_turned_on?: string[]
 }
 export interface TenantRow {
   id: string

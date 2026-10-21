@@ -5,6 +5,7 @@ from tableui.commands.application.pipeline import (
     Overrides,
     check_record,
     create_record,
+    emit_change,
     update_record,
 )
 from tableui.commands.application.relay import OutboxRelay
@@ -19,5 +20,6 @@ __all__ = [
     "OutboxRelay",
     "check_record",
     "create_record",
+    "emit_change",
     "update_record",
 ]

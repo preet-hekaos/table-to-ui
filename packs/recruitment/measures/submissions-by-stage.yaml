@@ -1,0 +1,8 @@
+key: submissions_by_stage
+label: Submissions by stage
+table: submission
+aggregate: count
+help: Where every submission is in the pipeline right now.
+order: 30
+display: bars
+group_by: stage

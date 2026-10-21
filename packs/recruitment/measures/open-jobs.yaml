@@ -1,0 +1,11 @@
+key: open_jobs
+label: Open jobs
+table: requirement
+aggregate: count
+help: Client requirements that are still open.
+order: 20
+home: true
+where:
+  - field: status
+    op: eq
+    value: Open

@@ -248,16 +248,28 @@ class RuleDef(_Strict):
 
 class MeasureFilter(_Strict):
     field: Key
-    op: Literal["eq", "neq"]
-    value: str | int | bool
+    op: Literal["eq", "neq", "gt", "gte", "lt", "lte", "in", "empty", "not_empty"] = "eq"
+    value: str | int | float | bool | list[str] | None = None
 
 
 class MeasureDef(_Strict):
+    """A governed number: what to count or total, over which records, grouped how."""
+
     key: Key
     label: str
     table: Key
-    aggregate: Literal["count"]
+    aggregate: Literal["count", "sum", "avg", "distinct"] = "count"
+    field: Key | None = None  # what to total, average or count distinct
     where: list[MeasureFilter] = []
+    group_by: Key | None = None  # one bar per value of this choice field
+    time_field: str | None = None  # a date field, or "created_at"; the date range applies to it
+    by_time: Literal["day", "week", "month"] | None = None  # one point per period on time_field
+    display: Literal["number", "trend", "bars"] = "number"
+    help: str | None = None
+    order: int = 100
+    hidden: bool = False
+    home: bool = False  # shown among the Home highlights
+    source: Literal["pack", "agency"] = "pack"
 
 
 Pattern = Literal[

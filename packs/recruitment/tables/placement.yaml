@@ -18,7 +18,7 @@ fields:
   - {key: client, label: Client, type: reference, ref_table: client, required: true, filterable: true}
   - {key: requirement, label: Requirement, type: reference, ref_table: requirement}
   - {key: submission, label: Submission, type: reference, ref_table: submission, filterable: true}
-  - {key: start_on, label: Start date, type: date}
+  - {key: start_on, label: Start date, type: date, analytics: true}
   - {key: annual_ctc, label: Annual CTC, type: money}
-  - {key: fee, label: Fee, type: money}
+  - {key: fee, label: Fee, type: money, analytics: true}
   - {key: status, label: Status, type: select, required: true, default: Joined, options: [Joined, Left, Replaced], filterable: true}

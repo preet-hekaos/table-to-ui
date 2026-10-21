@@ -2,6 +2,9 @@ key: active_candidates
 label: Active candidates
 table: candidate
 aggregate: count
+help: Candidates whose status is Active right now.
+order: 10
+home: true
 where:
   - field: status
     op: eq

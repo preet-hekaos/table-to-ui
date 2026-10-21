@@ -15,6 +15,8 @@ import { RecordNew } from '@/features/records/RecordNew'
 import { ScreenView } from '@/features/screens/ScreenView'
 import { RecordsList } from '@/features/records/RecordsList'
 import { Home } from '@/features/home/Home'
+import { Insights } from '@/features/insights/Insights'
+import { MeasureRecords } from '@/features/insights/MeasureRecords'
 import { Approvals } from '@/features/approvals/Approvals'
 import { Onboarding, onboardingKey } from '@/features/onboarding/Onboarding'
 import { OpsShell, OpsSignIn, PackCatalog, TenantDirectory } from '@/features/ops/Ops'
@@ -116,6 +118,33 @@ const edit = createRoute({
     return <RecordEdit tableKey={table} id={id} />
   },
 })
+const insightsRoute = createRoute({
+  getParentRoute: () => shell,
+  path: '/insights',
+  validateSearch: (s: Record<string, unknown>): { range?: string; start?: string; end?: string } => ({
+    range: typeof s.range === 'string' ? s.range : undefined,
+    start: typeof s.start === 'string' ? s.start : undefined,
+    end: typeof s.end === 'string' ? s.end : undefined,
+  }),
+  component: function InsightsRoute() {
+    return <Insights range={insightsRoute.useSearch()} />
+  },
+})
+const insightDrill = createRoute({
+  getParentRoute: () => shell,
+  path: '/insights/$key',
+  validateSearch: (s: Record<string, unknown>): { range?: string; start?: string; end?: string; group?: string; bucket?: string } => ({
+    range: typeof s.range === 'string' ? s.range : undefined,
+    start: typeof s.start === 'string' ? s.start : undefined,
+    end: typeof s.end === 'string' ? s.end : undefined,
+    group: typeof s.group === 'string' ? s.group : undefined,
+    bucket: typeof s.bucket === 'string' ? s.bucket : undefined,
+  }),
+  component: function InsightDrillRoute() {
+    const { group, bucket, ...range } = insightDrill.useSearch()
+    return <MeasureRecords measureKey={insightDrill.useParams().key} range={range} group={group} bucket={bucket} />
+  },
+})
 const studio = createRoute({
   getParentRoute: () => shell,
   path: '/studio',
@@ -169,7 +198,7 @@ const tree = root.addChildren([
   signIn,
   mfa,
   accept,
-  shell.addChildren([onboarding, home, screenRoute, list, create, detail, edit, studio, importRoute, matchRoute, patterns, approvalsRoute, activity, security, team, settings]),
+  shell.addChildren([onboarding, home, screenRoute, list, create, detail, edit, studio, insightsRoute, insightDrill, importRoute, matchRoute, patterns, approvalsRoute, activity, security, team, settings]),
   opsSignIn,
   opsShell.addChildren([opsTenants, opsPacks]),
 ])

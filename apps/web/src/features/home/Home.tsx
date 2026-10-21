@@ -82,7 +82,7 @@ export function Home() {
   const me = useMe()
   const measures = useQuery({
     queryKey: ['measures'],
-    queryFn: app.measures,
+    queryFn: () => app.measures({}, true),
     enabled: !!me.data,
     retry: false,
     refetchInterval: 15_000,
@@ -116,10 +116,13 @@ export function Home() {
           {measures.data?.map((m) => (
             <Card key={m.key} data-testid={`measure-${m.key}`}>
               <p className="text-xs font-semibold text-muted">{m.label}</p>
-              <p className="mt-1 text-3xl font-bold text-ink" aria-label={`${m.label}: ${m.value}`}>{m.value}</p>
+              <Link to="/insights/$key" params={{ key: m.key }} className="mt-1 block w-fit text-3xl font-bold text-ink hover:underline" aria-label={`${m.label}: ${m.value ?? 'no data'}. Show records`}>
+                {m.value ?? '–'}
+              </Link>
               <p className="mt-1 text-xs text-muted">{m.as_of ? `As of ${new Date(m.as_of).toLocaleTimeString()}` : 'No data yet'}</p>
             </Card>
           ))}
+          <Link to="/insights" className="self-center text-sm font-semibold text-accent-ink underline">See all insights</Link>
         </div>
       )}
     </div>

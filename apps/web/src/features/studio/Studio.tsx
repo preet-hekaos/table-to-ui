@@ -22,13 +22,14 @@ import {
 import { can, useMe } from '@/features/auth/useMe'
 import { DataTab } from './DataTab'
 import { FlowTab } from './FlowTab'
+import { InsightsTab } from './InsightsTab'
 import { LinkHealth, RelationshipsTab } from './RelationshipsTab'
 import { MapTab } from './MapTab'
 import { NavTab } from './NavTab'
 import { PreviewTab } from './PreviewTab'
 import { ScreensTab } from './ScreensTab'
 
-export type StudioTab = 'data' | 'map' | 'links' | 'flow' | 'screens' | 'menu' | 'preview' | 'versions'
+export type StudioTab = 'data' | 'map' | 'links' | 'flow' | 'screens' | 'insights' | 'menu' | 'preview' | 'versions'
 
 function EnvironmentSwitch({ releases }: { releases: ReleaseRow[] }) {
   const test = releases.find((r) => r.is_test)
@@ -332,6 +333,7 @@ export function Studio({ tab = 'data', table, link }: { tab?: StudioTab; table?:
           <TabsTrigger value="links">Relationships</TabsTrigger>
           <TabsTrigger value="flow">Stages &amp; rules</TabsTrigger>
           <TabsTrigger value="screens">Screens</TabsTrigger>
+          <TabsTrigger value="insights">Insights</TabsTrigger>
           <TabsTrigger value="menu">Menu</TabsTrigger>
           <TabsTrigger value="preview">Preview</TabsTrigger>
           <TabsTrigger value="versions">Versions</TabsTrigger>
@@ -350,6 +352,9 @@ export function Studio({ tab = 'data', table, link }: { tab?: StudioTab; table?:
         </TabsContent>
         <TabsContent value="screens" className="pt-4">
           <ScreensTab canEdit={canEdit} />
+        </TabsContent>
+        <TabsContent value="insights" className="pt-4">
+          <InsightsTab canEdit={canEdit} />
         </TabsContent>
         <TabsContent value="menu" className="pt-4">
           <NavTab canEdit={canEdit} />
