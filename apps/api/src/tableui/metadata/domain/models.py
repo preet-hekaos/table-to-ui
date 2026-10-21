@@ -418,6 +418,7 @@ class PackManifest(_Strict):
     fixtures: str | None = None  # a YAML file holding a list of fixtures
     guides: str | None = None  # a YAML file: first steps for each role
     samples: str | None = None  # a YAML file: sample records a workspace can load and remove
+    prompts: str | None = None  # a YAML file: the wording the pack adds to each AI feature
     compatible_with: str = ">=1.0"
 
 
@@ -433,6 +434,12 @@ class GuideDef(_Strict):
     role: Key
     title: str
     steps: list[GuideStep]
+
+
+class PromptDef(_Strict):
+    feature: Key
+    version: int = 1
+    instructions: str  # domain wording added to the built-in instructions for this AI feature
 
 
 class SampleRecord(_Strict):
@@ -452,6 +459,7 @@ class Pack(_Strict):
     automations: list[AutomationDef] = []
     guides: list[GuideDef] = []
     samples: list[SampleRecord] = []
+    prompts: list[PromptDef] = []
     screens: list[ScreenDef] = []
     navigation: list[NavItem] = []
     roles: list[RoleDef] = []

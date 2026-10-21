@@ -4,6 +4,7 @@ import { ArrowLeft, Pencil, Plus, Sparkles } from 'lucide-react'
 import { ApiError } from '@/api/client'
 import { app } from '@/api/endpoints'
 import { Badge, Button, Card, ErrorState, LoadingState, NotFound, PermissionDenied, Table, Tabs, TabsContent, TabsList, TabsTrigger, Td, Th } from '@/design-system'
+import { DraftButton, SummaryButton } from '@/features/ai/Ai'
 import { can, useMe } from '@/features/auth/useMe'
 import { formatField } from '@/patterns/format'
 import { ProfileFields } from '@/patterns/ProfilePage'
@@ -59,6 +60,12 @@ export function RecordDetail({ tableKey, id, embedded = false }: { tableKey: str
           )}
         </span>
       </div>
+      {!embedded && (
+        <div className="flex flex-wrap items-center gap-2">
+          <SummaryButton table={tableKey} id={id} />
+          <DraftButton table={tableKey} id={id} />
+        </div>
+      )}
       {profile && <ProfileSide config={profile} table={table} record={rec.data} timeline={timeline} />}
       <Tabs defaultValue="details">
         <TabsList aria-label="Record sections" className="overflow-x-auto">

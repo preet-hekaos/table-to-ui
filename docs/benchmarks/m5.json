@@ -1,0 +1,39 @@
+{
+  "samples": 100,
+  "save_ai_off": {
+    "n": 100,
+    "p50_ms": 22.2,
+    "p95_ms": 33.6,
+    "p99_ms": 45.4,
+    "mean_ms": 23.3
+  },
+  "save_ai_on": {
+    "n": 100,
+    "p50_ms": 23.3,
+    "p95_ms": 30.7,
+    "p99_ms": 35.7,
+    "mean_ms": 23.8
+  },
+  "added_to_a_save_p95_ms": -2.9,
+  "record_read_for_comparison": {
+    "n": 100,
+    "p50_ms": 15.9,
+    "p95_ms": 20.1,
+    "p99_ms": 38.8,
+    "mean_ms": 16.3
+  },
+  "summary_uncached_instant_model": {
+    "n": 100,
+    "p50_ms": 33.0,
+    "p95_ms": 44.0,
+    "p99_ms": 49.4,
+    "mean_ms": 33.6
+  },
+  "summary_cached": {
+    "n": 100,
+    "p50_ms": 30.0,
+    "p95_ms": 46.1,
+    "p99_ms": 72.7,
+    "mean_ms": 32.4
+  }
+}

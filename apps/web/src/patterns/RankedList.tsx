@@ -7,6 +7,7 @@ import { ApiError } from '@/api/client'
 import { app, matching } from '@/api/endpoints'
 import type { ScreenConfig } from '@/api/types'
 import { Badge, Button, Card, EmptyState, ErrorState, LoadingState, NotFound, useToast } from '@/design-system'
+import { ExplainMatch } from '@/features/ai/Ai'
 import { can, useMe } from '@/features/auth/useMe'
 import { formatField } from './format'
 
@@ -106,6 +107,7 @@ export function RankedList({ screenKey, sourceId }: { screenKey: string; sourceI
                   </div>
                 ))}
               </div>
+              <ExplainMatch screen={screenKey} sourceId={sourceId} targetId={it.id} table={table.key} />
               <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
                 {cols.slice(3).map((f) => f && <span key={f.key}>{f.label}: {formatField(f, it.data[f.key])}</span>)}
               </div>

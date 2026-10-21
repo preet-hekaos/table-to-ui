@@ -3,9 +3,10 @@ import { useNavigate } from '@tanstack/react-router'
 import { FileUp } from 'lucide-react'
 import { useState } from 'react'
 import { ApiError } from '@/api/client'
-import { app, documents, files, type ParseState, type StoredFile } from '@/api/endpoints'
+import { ai, app, documents, files, type ParseState, type StoredFile } from '@/api/endpoints'
 import type { RuleOutcome, ScreenConfig, TableDef } from '@/api/types'
 import { Badge, Button, Card, ErrorState, LoadingState, useToast } from '@/design-system'
+import { AiError, AiNote, useAiFor } from '@/features/ai/Ai'
 import { useFileUrl } from '@/features/workspace/useBrand'
 import { RecordForm, toFormValue } from './RecordForm'
 
@@ -48,6 +49,9 @@ export function DocumentReview({ screenKey, tableKey, title, config }: { screenK
     onSuccess: setState,
     onError: (e) => setProblem(e instanceof ApiError && e.errors.length ? `The file ${e.errors[0]!.message}.` : (e as Error).message),
   })
+  const aiOn = useAiFor(tableKey)
+  const [accepted, setAccepted] = useState<Record<string, unknown>>({})
+  const suggest = useMutation({ mutationFn: (fileId: string) => ai.extract(screenKey, fileId) })
   const done = async (id: string, attached: boolean) => {
     await qc.invalidateQueries({ queryKey: ['records', tableKey] })
     toast({ title: attached ? 'Document attached' : `${def.data?.table.label ?? 'Record'} added from the document`, tone: 'ok' })
@@ -56,7 +60,7 @@ export function DocumentReview({ screenKey, tableKey, title, config }: { screenK
   if (def.error) return <ErrorState requestId={(def.error as ApiError).requestId} onRetry={() => void def.refetch()} />
   if (!def.data) return <LoadingState />
   const table: TableDef = def.data.table
-  const prefill = state
+  const prefill: Record<string, ReturnType<typeof toFormValue> | string> = state
     ? Object.fromEntries(
         Object.entries(config.mapping ?? {})
           .filter(([src]) => state.fields[src])
@@ -66,6 +70,10 @@ export function DocumentReview({ screenKey, tableKey, title, config }: { screenK
           }),
       )
     : {}
+  for (const [k, v] of Object.entries(accepted)) {
+    const f = table.fields.find((x) => x.key === k)
+    prefill[k] = f ? toFormValue(f, v) : String(v)
+  }
   const unsure = new Set(
     Object.entries(config.mapping ?? {})
       .filter(([src]) => state && (state.review.includes(src) || (state.status === 'parsed' && !state.fields[src])))
@@ -119,8 +127,42 @@ export function DocumentReview({ screenKey, tableKey, title, config }: { screenK
                 Read {Object.keys(state.fields).length} details. {unsure.size > 0 ? `${unsure.size} need checking (highlighted).` : 'Check them before saving.'}
               </p>
             )}
+            {aiOn && state.status === 'parsed' && file && (
+              <div className="flex flex-col gap-2" data-testid="ai-suggest">
+                {!suggest.data && (
+                  <Button type="button" variant="secondary" size="sm" className="w-fit" loading={suggest.isPending} onClick={() => suggest.mutate(file.id)}>
+                    Look for the missing details with AI
+                  </Button>
+                )}
+                {suggest.error && <AiError error={suggest.error} />}
+                {suggest.data && (
+                  <AiNote label="AI found these in the document" onClose={() => suggest.reset()}>
+                    {Object.keys(suggest.data.suggestions).length === 0 ? (
+                      <p>{suggest.data.note ?? 'Nothing more could be found in the document.'}</p>
+                    ) : (
+                      <ul className="flex flex-col gap-2">
+                        {Object.entries(suggest.data.suggestions).map(([k, s]) => {
+                          const f = table.fields.find((x) => x.key === k)
+                          const used = k in accepted
+                          return (
+                            <li key={k} className="flex flex-wrap items-center gap-2">
+                              <span className="font-semibold text-ink">{f?.label ?? k}:</span>
+                              <span>{Array.isArray(s.value) ? s.value.join(', ') : String(s.value)}</span>
+                              <span className="text-xs text-muted">from “{s.quote}”</span>
+                              <Button type="button" size="sm" variant="secondary" disabled={used} onClick={() => setAccepted({ ...accepted, [k]: s.value })}>
+                                {used ? 'Used' : 'Use'}
+                              </Button>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    )}
+                  </AiNote>
+                )}
+              </div>
+            )}
             <RecordForm
-              key={state.file_id + state.attempts}
+              key={state.file_id + state.attempts + Object.keys(accepted).join(',')}
               table={table}
               prefill={prefill}
               review={unsure}

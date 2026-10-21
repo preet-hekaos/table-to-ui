@@ -18,6 +18,7 @@ from tableui.metadata.domain.models import (
     NavItem,
     Pack,
     PackManifest,
+    PromptDef,
     RoleDef,
     RuleDef,
     SampleRecord,
@@ -130,6 +131,12 @@ def load_pack(root: Path) -> Pack:
             sm = _parse(SampleRecord, item, f"{manifest.samples}[{i}]", issues)
             if sm:
                 samples.append(sm)
+    prompts: list[PromptDef] = []
+    if manifest.prompts:
+        for i, item in enumerate(_read_yaml(root, manifest.prompts, issues) or []):
+            pd = _parse(PromptDef, item, f"{manifest.prompts}[{i}]", issues)
+            if pd:
+                prompts.append(pd)
     fixtures: list[FixtureDef] = []
     if manifest.fixtures:
         raw = _read_yaml(root, manifest.fixtures, issues)
@@ -159,6 +166,7 @@ def load_pack(root: Path) -> Pack:
         measures=measures,
         automations=automations,
         guides=guides,
+        prompts=prompts,
         samples=samples,
         description=manifest.description,
         screens=screens,

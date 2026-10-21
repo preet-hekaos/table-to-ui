@@ -28,6 +28,7 @@ from tableui.metadata.domain.models import (
     GuideDef,
     MeasureDef,
     Pack,
+    PromptDef,
     RuleCheck,
     RuleDef,
     SampleRecord,
@@ -45,6 +46,7 @@ from tableui.metadata.domain.values import (
 __all__ = [
     "AutomationDef",
     "GuideDef",
+    "PromptDef",
     "SampleRecord",
     "automation_problems",
     "measure_problems",

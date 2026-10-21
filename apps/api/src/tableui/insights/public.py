@@ -4,5 +4,6 @@ from tableui.insights.application.analytics import (
     rebuild,
     refresh_if_stale,
 )
+from tableui.insights.application.snapshot import snapshot
 
-__all__ = ["ensure_schema", "handle_event", "rebuild", "refresh_if_stale"]
+__all__ = ["ensure_schema", "handle_event", "rebuild", "refresh_if_stale", "snapshot"]

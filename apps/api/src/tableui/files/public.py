@@ -9,6 +9,7 @@ from tableui.files.adapters.parsers import (
 )
 from tableui.files.adapters.store import LocalFileStore
 from tableui.files.api.router import documents_router, router
+from tableui.files.application.documents import get_parse, mapped_values
 from tableui.files.application.files import describe, read_clean, upload
 from tableui.files.domain.kinds import KINDS, sniff
 from tableui.files.domain.parser import DocumentParser, ParserUnavailable
@@ -29,6 +30,8 @@ __all__ = [
     "extract_text",
     "parse_resume",
     "FileStore",
+    "get_parse",
+    "mapped_values",
     "LocalFileStore",
     "Scanner",
     "SignatureScanner",

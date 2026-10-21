@@ -8,6 +8,7 @@ import { ApiError } from '@/api/client'
 import { app, search, type SavedSearch } from '@/api/endpoints'
 import type { FieldDef, RecordRow, ScreenConfig, TableDef } from '@/api/types'
 import { Badge, Button, Dialog, DialogContent, EmptyState, ErrorState, Field, Input, LoadingState, NotFound, PermissionDenied, Select, cn, useToast } from '@/design-system'
+import { AskInWords } from '@/features/ai/Ai'
 import { can, useMe } from '@/features/auth/useMe'
 import { SearchableTable, type SortState } from '@/patterns/SearchableTable'
 import { formatField } from '@/patterns/format'
@@ -273,6 +274,9 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
           <label htmlFor="list-q" className="sr-only">Search {table.plural_label}</label>
           <Input id="list-q" type="search" placeholder={`Search ${table.plural_label.toLowerCase()}`} value={q} onChange={(e) => setCriteria({ ...criteria, q: e.target.value })} />
         </div>
+        {!preview && (
+          <AskInWords table={tableKey} onApply={(f, words) => setCriteria({ q: words, filters: f, ranges: {} })} />
+        )}
         {filters_.map((f) => (
           <div key={f.key}>
             <label htmlFor={`flt-${f.key}`} className="sr-only">Filter by {f.label}</label>

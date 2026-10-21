@@ -85,6 +85,7 @@ async def app(
         database_url=urls["main"],
         analytics_database_url=urls["analytics"],
         run_outbox_relay=False,
+        ai_provider="off",  # tests inject a fake; they never reach a real model
         web_base_url="http://web.test",
         files_dir=Path(tempfile.mkdtemp(prefix="tableui-files-")),
     )

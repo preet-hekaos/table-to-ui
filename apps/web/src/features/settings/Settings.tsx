@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { admin, app, files, type RoleRow } from '@/api/endpoints'
 import { Badge, Button, Card, CardTitle, Field, Input, LoadingState, PermissionDenied, Select, Table, Tabs, TabsContent, TabsList, TabsTrigger, Td, Th, useToast } from '@/design-system'
 import { can, useMe } from '@/features/auth/useMe'
+import { AiSettings } from './AiSettings'
 import { useFileUrl } from '@/features/workspace/useBrand'
 
 const errMsg = (e: unknown) => (e instanceof Error ? e.message : 'Something went wrong')
@@ -235,13 +236,14 @@ export function Settings({ tab = 'people' }: { tab?: string }) {
       <h1 className="text-xl font-bold text-ink">Settings</h1>
       <Tabs defaultValue={tab}>
         <TabsList aria-label="Settings sections">
-          {['people', 'teams', 'roles', 'branding', 'regional'].map((t) => <TabsTrigger key={t} value={t}>{t[0]!.toUpperCase() + t.slice(1)}</TabsTrigger>)}
+          {['people', 'teams', 'roles', 'branding', 'regional', 'ai'].map((t) => <TabsTrigger key={t} value={t}>{t === 'ai' ? 'AI' : t[0]!.toUpperCase() + t.slice(1)}</TabsTrigger>)}
         </TabsList>
         <TabsContent value="people" className="pt-4"><People /></TabsContent>
         <TabsContent value="teams" className="pt-4"><Teams /></TabsContent>
         <TabsContent value="roles" className="pt-4"><Roles /></TabsContent>
         <TabsContent value="branding" className="pt-4"><Branding /></TabsContent>
         <TabsContent value="regional" className="pt-4"><Regional /></TabsContent>
+        <TabsContent value="ai" className="pt-4"><AiSettings /></TabsContent>
       </Tabs>
     </div>
   )

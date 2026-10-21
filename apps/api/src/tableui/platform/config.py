@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=(".env", ".env.local"), extra="ignore")
 
     environment: str = "local"
     app_version: str = "0.1.0"
@@ -39,6 +39,13 @@ class Settings(BaseSettings):
     clamd_port: int = 3310
     cv_parser: str = "rules"  # rules (built in) | rchilli
     rchilli_api_key: str | None = None
+    ai_provider: str = "auto"  # auto (groq then gemini, whichever have keys) | groq | gemini | off
+    groq_api_key: str | None = None
+    groq_model: str = "openai/gpt-oss-20b"
+    google_api_key: str | None = None
+    gemini_model: str = "gemini-2.5-flash"
+    ai_timeout_seconds: float = 20.0
+    ai_cache_hours: int = 24
 
 
 @lru_cache
