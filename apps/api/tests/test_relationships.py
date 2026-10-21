@@ -144,3 +144,24 @@ async def test_relationships_need_studio_permission(
 ) -> None:
     r = await client.get("/v1/studio/relationships")
     assert r.status_code in (401, 403)
+
+
+async def test_table_box_positions_are_remembered_per_workspace(
+    client: httpx.AsyncClient, agency: Agency, other_agency: Agency
+) -> None:
+    a = agency
+    assert (await client.get("/v1/studio/layout", headers=a.h())).json() == {"positions": {}}
+    r = await client.put(
+        "/v1/studio/layout",
+        headers=a.h(),
+        json={"positions": {"candidate": {"x": 10.26, "y": 20}, "nope": {"x": 1, "y": 1}}},
+    )
+    assert r.status_code == 200 and r.json()["positions"] == {"candidate": {"x": 10.3, "y": 20.0}}
+    again = (await client.get("/v1/studio/layout", headers=a.h())).json()
+    assert again["positions"]["candidate"]["x"] == 10.3
+    other = (await client.get("/v1/studio/layout", headers=other_agency.h())).json()
+    assert other == {"positions": {}}
+    bad = await client.put(
+        "/v1/studio/layout", headers=a.h(), json={"positions": {"candidate": {"x": "left"}}}
+    )
+    assert bad.status_code == 422

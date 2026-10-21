@@ -4321,6 +4321,72 @@
         ]
       }
     },
+    "/v1/studio/layout": {
+      "get": {
+        "operationId": "studio_layout_v1_studio_layout_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Studio Layout V1 Studio Layout Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Studio Layout",
+        "tags": [
+          "studio"
+        ]
+      },
+      "put": {
+        "operationId": "save_studio_layout_v1_studio_layout_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Save Studio Layout V1 Studio Layout Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Studio Layout",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
     "/v1/studio/navigation": {
       "get": {
         "operationId": "studio_navigation_v1_studio_navigation_get",

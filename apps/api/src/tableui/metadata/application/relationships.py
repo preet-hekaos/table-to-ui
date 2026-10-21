@@ -253,3 +253,47 @@ def _refers(kind: str, d: dict[str, Any], table_key: str, field_key: str) -> boo
             for x in d.get(group, []) or []
         )
     return d.get("table") == table_key and f'"{field_key}"' in json.dumps(d.get("config", {}) or {})
+
+
+MAX_BOXES = 1000
+
+
+async def get_layout(s: AsyncSession, tenant_id: uuid.UUID) -> dict[str, dict[str, float]]:
+    row = (
+        await s.execute(
+            text("SELECT positions FROM control.studio_layout WHERE tenant_id = :t"),
+            {"t": tenant_id},
+        )
+    ).first()
+    return dict(row.positions) if row else {}
+
+
+async def save_layout(
+    s: AsyncSession, *, tenant_id: uuid.UUID, user_id: uuid.UUID, positions: dict[str, Any]
+) -> dict[str, dict[str, float]]:
+    """Remember where each table box sits. Cosmetic: not part of any release."""
+    await studio._enter_tenant(s, tenant_id)
+    keys = {t.key for t in await _tables(s)}
+    clean: dict[str, dict[str, float]] = {}
+    for k, v in positions.items():
+        if k not in keys:
+            continue
+        try:
+            x, y = float(v["x"]), float(v["y"])
+        except (KeyError, TypeError, ValueError):
+            raise studio._bad("positions", f"'{k}' needs numbers x and y") from None
+        if abs(x) > 100_000 or abs(y) > 100_000:
+            raise studio._bad("positions", f"'{k}' is too far from the origin")
+        clean[k] = {"x": round(x, 1), "y": round(y, 1)}
+        if len(clean) > MAX_BOXES:
+            raise studio._bad("positions", "too many tables")
+    await s.execute(
+        text(
+            "INSERT INTO control.studio_layout (tenant_id, positions, updated_by) "
+            "VALUES (:t, CAST(:p AS jsonb), :u) "
+            "ON CONFLICT (tenant_id) DO UPDATE SET positions = EXCLUDED.positions, "
+            "updated_by = EXCLUDED.updated_by, updated_at = now()"
+        ),
+        {"t": tenant_id, "p": json.dumps(clean), "u": user_id},
+    )
+    return clean

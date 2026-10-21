@@ -12,5 +12,7 @@ M2.5 lets an admin see and manage every link between tables from one screen, inc
 - A link's target table cannot change. A pack link can be renamed or hidden, never deleted. An agency link is removed only when no record, screen or related-list setting uses it.
 - Everything is written to the Draft and follows the same publish flow and additive-schema rule (ADR 10).
 
+- The Studio Canvas (formerly Map) is the visual builder: each table is a draggable box, dragging from one box's dot to another opens the link dialog pre-filled, and a line opens that link for editing. Box positions are cosmetic, stored per workspace in `control.studio_layout`, and are not part of any release. The list views remain the keyboard and screen-reader route, since dragging is a pointer action.
+
 ## Consequences
 A one-to-one link is a link marked required plus a unique value on the parent, which the builder does not offer yet. Linking tables show up in the menu like any other table; hiding them from the menu is done in the Menu tab.

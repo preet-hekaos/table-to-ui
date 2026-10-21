@@ -163,6 +163,26 @@ async def remove_relationship(
     return Response(status_code=204)
 
 
+@router.get("/studio/layout")
+async def studio_layout(p: PrincipalDep, db: DbDep) -> dict[str, Any]:
+    p.require("metadata.read")
+    assert p.tenant_id
+    async with db.control() as s:
+        return {"positions": await rel.get_layout(s, p.tenant_id)}
+
+
+@router.put("/studio/layout")
+async def save_studio_layout(body: dict[str, Any], p: PrincipalDep, db: DbDep) -> dict[str, Any]:
+    p.require("metadata.write")
+    assert p.tenant_id
+    async with db.control() as s:
+        return {
+            "positions": await rel.save_layout(
+                s, tenant_id=p.tenant_id, user_id=p.user_id, positions=body.get("positions") or {}
+            )
+        }
+
+
 @router.get("/studio/screens")
 async def studio_screens(p: PrincipalDep, db: DbDep) -> list[dict[str, Any]]:
     p.require("metadata.read")

@@ -75,11 +75,39 @@ test('M2.5 demo: relationship builder', async ({ page }) => {
     await page.getByRole('button', { name: 'Cancel' }).click()
   })
 
-  await test.step('6. The Map opens a link in Relationships', async () => {
+  await test.step('6. On the canvas, drag a box, drag from one box to another to link them, and the position is kept', async () => {
+    await page.goto('/studio?tab=map')
+    const canvas = page.getByTestId('canvas')
+    await expect(canvas.getByTestId('box-candidate')).toBeVisible()
+    const box = await canvas.getByTestId('box-candidate').boundingBox()
+    await page.mouse.move(box!.x + 60, box!.y + 12)
+    await page.mouse.down()
+    await page.mouse.move(box!.x + 160, box!.y + 90, { steps: 8 })
+    await page.mouse.up()
+    await expect.poll(async () => Object.keys((await api<any>(page, 'GET', '/v1/studio/layout')).positions).length).toBeGreaterThan(0)
+    const moved = (await api<any>(page, 'GET', '/v1/studio/layout')).positions.candidate
+    await page.reload()
+    await expect(page.getByTestId('box-candidate')).toBeVisible()
+    expect((await api<any>(page, 'GET', '/v1/studio/layout')).positions.candidate).toEqual(moved)
+    const src = await page.locator('[data-testid="box-client"] .react-flow__handle.source').boundingBox()
+    const dst = await page.locator('[data-testid="box-skill"] .react-flow__handle.target').boundingBox()
+    await page.mouse.move(src!.x + src!.width / 2, src!.y + src!.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(dst!.x + dst!.width / 2, dst!.y + dst!.height / 2, { steps: 12 })
+    await page.mouse.up()
+    await expect(page.getByText('Each Client belongs to one Skill.')).toBeVisible()
+    await shot(page, '04-canvas-connect')
+    await page.getByRole('button', { name: 'Add link' }).click()
+    await expect(page.getByText(/Link added/).first()).toBeVisible()
+    await shot(page, '05-canvas')
+  })
+
+  await test.step('6b. A line on the canvas opens its link', async () => {
     await page.goto('/studio?tab=map')
     await page.getByText('Links as a list').click()
     await page.getByRole('button', { name: /Candidate → Tag/ }).first().click()
-    await expect(page).toHaveURL(/tab=links/)
+    await expect(page.getByRole('heading', { name: /Edit Main tag/ })).toBeVisible()
+    await page.getByRole('button', { name: 'Cancel' }).click()
   })
 
   await test.step('7. After publish, a used link cannot be removed and the parent page lists it', async () => {
@@ -101,6 +129,10 @@ test('M2.5 demo: relationship builder', async ({ page }) => {
   })
 
   await test.step('8. The tab passes WCAG 2.2 AA and fits a 360 px phone', async () => {
+    await page.goto('/studio?tab=map')
+    await expect(page.getByTestId('canvas')).toBeVisible()
+    const canvasAxe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze()
+    expect(canvasAxe.violations, canvasAxe.violations.map((v) => `${v.id} (${v.nodes[0]?.html})`).join(', ')).toEqual([])
     await page.goto('/studio?tab=links')
     await expect(page.getByRole('list', { name: 'Links' })).toBeVisible()
     const tags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']

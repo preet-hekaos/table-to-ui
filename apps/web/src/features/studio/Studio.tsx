@@ -325,7 +325,7 @@ export function Studio({ tab = 'data', table, link }: { tab?: StudioTab; table?:
       <Tabs value={tab} onValueChange={(v) => go({ tab: v as StudioTab })}>
         <TabsList aria-label="Studio sections" className="overflow-x-auto">
           <TabsTrigger value="data">Data</TabsTrigger>
-          <TabsTrigger value="map">Map</TabsTrigger>
+          <TabsTrigger value="map">Canvas</TabsTrigger>
           <TabsTrigger value="links">Relationships</TabsTrigger>
           <TabsTrigger value="flow">Stages &amp; rules</TabsTrigger>
           <TabsTrigger value="screens">Screens</TabsTrigger>
@@ -337,7 +337,7 @@ export function Studio({ tab = 'data', table, link }: { tab?: StudioTab; table?:
           <DataTab selected={table} defaultTable={defaultTable} onSelect={(k) => go({ table: k })} canEdit={canEdit} />
         </TabsContent>
         <TabsContent value="map" className="pt-4">
-          <MapTab onOpen={(k) => go({ tab: 'data', table: k })} onOpenLink={(id) => go({ tab: 'links', link: id })} />
+          <MapTab canEdit={canEdit} onOpen={(k) => go({ tab: 'data', table: k })} onOpenLink={(id) => go({ tab: 'links', link: id })} />
         </TabsContent>
         <TabsContent value="links" className="pt-4">
           <RelationshipsTab canEdit={canEdit} selected={link} onSelect={(id) => go({ tab: 'links', link: id })} />

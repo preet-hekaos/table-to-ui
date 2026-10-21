@@ -68,12 +68,12 @@ function useTables() {
   return (useDraftTables().data ?? []).map((t) => ({ key: t.key, label: t.label }))
 }
 
-function AddLink({ onClose }: { onClose: () => void }) {
+export function AddLink({ onClose, initial }: { onClose: () => void; initial?: { table: string; to: string } }) {
   const qc = useQueryClient()
   const toast = useToast()
   const tables = useTables()
-  const [table, setTable] = useState('')
-  const [to, setTo] = useState('')
+  const [table, setTable] = useState(initial?.table ?? '')
+  const [to, setTo] = useState(initial?.to ?? '')
   const [label, setLabel] = useState('')
   const [required, setRequired] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -129,7 +129,7 @@ function AddLink({ onClose }: { onClose: () => void }) {
   )
 }
 
-function AddMany({ onClose }: { onClose: () => void }) {
+export function AddMany({ onClose }: { onClose: () => void }) {
   const qc = useQueryClient()
   const toast = useToast()
   const tables = useTables()
@@ -174,7 +174,7 @@ function AddMany({ onClose }: { onClose: () => void }) {
   )
 }
 
-function EditLink({ link, onClose }: { link: Link; onClose: () => void }) {
+export function EditLink({ link, onClose }: { link: Link; onClose: () => void }) {
   const qc = useQueryClient()
   const toast = useToast()
   const [label, setLabel] = useState(link.label)
