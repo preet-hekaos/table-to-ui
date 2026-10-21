@@ -1,0 +1,16 @@
+key: stuck_sourced
+label: Flag a submission stuck at Sourced
+help: A submission that has sat at Sourced for 7 days gets a task to move it on or let it go.
+order: 50
+trigger: {kind: date, table: submission, field: updated_at, days: 7}
+where:
+  - {field: stage, op: eq, value: Sourced}
+actions:
+  - kind: create
+    to: owner
+    table: task
+    values:
+      title: "Move on or close: {candidate} has been at Sourced for a week"
+      candidate: "{candidate}"
+      requirement: "{requirement}"
+      due_on: "{today+1}"

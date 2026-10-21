@@ -1,0 +1,16 @@
+key: follow_up_submission
+label: Follow up a submission after 3 days
+help: Three days after a candidate is sent to the client, the recruiter gets a task to ask for feedback.
+order: 20
+trigger: {kind: date, table: submission, field: submitted_on, days: 3}
+where:
+  - {field: stage, op: eq, value: Submitted}
+actions:
+  - kind: create
+    to: owner
+    table: task
+    values:
+      title: "Ask the client for feedback on {candidate}"
+      candidate: "{candidate}"
+      requirement: "{requirement}"
+      due_on: "{today}"

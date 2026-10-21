@@ -1,0 +1,9 @@
+# A small, believable set a new workspace can try, then remove in one step.
+- {alias: client1, table: client, data: {name: Sample - Northwind Systems, status: Active}}
+- {alias: contact1, table: contact, data: {name: Sample - Rhea Kapoor, client: "@client1"}}
+- {alias: req1, table: requirement, data: {title: Sample - Backend engineer, client: "@client1", status: Open}}
+- {alias: cand1, table: candidate, data: {full_name: Sample - Aarav Shah, email: sample.aarav@example.com, status: Active}}
+- {alias: cand2, table: candidate, data: {full_name: Sample - Meera Nair, email: sample.meera@example.com, status: Active}}
+- {alias: cand3, table: candidate, data: {full_name: Sample - Kabir Rao, email: sample.kabir@example.com, status: Active}}
+- {alias: sub1, table: submission, data: {summary: Sample - Aarav for Backend engineer, candidate: "@cand1", requirement: "@req1", stage: Sourced}}
+- {alias: task1, table: task, data: {title: Sample - Call Meera Nair, candidate: "@cand2", status: Open}}

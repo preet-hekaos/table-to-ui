@@ -62,3 +62,13 @@ The duplicate list was 10.5 s before a trigram index and a smaller scan cap (150
 | Insights dashboard, 9 cards over 100,000 records | p95 < 1 s | **p95 396.8 ms** (p50 263.2) | pass |
 | One card (bars by stage) | n/a | p95 61.2 ms | |
 | Drill-down to the records behind a number | n/a | p95 58.3 ms | |
+
+## M4 gates — `m4.json`
+`apps/api/scripts/bench_m4.py`: 100,000 submissions written straight into a tenant table, the five starter automations on, 100 saves each way.
+
+| Gate | Target | Measured | |
+|---|---|---|---|
+| Hourly date check over 100,000 records, first sweep (catches up 7 days, 753 runs started) | < 30 s | **18.4 s** | pass |
+| Hourly date check, steady state (nothing new due) | < 30 s | **2.2 s** | pass |
+| Added to a save by automations (p95 with starters on minus off) | < 50 ms | **4.3 ms** (34.0 vs 29.7) | pass |
+

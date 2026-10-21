@@ -1,0 +1,11 @@
+key: chase_offer
+label: Chase an offer nobody has answered
+help: Five days after an offer is sent and still not accepted or declined, the owner is told.
+order: 30
+trigger: {kind: date, table: offer, field: sent_on, days: 5}
+where:
+  - {field: status, op: eq, value: Sent}
+actions:
+  - kind: notify
+    to: owner
+    message: "No answer yet to the offer: {title}. It was sent five days ago."

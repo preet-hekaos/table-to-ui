@@ -202,7 +202,7 @@ test('M2 demo: pipeline, guard rules, approvals, duplicates', async ({ browser }
     await expect(dlg.getByRole('table', { name: 'Differences' })).toBeVisible()
     await shot(priya, '08-compare')
     await dlg.getByRole('button', { name: 'Merge into the kept record' }).click()
-    await expect(priya.getByText(/^Merged\. 0 linked records were moved/)).toBeVisible()
+    await expect(priya.getByText(/^Merged\. \d+ linked records? (was|were) moved/)).toBeVisible()
     await expect(priya.getByText('No suspected duplicates')).toBeVisible()
     await priya.getByRole('button', { name: 'Undo merge' }).click()
     await expect(priya.getByText('Merge undone. Both records are back.', { exact: true })).toBeVisible()

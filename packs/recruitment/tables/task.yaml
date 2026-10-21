@@ -2,6 +2,7 @@ key: task
 label: Task
 plural_label: Tasks
 title_field: title
+todo: {status_field: status, done_value: Done, due_field: due_on}
 fields:
   - {key: title, label: Title, type: text, required: true, searchable: true}
   - {key: status, label: Status, type: select, required: true, default: Open, options: [Open, Done], filterable: true}

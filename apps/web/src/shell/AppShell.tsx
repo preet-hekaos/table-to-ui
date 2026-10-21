@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, Outlet, useNavigate } from '@tanstack/react-router'
-import { BarChart3, Bell, CheckCheck, ClipboardList, Home, LayoutGrid, LogOut, Menu, Settings2, Bookmark, Upload, UserPlus, Users, X } from 'lucide-react'
+import { BarChart3, CheckCheck, ClipboardList, Home, LayoutGrid, LogOut, Menu, Settings2, Bookmark, Upload, UserPlus, Users, X } from 'lucide-react'
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { ApiError } from '@/api/client'
 import { app, approvals, auth } from '@/api/endpoints'
@@ -9,6 +9,7 @@ import { can, useMe } from '@/features/auth/useMe'
 import { Button, LoadingState } from '@/design-system'
 import { useBrand } from '@/features/workspace/useBrand'
 import { CommandBar } from '@/features/search/CommandBar'
+import { NotificationBell } from '@/features/notifications/Bell'
 import { search } from '@/api/endpoints'
 
 function NavLink({ to, params, search: q, icon, children, onNavigate }: { to: string; params?: Record<string, string>; search?: Record<string, string>; icon: ReactNode; children: ReactNode; onNavigate: () => void }) {
@@ -138,7 +139,7 @@ export function AppShell() {
           </Button>
           <CommandBar />
           <div className="ml-auto flex items-center gap-2">
-            <Button variant="secondary" size="sm" aria-label="Notifications" disabled><Bell className="size-4" aria-hidden /></Button>
+            <NotificationBell />
             <span className="hidden text-right text-xs leading-tight sm:block">
               <b className="block text-ink">{me.data.full_name}</b>
               <span className="text-muted capitalize">{me.data.role}</span>

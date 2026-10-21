@@ -3,13 +3,20 @@
 import hashlib
 import json
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from tableui.metadata.domain.models import MeasureDef, NavItem, RuleDef, ScreenDef, TableDef
+from tableui.metadata.domain.models import (
+    AutomationDef,
+    MeasureDef,
+    NavItem,
+    RuleDef,
+    ScreenDef,
+    TableDef,
+)
 from tableui.platform.errors import NotFound
 
 
@@ -23,6 +30,7 @@ class RuntimeApp:
     measures: list[MeasureDef]
     screens: dict[str, ScreenDef]
     navigation: list[NavItem]
+    automations: list[AutomationDef] = field(default_factory=list)
 
     def table(self, key: str) -> TableDef:
         t = self.tables.get(key)
@@ -49,6 +57,10 @@ def _from_manifest(
         tables={k: TableDef.model_validate(v["definition"]) for k, v in content["tables"].items()},
         rules=[RuleDef.model_validate(v["definition"]) for v in content["rules"].values()],
         measures=[MeasureDef.model_validate(v["definition"]) for v in content["measures"].values()],
+        automations=[
+            AutomationDef.model_validate(v["definition"])
+            for v in content.get("automations", {}).values()
+        ],
         screens={
             k: ScreenDef.model_validate(v["definition"])
             for k, v in content.get("screens", {}).items()

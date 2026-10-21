@@ -63,6 +63,8 @@ class CommandContext:
     overrides: Overrides | None = None
     approved_checks: frozenset[str] = frozenset()  # approval checks an approver has already allowed
     approval_id: str | None = None
+    owner_id: uuid.UUID | None = None  # who owns a record this command creates (default: the actor)
+    automation_depth: int = 0  # 0 for people; an automation's own changes carry its depth
 
 
 @dataclass
@@ -249,6 +251,7 @@ async def _emit(
     data: dict[str, Any],
     owner_id: uuid.UUID | None = None,
     created_at: datetime | None = None,
+    changed: list[str] | None = None,
 ) -> None:
     """Outbox row, written in the same transaction as the change it announces."""
     analytics = {f.key: data.get(f.key) for f in table.fields if f.analytics}
@@ -264,6 +267,8 @@ async def _emit(
         "fields": analytics,
         "owner_id": str(owner_id) if owner_id else None,
         "created_at": created_at.isoformat() if created_at else None,
+        "changed": changed or [],
+        "depth": ctx.automation_depth,
     }
     await s.execute(
         text(
@@ -304,7 +309,7 @@ async def create_record(
                 await s.execute(
                     text(
                         f'INSERT INTO "{table_key}" (id, tenant_id, data, owner_id, search_doc, created_by, updated_by'  # noqa: S608 - identifiers are validated metadata keys
-                        f"{', ' + cols if cols else ''}) VALUES (:id, :t, CAST(:d AS jsonb), :u, :sd, :u, :u"
+                        f"{', ' + cols if cols else ''}) VALUES (:id, :t, CAST(:d AS jsonb), :o, :sd, :u, :u"
                         f"{', ' + vals if vals else ''}) RETURNING id, version, data, created_at, updated_at"
                     ),
                     {
@@ -313,6 +318,7 @@ async def create_record(
                         "d": json.dumps(clean),
                         "sd": search_document(table, clean),
                         "u": ctx.principal.user_id,
+                        "o": ctx.owner_id or ctx.principal.user_id,
                         **{f"n_{i}": v for i, v in enumerate(shadow.values())},
                     },
                 )
@@ -348,7 +354,7 @@ async def create_record(
                 record_id,
                 row.version,
                 clean,
-                ctx.principal.user_id,
+                ctx.owner_id or ctx.principal.user_id,
                 row.created_at,
             )
             result = CommandResult(201, _record_body(table, row, ctx.principal), warnings=warnings)
@@ -467,6 +473,11 @@ async def update_record(
                 merged_clean,
                 row.owner_id,
                 row.created_at,
+                [
+                    k
+                    for k in {*merged_clean, *(before or {})}
+                    if merged_clean.get(k) != (before or {}).get(k)
+                ],
             )
             result = CommandResult(200, _record_body(table, row, ctx.principal), warnings=warnings)
             result.body["warnings"] = warnings

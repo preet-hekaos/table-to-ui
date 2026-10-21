@@ -8,15 +8,19 @@ import cel
 import yaml
 from pydantic import BaseModel, ValidationError
 
+from tableui.metadata.domain.automations import problems as automation_problems
 from tableui.metadata.domain.measures import problems as measure_problems
 from tableui.metadata.domain.models import (
+    AutomationDef,
     FixtureDef,
+    GuideDef,
     MeasureDef,
     NavItem,
     Pack,
     PackManifest,
     RoleDef,
     RuleDef,
+    SampleRecord,
     ScreenDef,
     TableDef,
 )
@@ -87,6 +91,12 @@ def load_pack(root: Path) -> Pack:
             measures.append(m)
             files[id(m)] = rel
 
+    automations: list[AutomationDef] = []
+    for rel in manifest.automations:
+        au = _parse(AutomationDef, _read_yaml(root, rel, issues), rel, issues)
+        if au:
+            automations.append(au)
+            files[id(au)] = rel
     screens: list[ScreenDef] = []
     for rel in manifest.screens:
         sc = _parse(ScreenDef, _read_yaml(root, rel, issues), rel, issues)
@@ -108,6 +118,18 @@ def load_pack(root: Path) -> Pack:
             if rd:
                 roles.append(rd)
 
+    guides: list[GuideDef] = []
+    if manifest.guides:
+        for i, item in enumerate(_read_yaml(root, manifest.guides, issues) or []):
+            g = _parse(GuideDef, item, f"{manifest.guides}[{i}]", issues)
+            if g:
+                guides.append(g)
+    samples: list[SampleRecord] = []
+    if manifest.samples:
+        for i, item in enumerate(_read_yaml(root, manifest.samples, issues) or []):
+            sm = _parse(SampleRecord, item, f"{manifest.samples}[{i}]", issues)
+            if sm:
+                samples.append(sm)
     fixtures: list[FixtureDef] = []
     if manifest.fixtures:
         raw = _read_yaml(root, manifest.fixtures, issues)
@@ -124,6 +146,7 @@ def load_pack(root: Path) -> Pack:
             fixtures.append(fx)
 
     _cross_check(tables, rules, measures, files, issues)
+    _check_automations(tables, automations, roles, guides, samples, files, manifest, issues)
     _check_generality(tables, screens, navigation, roles, manifest, issues)
     if issues:
         raise PackInvalid(issues)
@@ -134,6 +157,9 @@ def load_pack(root: Path) -> Pack:
         tables=tables,
         rules=rules,
         measures=measures,
+        automations=automations,
+        guides=guides,
+        samples=samples,
         description=manifest.description,
         screens=screens,
         navigation=navigation,
@@ -201,6 +227,47 @@ def _cross_check(
             continue
         for path, message in measure_problems(m, table):
             issues.append(PackIssue(f, path, message))
+
+
+def _check_automations(
+    tables: list[TableDef],
+    automations: list[AutomationDef],
+    roles: list[RoleDef],
+    guides: list[GuideDef],
+    samples: list[SampleRecord],
+    files: dict[int, str],
+    manifest: PackManifest,
+    issues: list[PackIssue],
+) -> None:
+    by_key = {t.key: t for t in tables}
+    role_keys = {r.key for r in roles}
+    seen: set[str] = set()
+    for a in automations:
+        f = files[id(a)]
+        if a.key in seen:
+            issues.append(PackIssue(f, "key", f"duplicate automation '{a.key}'"))
+        seen.add(a.key)
+        for path, message in automation_problems(a, by_key, role_keys or None):
+            issues.append(PackIssue(f, path, message))
+    where = manifest.guides or "guides"
+    for g in guides:
+        if role_keys and g.role not in role_keys:
+            issues.append(PackIssue(where, "role", f"unknown role '{g.role}'"))
+        for st in g.steps:
+            if st.done_when and st.done_when not in by_key:
+                issues.append(PackIssue(where, st.key, f"unknown table '{st.done_when}'"))
+    aliases = {sm.alias for sm in samples}
+    for sm in samples:
+        tbl = by_key.get(sm.table)
+        w = manifest.samples or "samples"
+        if tbl is None:
+            issues.append(PackIssue(w, sm.alias, f"unknown table '{sm.table}'"))
+            continue
+        for k, v in sm.data.items():
+            if tbl.field(k) is None:
+                issues.append(PackIssue(w, f"{sm.alias}.{k}", f"unknown field '{k}'"))
+            if isinstance(v, str) and v.startswith("@") and v[1:] not in aliases:
+                issues.append(PackIssue(w, f"{sm.alias}.{k}", f"unknown sample '{v[1:]}'"))
 
 
 def _check_generality(

@@ -326,7 +326,7 @@ async def list_releases(control: AsyncSession, tenant_id: uuid.UUID) -> list[dic
                         k: {"version": v["version"], "hash": v["hash"]}
                         for k, v in r.content.get(kind, {}).items()
                     }
-                    for kind in ("measures", "screens", "navs")
+                    for kind in ("measures", "automations", "screens", "navs")
                 },
             },
         }

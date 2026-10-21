@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     smtp_port: int = 1025
     mail_sender: str = "no-reply@tableui.local"
     web_base_url: str = "http://localhost:5173"
+    signing_key: str = "dev-signing-key-change-me"  # signs unsubscribe links
+    automation_tick_seconds: float = 60.0  # how often retries and the date check wake up
+    automation_check_minutes: int = 60  # how often date triggers are checked
+    automation_daily_cap: int = 2000  # runs per workspace per day
+    digest_hour_utc: int = 3  # the daily summary email goes out from this hour
     packs_dir: Path = Path(__file__).resolve().parents[5] / "packs"
     files_dir: Path = Path(__file__).resolve().parents[3] / "var" / "files"  # local file store
     clamd_host: str | None = None  # set to use ClamAV; empty uses the signature scanner

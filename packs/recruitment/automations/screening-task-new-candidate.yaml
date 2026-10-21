@@ -1,0 +1,13 @@
+key: screening_task_new_candidate
+label: Screen every new candidate
+help: Gives the person who added a candidate a task to screen them within two days.
+order: 10
+trigger: {kind: created, table: candidate}
+actions:
+  - kind: create
+    to: owner
+    table: task
+    values:
+      title: "Screen {title}"
+      candidate: "{id}"
+      due_on: "{today+2}"

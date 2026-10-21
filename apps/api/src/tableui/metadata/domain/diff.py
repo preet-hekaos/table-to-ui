@@ -2,7 +2,7 @@
 
 from typing import Any
 
-KINDS = ("tables", "screens", "navs", "rules", "measures")
+KINDS = ("tables", "screens", "navs", "rules", "measures", "automations")
 _FIELD_ATTRS = ("label", "type", "required", "hidden", "options", "help", "unique", "ref_table")
 
 

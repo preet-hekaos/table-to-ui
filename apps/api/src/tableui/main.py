@@ -16,6 +16,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import tableui.approvals.public as approvals
+import tableui.automation.public as automation
 import tableui.catalog.public as catalog
 import tableui.commands.public as commands
 import tableui.duplicates.public as duplicates
@@ -70,6 +71,8 @@ def create_app(
     analytics: Database | None = None,
 ) -> FastAPI:
     settings = settings or get_settings()
+    if settings.environment not in ("local", "test") and settings.signing_key.startswith("dev-"):
+        raise RuntimeError("Set SIGNING_KEY before running outside a local machine.")
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -112,6 +115,7 @@ def create_app(
 
             async def project_sqs(event: dict[str, Any]) -> None:
                 await insights.handle_event(app.state.analytics, event)
+                await automation.handle_event(app.state.db, app.state.mailer, settings, event)
 
             consumer_task = asyncio.create_task(
                 SqsConsumer(sqs, settings.events_queue_url, project_sqs).run_forever()
@@ -120,6 +124,7 @@ def create_app(
 
             async def project(event: dict[str, Any]) -> None:
                 await insights.handle_event(app.state.analytics, event)
+                await automation.handle_event(app.state.db, app.state.mailer, settings, event)
 
             bus.subscribe(project)
         app.state.publisher = bus
@@ -134,6 +139,7 @@ def create_app(
         relay = commands.OutboxRelay(app.state.db, bus, list_tenants)
         app.state.relay = relay
         task: asyncio.Task[None] | None = None
+        ticker: asyncio.Task[None] | None = None
         if settings.run_outbox_relay:
 
             async def loop() -> None:
@@ -145,10 +151,22 @@ def create_app(
                     await asyncio.sleep(settings.outbox_poll_seconds)
 
             task = asyncio.create_task(loop())
+
+            async def automation_loop() -> None:
+                while True:
+                    try:
+                        await automation.tick(
+                            app.state.db, app.state.mailer, settings, await list_tenants()
+                        )
+                    except Exception:
+                        log.exception("automation tick failed; will retry")
+                    await asyncio.sleep(settings.automation_tick_seconds)
+
+            ticker = asyncio.create_task(automation_loop())
         try:
             yield
         finally:
-            for t in (task, consumer_task):
+            for t in (task, ticker, consumer_task):
                 if t:
                     t.cancel()
                     with contextlib.suppress(asyncio.CancelledError):
@@ -226,6 +244,7 @@ def create_app(
         commands_router,
         query_router,
         insights_router,
+        automation.router,
         audit_router,
         ops_router,
         workspace_router,

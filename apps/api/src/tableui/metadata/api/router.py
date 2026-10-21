@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from tableui.identity.api.deps import PrincipalDep
 from tableui.metadata.api.deps import LiveAppDep
+from tableui.metadata.application import automations as automation_builder
 from tableui.metadata.application import draft, releases, studio
 from tableui.metadata.application import measures as measure_builder
 from tableui.metadata.application import relationships as rel
@@ -561,5 +562,57 @@ async def delete_measure(key: str, p: PrincipalDep, db: DbDep, request: Request)
     assert p.tenant_id
     async with db.control() as s:
         await measure_builder.remove_measure(
+            s, tenant_id=p.tenant_id, user_id=p.user_id, key=key, request_id=get_request_id(request)
+        )
+
+
+@router.get("/studio/automations")
+async def studio_automations(p: PrincipalDep, db: DbDep) -> list[dict[str, Any]]:
+    p.require("metadata.read")
+    assert p.tenant_id
+    async with db.control() as s:
+        return await automation_builder.list_automations(s, p.tenant_id)
+
+
+@router.post("/studio/automations", status_code=201)
+async def add_automation(
+    body: dict[str, Any], p: PrincipalDep, db: DbDep, request: Request
+) -> dict[str, Any]:
+    p.require("metadata.write")
+    assert p.tenant_id
+    async with db.control() as s:
+        return await automation_builder.save_automation(
+            s,
+            tenant_id=p.tenant_id,
+            user_id=p.user_id,
+            key=None,
+            body=body,
+            request_id=get_request_id(request),
+        )
+
+
+@router.put("/studio/automations/{key}")
+async def change_automation(
+    key: str, body: dict[str, Any], p: PrincipalDep, db: DbDep, request: Request
+) -> dict[str, Any]:
+    p.require("metadata.write")
+    assert p.tenant_id
+    async with db.control() as s:
+        return await automation_builder.save_automation(
+            s,
+            tenant_id=p.tenant_id,
+            user_id=p.user_id,
+            key=key,
+            body=body,
+            request_id=get_request_id(request),
+        )
+
+
+@router.delete("/studio/automations/{key}", status_code=204)
+async def delete_automation(key: str, p: PrincipalDep, db: DbDep, request: Request) -> None:
+    p.require("metadata.write")
+    assert p.tenant_id
+    async with db.control() as s:
+        await automation_builder.remove_automation(
             s, tenant_id=p.tenant_id, user_id=p.user_id, key=key, request_id=get_request_id(request)
         )

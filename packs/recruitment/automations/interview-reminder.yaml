@@ -1,0 +1,11 @@
+key: interview_reminder
+label: Remind about an interview the day before
+help: The day before an interview, the person who scheduled it gets a reminder.
+order: 40
+trigger: {kind: date, table: interview, field: scheduled_on, days: -1}
+where:
+  - {field: status, op: eq, value: Scheduled}
+actions:
+  - kind: notify
+    to: owner
+    message: "Interview tomorrow: {title}."
