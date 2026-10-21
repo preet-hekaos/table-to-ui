@@ -39,7 +39,11 @@ async def main(api: str, samples: int) -> dict[str, object]:
             ms, r = await timed(c, "POST", "/v1/records/candidate", headers=h, json={"data": {"full_name": f"Off {i}", "email": f"o{i}-{uuid.uuid4().hex[:6]}@gmail.com", "phone": f"+91 9{random.randint(100000000, 999999999)}", "status": "Active"}})  # fmt: skip
             r.raise_for_status()
             off.append(ms)
-        (await c.put("/v1/ai/settings", headers=h, json={"enabled": True, "tables": ["candidate"]})).raise_for_status()
+        (
+            await c.put(
+                "/v1/ai/settings", headers=h, json={"enabled": True, "tables": ["candidate"]}
+            )
+        ).raise_for_status()
         on = []
         recs = []
         for i in range(samples):
@@ -54,12 +58,16 @@ async def main(api: str, samples: int) -> dict[str, object]:
             reads.append(ms)
         fresh, cached = [], []
         for rid in recs:
-            ms, r = await timed(c, "POST", "/v1/ai/summary", headers=h, json={"table": "candidate", "id": rid})
+            ms, r = await timed(
+                c, "POST", "/v1/ai/summary", headers=h, json={"table": "candidate", "id": rid}
+            )
             r.raise_for_status()
             assert r.json()["cached"] is False
             fresh.append(ms)
         for rid in recs:
-            ms, r = await timed(c, "POST", "/v1/ai/summary", headers=h, json={"table": "candidate", "id": rid})
+            ms, r = await timed(
+                c, "POST", "/v1/ai/summary", headers=h, json={"table": "candidate", "id": rid}
+            )
             r.raise_for_status()
             assert r.json()["cached"] is True
             cached.append(ms)
