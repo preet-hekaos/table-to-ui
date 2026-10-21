@@ -130,9 +130,9 @@ jobs:
           export OPS_TOTP_SECRET="$(echo "$OPS" | sed -E 's/.*secret=([A-Z2-7]+).*/\1/')"
           pnpm e2e --reporter=line 2>&1 | tee /tmp/e2e.out || {
             # surface the failure in the check's annotations so it is readable without downloading artifacts
-            msg=$(grep -vE '^\s*$' /tmp/e2e.out | head -c 3500 | sed ':a;N;$!ba;s/\n/%0A/g')
+            msg=$( (grep -vE '^\s*$' /tmp/e2e.out || true) | head -c 3500 | sed ':a;N;$!ba;s/\n/%0A/g' || true)
             echo "::error title=e2e failed::${msg}"
-            msg2=$(tail -c 1500 ../../api.log | sed ':a;N;$!ba;s/\n/%0A/g')
+            msg2=$( (tail -c 1500 ../../api.log || true) | sed ':a;N;$!ba;s/\n/%0A/g' || true)
             echo "::error title=api log tail::${msg2}"
             exit 1
           }
