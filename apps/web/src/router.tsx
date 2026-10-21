@@ -119,13 +119,14 @@ const edit = createRoute({
 const studio = createRoute({
   getParentRoute: () => shell,
   path: '/studio',
-  validateSearch: (s: Record<string, unknown>): { tab?: StudioTab; table?: string } => ({
+  validateSearch: (s: Record<string, unknown>): { tab?: StudioTab; table?: string; link?: string } => ({
     tab: typeof s.tab === 'string' ? (s.tab as StudioTab) : undefined,
     table: typeof s.table === 'string' ? s.table : undefined,
+    link: typeof s.link === 'string' ? s.link : undefined,
   }),
   component: function StudioRoute() {
-    const { tab, table } = studio.useSearch()
-    return <Studio tab={tab} table={table} />
+    const { tab, table, link } = studio.useSearch()
+    return <Studio tab={tab} table={table} link={link} />
   },
 })
 const importRoute = createRoute({

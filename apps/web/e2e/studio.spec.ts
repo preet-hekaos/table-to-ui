@@ -49,11 +49,11 @@ test('Studio: fields, tables, map, screens, menu, preview and versions', async (
     await expect(page.getByRole('heading', { name: 'Referral partner', exact: true })).toBeVisible()
   })
 
-  await test.step('S13. The map draws every table; clicking one opens it in Data', async () => {
-    await page.getByRole('tab', { name: 'Map' }).click()
-    const map = page.getByTestId('relationship-map')
-    await expect(map.getByRole('button')).toHaveCount(14) // 13 pack tables + the new one
-    await map.getByRole('button', { name: /^Client/ }).first().click()
+  await test.step('S13. The canvas draws every table; opening one goes to Data', async () => {
+    await page.getByRole('tab', { name: 'Canvas' }).click()
+    const canvas = page.getByTestId('canvas')
+    await expect(canvas.locator('.react-flow__node')).toHaveCount(14) // 13 pack tables + the new one
+    await canvas.getByRole('button', { name: 'Open Client fields' }).click()
     await expect(page.getByRole('tab', { name: 'Data' })).toHaveAttribute('aria-selected', 'true')
     await expect(page.getByRole('heading', { name: 'Client', exact: true })).toBeVisible()
   })

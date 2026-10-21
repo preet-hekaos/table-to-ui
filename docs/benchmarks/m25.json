@@ -1,0 +1,13 @@
+{
+  "tables": 100,
+  "links_added": 500,
+  "seed_seconds": 16.8,
+  "links_listed": 518,
+  "list": {
+    "n": 50,
+    "p50_ms": 94.6,
+    "p95_ms": 177.2,
+    "p99_ms": 268.2,
+    "mean_ms": 100.3
+  }
+}

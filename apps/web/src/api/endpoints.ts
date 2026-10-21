@@ -81,6 +81,30 @@ export const admin = {
   saveRegional: (r: Record<string, string>) => send<Record<string, string>>('PUT', '/v1/workspace/settings/regional', r),
 }
 
+export interface Link {
+  id: string
+  table: string
+  table_label: string
+  field: string
+  label: string
+  to: string
+  to_label: string
+  required: boolean
+  hidden: boolean
+  help: string | null
+  source: 'pack' | 'agency'
+  used: number
+  empty: number
+  total: number
+}
+
+export interface LinkIssue {
+  kind: string
+  severity: 'problem' | 'warning' | 'note'
+  link: string | null
+  message: string
+}
+
 export const studio = {
   tables: () => cast<StudioTable[]>(api.GET('/v1/studio/tables')),
   createTable: (body: { label: string; plural_label?: string; title_label?: string; description?: string }) =>
@@ -93,6 +117,13 @@ export const studio = {
   rules: () => g<{ id: string; checks: { id: string; severity: string; message: string; editable?: boolean; edited?: boolean }[] }[]>('/v1/studio/rules'),
   saveStages: (table: string, body: { labels: Record<string, string>; add?: { key: string; after: string } }) => send<unknown>('PUT', `/v1/studio/tables/${table}/stages`, body),
   setSeverity: (rule: string, check: string, severity: string) => send<unknown>('PUT', `/v1/studio/rules/${rule}/checks/${check}`, { severity }),
+  relationships: () => g<Link[]>('/v1/studio/relationships'),
+  linkHealth: () => g<LinkIssue[]>('/v1/studio/relationships/health'),
+  layout: () => g<{ positions: Record<string, { x: number; y: number }> }>('/v1/studio/layout'),
+  saveLayout: (positions: Record<string, { x: number; y: number }>) => send<unknown>('PUT', '/v1/studio/layout', { positions }),
+  addRelationship: (body: { table: string; to: string; label?: string; required?: boolean }) => send<Link>('POST', '/v1/studio/relationships', body),
+  addManyToMany: (body: { a: string; b: string; label?: string }) => send<{ table: string; label: string }>('POST', '/v1/studio/relationships/many-to-many', body),
+  removeRelationship: (table: string, field: string) => send<void>('DELETE', `/v1/studio/relationships/${table}/${field}`),
   screens: () => g<DraftScreen[]>('/v1/studio/screens'),
   saveScreen: (key: string, body: Omit<DraftScreen, 'key' | 'version' | 'source'>) => send<DraftScreen>('PUT', `/v1/studio/screens/${key}`, body),
   navigation: () => g<DraftNav[]>('/v1/studio/navigation'),

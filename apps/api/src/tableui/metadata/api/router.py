@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from tableui.identity.api.deps import PrincipalDep
 from tableui.metadata.api.deps import LiveAppDep
 from tableui.metadata.application import draft, releases, studio
+from tableui.metadata.application import relationships as rel
 from tableui.metadata.domain.diff import diff_manifests
 from tableui.platform.db import Database
 from tableui.platform.errors import NotFound, PermissionDenied
@@ -102,6 +103,92 @@ async def remove_field(
             request_id=get_request_id(request),
         )
     return Response(status_code=204)
+
+
+@router.get("/studio/relationships")
+async def relationships(p: PrincipalDep, db: DbDep) -> list[dict[str, Any]]:
+    p.require("metadata.read")
+    assert p.tenant_id
+    async with db.control() as s:
+        return await rel.list_links(s, p.tenant_id)
+
+
+@router.get("/studio/relationships/health")
+async def relationship_health(p: PrincipalDep, db: DbDep) -> list[dict[str, Any]]:
+    p.require("metadata.read")
+    assert p.tenant_id
+    async with db.control() as s:
+        return await rel.health(s, p.tenant_id)
+
+
+@router.post("/studio/relationships", status_code=201)
+async def add_relationship(
+    body: dict[str, Any], p: PrincipalDep, db: DbDep, request: Request
+) -> dict[str, Any]:
+    p.require("metadata.write")
+    assert p.tenant_id
+    async with db.control() as s:
+        return await rel.add_link(
+            s,
+            tenant_id=p.tenant_id,
+            user_id=p.user_id,
+            body=body,
+            request_id=get_request_id(request),
+        )
+
+
+@router.post("/studio/relationships/many-to-many", status_code=201)
+async def add_many_to_many(
+    body: dict[str, Any], p: PrincipalDep, db: DbDep, request: Request
+) -> dict[str, Any]:
+    p.require("metadata.write")
+    assert p.tenant_id
+    async with db.control() as s:
+        return await rel.add_many_to_many(
+            s,
+            tenant_id=p.tenant_id,
+            user_id=p.user_id,
+            body=body,
+            request_id=get_request_id(request),
+        )
+
+
+@router.delete("/studio/relationships/{table}/{field}", status_code=204)
+async def remove_relationship(
+    table: str, field: str, p: PrincipalDep, db: DbDep, request: Request
+) -> Response:
+    p.require("metadata.write")
+    assert p.tenant_id
+    async with db.control() as s:
+        await rel.remove_link(
+            s,
+            tenant_id=p.tenant_id,
+            user_id=p.user_id,
+            table_key=table,
+            field_key=field,
+            request_id=get_request_id(request),
+        )
+    return Response(status_code=204)
+
+
+@router.get("/studio/layout")
+async def studio_layout(p: PrincipalDep, db: DbDep) -> dict[str, Any]:
+    p.require("metadata.read")
+    assert p.tenant_id
+    async with db.control() as s:
+        return {"positions": await rel.get_layout(s, p.tenant_id)}
+
+
+@router.put("/studio/layout")
+async def save_studio_layout(body: dict[str, Any], p: PrincipalDep, db: DbDep) -> dict[str, Any]:
+    p.require("metadata.write")
+    assert p.tenant_id
+    async with db.control() as s:
+        return {
+            "positions": await rel.save_layout(
+                s, tenant_id=p.tenant_id, user_id=p.user_id, positions=body.get("positions") or {}
+            )
+        }
 
 
 @router.get("/studio/screens")

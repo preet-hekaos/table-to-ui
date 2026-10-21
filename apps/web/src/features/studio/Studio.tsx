@@ -22,12 +22,13 @@ import {
 import { can, useMe } from '@/features/auth/useMe'
 import { DataTab } from './DataTab'
 import { FlowTab } from './FlowTab'
+import { LinkHealth, RelationshipsTab } from './RelationshipsTab'
 import { MapTab } from './MapTab'
 import { NavTab } from './NavTab'
 import { PreviewTab } from './PreviewTab'
 import { ScreensTab } from './ScreensTab'
 
-export type StudioTab = 'data' | 'map' | 'flow' | 'screens' | 'menu' | 'preview' | 'versions'
+export type StudioTab = 'data' | 'map' | 'links' | 'flow' | 'screens' | 'menu' | 'preview' | 'versions'
 
 function EnvironmentSwitch({ releases }: { releases: ReleaseRow[] }) {
   const test = releases.find((r) => r.is_test)
@@ -110,6 +111,7 @@ function DraftBanner({ canPublish, onReview }: { canPublish: boolean; onReview: 
   if (!d?.draft_changed) return null
   const count = (['tables', 'screens', 'navs', 'rules', 'measures'] as const).reduce((n, k) => n + d.changes[k].length, 0)
   return (
+    <div className="flex flex-col gap-2">
     <div role="status" className="flex flex-wrap items-center gap-3 rounded-lg border border-warn-soft bg-warn-soft px-4 py-3 text-sm text-warn-ink" data-testid="draft-banner">
       <span>
         <b>The Draft has {count} unpublished change{count === 1 ? '' : 's'}.</b> Nobody sees them until they are published and made Live.
@@ -122,6 +124,8 @@ function DraftBanner({ canPublish, onReview }: { canPublish: boolean; onReview: 
           Publish Draft to Test
         </Button>
       )}
+    </div>
+    <LinkHealth compact />
     </div>
   )
 }
@@ -296,7 +300,7 @@ function VersionsTab({ releases, canPublish, isOwner }: { releases: ReleaseRow[]
 }
 
 /** The Studio: screens 2.4 to 2.8, 2.15 and 2.16. Every change lands in the Draft first. */
-export function Studio({ tab = 'data', table }: { tab?: StudioTab; table?: string }) {
+export function Studio({ tab = 'data', table, link }: { tab?: StudioTab; table?: string; link?: string }) {
   const me = useMe()
   const navigate = useNavigate()
   const releases = useQuery({ queryKey: ['releases'], queryFn: studio.releases, enabled: !!me.data, retry: false })
@@ -307,7 +311,7 @@ export function Studio({ tab = 'data', table }: { tab?: StudioTab; table?: strin
   if (!can(perms, 'metadata.read')) return <PermissionDenied what="The Studio is for workspace admins." />
   if (releases.isLoading) return <LoadingState label="Loading the Studio" />
   if (releases.isError) return <ErrorState requestId={(releases.error as ApiError).requestId} onRetry={() => void releases.refetch()} />
-  const go = (next: { tab?: StudioTab; table?: string }) => void navigate({ to: '/studio', search: { tab: next.tab ?? tab, table: next.table ?? table } })
+  const go = (next: { tab?: StudioTab; table?: string; link?: string }) => void navigate({ to: '/studio', search: { tab: next.tab ?? tab, table: next.table ?? table, link: next.link ?? link } })
   const firstScreen = nav.data?.find((n) => n.section === 'main') ?? nav.data?.[0]
   const defaultTable = screens.data?.find((s) => s.key === firstScreen?.screen)?.table
   const canEdit = can(perms, 'metadata.write')
@@ -324,7 +328,8 @@ export function Studio({ tab = 'data', table }: { tab?: StudioTab; table?: strin
       <Tabs value={tab} onValueChange={(v) => go({ tab: v as StudioTab })}>
         <TabsList aria-label="Studio sections" className="overflow-x-auto">
           <TabsTrigger value="data">Data</TabsTrigger>
-          <TabsTrigger value="map">Map</TabsTrigger>
+          <TabsTrigger value="map">Canvas</TabsTrigger>
+          <TabsTrigger value="links">Relationships</TabsTrigger>
           <TabsTrigger value="flow">Stages &amp; rules</TabsTrigger>
           <TabsTrigger value="screens">Screens</TabsTrigger>
           <TabsTrigger value="menu">Menu</TabsTrigger>
@@ -335,7 +340,10 @@ export function Studio({ tab = 'data', table }: { tab?: StudioTab; table?: strin
           <DataTab selected={table} defaultTable={defaultTable} onSelect={(k) => go({ table: k })} canEdit={canEdit} />
         </TabsContent>
         <TabsContent value="map" className="pt-4">
-          <MapTab onOpen={(k) => go({ tab: 'data', table: k })} />
+          <MapTab canEdit={canEdit} onOpen={(k) => go({ tab: 'data', table: k })} onOpenLink={(id) => go({ tab: 'links', link: id })} />
+        </TabsContent>
+        <TabsContent value="links" className="pt-4">
+          <RelationshipsTab canEdit={canEdit} selected={link} onSelect={(id) => go({ tab: 'links', link: id })} />
         </TabsContent>
         <TabsContent value="flow" className="pt-4">
           <FlowTab canEdit={canEdit} />
