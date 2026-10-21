@@ -89,6 +89,7 @@ export interface ReleaseRow {
     tables: Record<string, { version: number; hash: string }>
     rules: Record<string, { version: number; hash: string }>
     measures: Record<string, { version: number; hash: string }>
+    automations?: Record<string, { version: number; hash: string }>
   }
 }
 export interface StudioTable extends TableDef {

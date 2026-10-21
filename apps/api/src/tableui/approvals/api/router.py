@@ -4,6 +4,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
+import tableui.automation.public as automation
 from tableui.approvals.application import service
 from tableui.identity.api.deps import PrincipalDep
 from tableui.metadata.api.deps import LiveAppDep
@@ -35,7 +36,7 @@ async def request(
     body: RequestBody, req: Request, p: PrincipalDep, app: LiveAppDep, db: DbDep, s: SettingsDep
 ) -> dict[str, Any]:
     """Hold a change that a rule sent for approval. Nothing is saved until it is approved."""
-    return await service.request_approval(
+    held = await service.request_approval(
         db,
         p,
         app,
@@ -48,6 +49,17 @@ async def request(
         version=body.version,
         note=body.note,
     )
+    async with db.control() as c:
+        await automation.notify_approvers(
+            c,
+            req.app.state.mailer,
+            tenant_id=p.tenant_id,  # type: ignore[arg-type]
+            requested_by=p.user_id,
+            title=f"A change to {body.table} is waiting for your decision",
+            link="/approvals",
+            approval_id=uuid.UUID(str(held["id"])),
+        )
+    return held
 
 
 @router.get("")

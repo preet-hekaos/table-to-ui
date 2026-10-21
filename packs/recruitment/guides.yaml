@@ -1,0 +1,30 @@
+- role: recruiter
+  title: Your first steps
+  steps:
+    - {key: add_candidate, title: Add your first candidate, help: "Type the details, or add them from a CV.", path: /records/candidate/new, done_when: candidate}
+    - {key: submit, title: Put a candidate forward for a requirement, help: "Open a requirement and add a submission.", path: /records/submission/new, done_when: submission}
+    - {key: log_interaction, title: Note a call or message, help: "Keep the history in one place.", path: /records/interaction/new, done_when: interaction}
+    - {key: add_task, title: Add a task for yourself, help: "Tasks appear under What needs me on Home.", path: /records/task/new, done_when: task}
+- role: manager
+  title: Your first steps
+  steps:
+    - {key: add_client, title: Add a client, help: "Clients own the requirements.", path: /records/client/new, done_when: client}
+    - {key: add_requirement, title: Open a requirement, help: "Say what the client needs.", path: /records/requirement/new, done_when: requirement}
+    - {key: add_candidate, title: Add a candidate, help: "Type the details, or add them from a CV.", path: /records/candidate/new, done_when: candidate}
+    - {key: look_numbers, title: Look at the numbers, help: "Insights shows submissions, offers and placements.", path: /insights}
+- role: account_manager
+  title: Your first steps
+  steps:
+    - {key: add_client, title: Add a client, help: "Clients own the requirements.", path: /records/client/new, done_when: client}
+    - {key: add_contact, title: Add a client contact, help: "Who you speak to at the client.", path: /records/contact/new, done_when: contact}
+    - {key: add_requirement, title: Open a requirement, help: "Say what the client needs.", path: /records/requirement/new, done_when: requirement}
+- role: sourcer
+  title: Your first steps
+  steps:
+    - {key: add_candidate, title: Add your first candidate, help: "Type the details, or add them from a CV.", path: /records/candidate/new, done_when: candidate}
+    - {key: add_from_cv, title: Add a candidate from a CV, help: "Upload a CV and check what was read.", path: /s/cv_intake}
+- role: coordinator
+  title: Your first steps
+  steps:
+    - {key: schedule, title: Schedule an interview, help: "Pick the submission and the date.", path: /records/interview/new, done_when: interview}
+    - {key: add_task, title: Add a follow-up task, help: "Tasks appear under What needs me on Home.", path: /records/task/new, done_when: task}

@@ -189,6 +189,7 @@ async def accept_update(
         "navs": [],
         "rules": [],
         "measures": [],
+        "automations": [],
         "roles": [],
     }
     for t in pack.tables:
@@ -228,9 +229,11 @@ async def accept_update(
         if (kind, key) not in existing:  # the workspace's own changes to existing screens stay
             await _put(s, tenant_id, kind, key, d)
             changes[f"{kind}s"].append(key)
-    logic: list[tuple[str, str, dict[str, Any]]] = [
-        ("rule", r.id, r.model_dump(mode="json")) for r in pack.rules
-    ] + [("measure", m.key, m.model_dump(mode="json")) for m in pack.measures]
+    logic: list[tuple[str, str, dict[str, Any]]] = (
+        [("rule", r.id, r.model_dump(mode="json")) for r in pack.rules]
+        + [("measure", m.key, m.model_dump(mode="json")) for m in pack.measures]
+        + [("automation", a.key, a.model_dump(mode="json")) for a in pack.automations]
+    )
     for kind, key, d in logic:
         if existing.get((kind, key)) != d:
             await _put(s, tenant_id, kind, key, d)

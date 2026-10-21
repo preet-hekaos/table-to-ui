@@ -109,6 +109,57 @@ export interface LinkIssue {
   message: string
 }
 
+export interface AutomationAction { kind: 'create' | 'notify' | 'set_field'; to: 'owner' | 'role'; role?: string | null; message: string; also_email: boolean; table?: string | null; values: Record<string, string>; field?: string | null; value?: string | null }
+export interface AutomationDraft {
+  key: string
+  label: string
+  help: string
+  trigger: { kind: 'created' | 'updated' | 'changed' | 'date'; table: string; field?: string | null; value?: string | null; days: number }
+  where: { field: string; op: string; value?: string | number | boolean | null }[]
+  actions: AutomationAction[]
+  enabled: boolean
+  order: number
+  source: 'pack' | 'agency'
+  table_label: string
+  problems: string[]
+}
+export interface AutomationRun { id: string; automation: string; label: string; table: string; record_id: string; status: 'done' | 'retrying' | 'failed'; attempts: number; error: string | null; did: string[]; at: string }
+export interface Notice { id: string; kind: string; title: string; link: string | null; created_at: string; read: boolean }
+export interface NotificationPrefs { kinds: { kind: string; label: string; channel: 'in_app' | 'in_app_email' | 'off' }[]; digest: boolean }
+export interface Needs {
+  tasks: { table: string; label: string; total: number; items: { id: string; title: string; due_on: string | null; overdue: boolean; can_finish: boolean }[] } | null
+  approvals: number
+  unread: number
+}
+export interface Guide { title: string; steps: { key: string; title: string; help: string; path: string; done: boolean }[]; done: number; total: number; dismissed: boolean }
+
+export const notifications = {
+  inbox: () => g<{ unread: number; items: Notice[] }>('/v1/notifications'),
+  read: (ids?: string[]) => send<{ marked: number; unread: number }>('POST', '/v1/notifications/read', ids ? { ids } : {}),
+  prefs: () => g<NotificationPrefs>('/v1/notifications/preferences'),
+  savePrefs: (body: { channels?: Record<string, string>; digest?: boolean }) => send<NotificationPrefs>('PUT', '/v1/notifications/preferences', body),
+  unsubscribe: (token: string) => send<{ ok: boolean }>('POST', '/v1/notifications/unsubscribe', { token }),
+}
+
+export const me = {
+  needs: () => g<Needs>('/v1/me/needs'),
+  finishTask: (table: string, id: string) => send<unknown>('POST', `/v1/me/tasks/${table}/${id}/done`),
+  guide: () => g<Guide | null>('/v1/me/guide'),
+  setGuide: (dismissed: boolean) => send<{ dismissed: boolean }>('PUT', '/v1/me/guide', { dismissed }),
+}
+
+export const sample = {
+  status: () => g<{ available: boolean; loaded: boolean; count: number }>('/v1/workspace/sample'),
+  load: () => send<{ loaded: boolean; count: number }>('POST', '/v1/workspace/sample'),
+  remove: () => send<{ loaded: boolean; removed: number }>('DELETE', '/v1/workspace/sample'),
+}
+
+export const automations = {
+  runs: (q: { automation?: string; status?: string } = {}) => g<AutomationRun[]>(`/v1/automations/runs${qs(q)}`),
+  retry: (id: string) => send<{ status: string }>('POST', `/v1/automations/runs/${id}/retry`),
+  preview: (body: unknown) => send<{ count: number; examples: string[]; complete: boolean }>('POST', '/v1/automations/preview', body),
+}
+
 export const studio = {
   tables: () => cast<StudioTable[]>(api.GET('/v1/studio/tables')),
   createTable: (body: { label: string; plural_label?: string; title_label?: string; description?: string }) =>
@@ -122,6 +173,10 @@ export const studio = {
   saveStages: (table: string, body: { labels: Record<string, string>; add?: { key: string; after: string } }) => send<unknown>('PUT', `/v1/studio/tables/${table}/stages`, body),
   setSeverity: (rule: string, check: string, severity: string) => send<unknown>('PUT', `/v1/studio/rules/${rule}/checks/${check}`, { severity }),
   relationships: () => g<Link[]>('/v1/studio/relationships'),
+  automations: () => g<AutomationDraft[]>('/v1/studio/automations'),
+  addAutomation: (body: unknown) => send<AutomationDraft>('POST', '/v1/studio/automations', body),
+  saveAutomation: (key: string, body: unknown) => send<AutomationDraft>('PUT', `/v1/studio/automations/${key}`, body),
+  removeAutomation: (key: string) => send<void>('DELETE', `/v1/studio/automations/${key}`),
   measures: () => g<MeasureDraft[]>('/v1/studio/measures'),
   addMeasure: (body: unknown) => send<MeasureDraft>('POST', '/v1/studio/measures', body),
   saveMeasure: (key: string, body: unknown) => send<MeasureDraft>('PUT', `/v1/studio/measures/${key}`, body),
@@ -152,7 +207,7 @@ export interface DraftScreen { key: string; title: string; pattern: string; tabl
 export interface DraftNav { key: string; label: string; screen: string; icon: string; section: string; order: number; roles: string[]; version: number; source?: string }
 export interface Approval { approval_id: string; version: number; status: 'pending' | 'approved' | 'rejected'; requested_by: string; requested_at: string; decided_at: string | null }
 export interface DiffItem { key: string; change: 'added' | 'removed' | 'changed'; attributes?: string[]; fields?: { field: string; change: string; label: string; attributes?: Record<string, { from: unknown; to: unknown }> }[] }
-export interface ManifestDiff { changed: boolean; tables: DiffItem[]; screens: DiffItem[]; navs: DiffItem[]; rules: DiffItem[]; measures: DiffItem[] }
+export interface ManifestDiff { changed: boolean; tables: DiffItem[]; screens: DiffItem[]; navs: DiffItem[]; rules: DiffItem[]; measures: DiffItem[]; automations: DiffItem[] }
 
 export interface ListQuery {
   sort?: string

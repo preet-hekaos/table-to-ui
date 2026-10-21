@@ -212,6 +212,9 @@ async def test_outbox_relay_is_at_least_once_and_consumers_are_idempotent(
     published_before = len(app.state.publisher.published)
     sent = await app.state.relay.run_once()
     assert sent >= 1 and len(app.state.publisher.published) == published_before + sent
+    for _ in range(4):  # automations may add follow-on events; the outbox must drain
+        if await app.state.relay.run_once() == 0:
+            break
     assert await app.state.relay.run_once() == 0  # nothing left unpublished
     event = app.state.publisher.published[-1]
     from tableui.insights.public import handle_event

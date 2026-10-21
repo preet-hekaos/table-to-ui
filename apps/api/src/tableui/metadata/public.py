@@ -10,6 +10,7 @@ from tableui.metadata.application.releases import (
 )
 from tableui.metadata.application.runtime import RuntimeApp, live_app
 from tableui.metadata.application.studio import add_field
+from tableui.metadata.domain.automations import problems as automation_problems
 from tableui.metadata.domain.ddl import (
     add_field_index_sql,
     add_shadow_column_sql,
@@ -19,14 +20,17 @@ from tableui.metadata.domain.ddl import (
 )
 from tableui.metadata.domain.measures import problems as measure_problems
 from tableui.metadata.domain.models import (
+    AutomationDef,
     ContextLoader,
     EffectDef,
     FieldDef,
     FixtureDef,
+    GuideDef,
     MeasureDef,
     Pack,
     RuleCheck,
     RuleDef,
+    SampleRecord,
     StageDef,
     TableDef,
     WorkflowDef,
@@ -39,6 +43,10 @@ from tableui.metadata.domain.values import (
 )
 
 __all__ = [
+    "AutomationDef",
+    "GuideDef",
+    "SampleRecord",
+    "automation_problems",
     "measure_problems",
     "add_field",
     "add_field_index_sql",

@@ -1,9 +1,11 @@
 id: recruitment
-version: 1.3.0
+version: 1.4.0
 title: Recruitment agency
 description: Candidates, clients, requirements and placements for a staffing or search
   firm.
 roles: roles.yaml
+guides: guides.yaml
+samples: samples.yaml
 fixtures: fixtures.yaml
 screens:
 - screens/candidates.yaml
@@ -39,6 +41,12 @@ tables:
 - tables/skill.yaml
 - tables/submission.yaml
 - tables/task.yaml
+automations:
+- automations/screening-task-new-candidate.yaml
+- automations/follow-up-submission.yaml
+- automations/chase-offer.yaml
+- automations/interview-reminder.yaml
+- automations/stuck-sourced.yaml
 rules:
 - rules/R-01-no-duplicate-candidates.yaml
 - rules/R-02-consent-before-submission.yaml

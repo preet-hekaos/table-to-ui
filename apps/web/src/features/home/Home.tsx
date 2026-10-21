@@ -5,6 +5,7 @@ import { admin, app } from '@/api/endpoints'
 import { Badge, Button, Card, CardTitle, EmptyState, ErrorState, LoadingState, useToast } from '@/design-system'
 import { CheckCircle2, Circle } from 'lucide-react'
 import { can, useMe } from '@/features/auth/useMe'
+import { FirstSteps, SampleData, WhatNeedsMe } from './WhatNeedsMe'
 
 /** Screen 1.5: the app and its version, the setup checklist and pack updates (owners), and the
  *  governed measure cards, whose values come from the analytics store, never from live tables. */
@@ -96,7 +97,10 @@ export function Home() {
         <h1 className="text-xl font-bold text-ink">Welcome, {me.data.full_name.split(' ')[0]}</h1>
         <p className="text-sm text-muted">{me.data.tenant_name}</p>
       </div>
+      <WhatNeedsMe />
+      <FirstSteps />
       {can(me.data.permissions, 'workspace.manage') && <SetupCard />}
+      <SampleData />
       {measures.isLoading ? (
         <LoadingState label="Loading measures" />
       ) : notPublished ? (

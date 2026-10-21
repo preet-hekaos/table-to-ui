@@ -1,3 +1,4 @@
+import { Unsubscribe } from '@/features/notifications/Unsubscribe'
 import type { QueryClient } from '@tanstack/react-query'
 import { createRootRouteWithContext, createRoute, createRouter, Outlet, redirect } from '@tanstack/react-router'
 import { ApiError } from '@/api/client'
@@ -47,6 +48,13 @@ const accept = createRoute({
     const { token } = accept.useSearch()
     return <AcceptInvitation token={token} />
   },
+})
+
+const unsubscribe = createRoute({
+  getParentRoute: () => root,
+  path: '/unsubscribe',
+  validateSearch: (s: Record<string, unknown>) => ({ token: typeof s.token === 'string' ? s.token : '' }),
+  component: Unsubscribe,
 })
 
 /** Everything inside the signed-in app requires a session and, when enabled, a verified second factor. */
@@ -194,6 +202,7 @@ const opsTenants = createRoute({ getParentRoute: () => opsShell, path: '/ops/ten
 const opsPacks = createRoute({ getParentRoute: () => opsShell, path: '/ops/packs', component: PackCatalog })
 
 const tree = root.addChildren([
+  unsubscribe,
   signUp,
   signIn,
   mfa,

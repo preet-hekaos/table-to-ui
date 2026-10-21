@@ -145,6 +145,14 @@ class EffectDef(_Strict):
     then: FullDef | None = None
 
 
+class TodoDef(_Strict):
+    """Marks a table as the to-do list: records owned by a person, open until ``status_field`` is ``done_value``."""
+
+    status_field: Key
+    done_value: str
+    due_field: Key | None = None
+
+
 class TableDef(_Strict):
     key: Key
     label: str
@@ -159,6 +167,7 @@ class TableDef(_Strict):
     counts: list[CountDef] = []
     workflow: WorkflowDef | None = None
     effects: list[EffectDef] = []
+    todo: TodoDef | None = None
 
     @model_validator(mode="after")
     def _check(self) -> "TableDef":
@@ -175,6 +184,19 @@ class TableDef(_Strict):
             ref = self.field(e.ref)
             if ref is None or ref.type != "reference":
                 raise ValueError(f"effect '{e.id}': '{e.ref}' is not a reference field")
+        if self.todo is not None:
+            status = self.field(self.todo.status_field)
+            if (
+                status is None
+                or status.type != "select"
+                or self.todo.done_value not in status.options
+            ):
+                raise ValueError("the to-do status must be a select field that has the done value")
+            if self.todo.due_field and (
+                self.field(self.todo.due_field) is None
+                or self.field(self.todo.due_field).type != "date"  # type: ignore[union-attr]
+            ):
+                raise ValueError("the to-do due field must be a date field")
         if self.workflow is not None:
             for st in self.workflow.stages:
                 for k in st.ask:
@@ -272,6 +294,45 @@ class MeasureDef(_Strict):
     source: Literal["pack", "agency"] = "pack"
 
 
+class AutomationTrigger(_Strict):
+    """When it fires: a record is saved, a field changes to a value, or a date arrives."""
+
+    kind: Literal["created", "updated", "changed", "date"]
+    table: Key
+    field: Key | None = (
+        None  # changed: the field; date: the date field (or created_at / updated_at)
+    )
+    value: str | int | bool | None = None  # changed: it has just become this
+    days: int = 0  # date: this many days after the date (negative: before it)
+
+
+class AutomationAction(_Strict):
+    """What happens. Texts may use {field} for the record's values, {title} and {today+N}."""
+
+    kind: Literal["create", "notify", "set_field"]
+    to: Literal["owner", "role"] = "owner"  # who is told, or who gets the new record
+    role: Key | None = None
+    message: str = ""  # notify: the text people read
+    also_email: bool = False  # notify: email as well (workspace members only)
+    table: Key | None = None  # create: which table gets the new record
+    values: dict[str, str] = {}  # create: field -> text; set_field: field -> text
+    field: Key | None = None  # set_field: which field of the triggering record
+    value: str | None = None  # set_field: the new value
+
+
+class AutomationDef(_Strict):
+    key: Key
+    label: str
+    help: str = ""
+    trigger: AutomationTrigger
+    where: list[MeasureFilter] = []  # all must hold for the record
+    actions: list[AutomationAction]
+    enabled: bool = True
+    order: int = 100
+    source: Literal["pack", "agency"] = "pack"
+    version: int = 1
+
+
 Pattern = Literal[
     "searchable_table",
     "profile",
@@ -350,11 +411,34 @@ class PackManifest(_Strict):
     tables: list[str]
     rules: list[str] = []
     measures: list[str] = []
+    automations: list[str] = []
     screens: list[str] = []
     navigation: str | None = None
     roles: str | None = None
     fixtures: str | None = None  # a YAML file holding a list of fixtures
+    guides: str | None = None  # a YAML file: first steps for each role
+    samples: str | None = None  # a YAML file: sample records a workspace can load and remove
     compatible_with: str = ">=1.0"
+
+
+class GuideStep(_Strict):
+    key: Key
+    title: str
+    help: str = ""
+    path: str  # where in the app this step happens
+    done_when: Key | None = None  # ticks itself once this person has added a record to this table
+
+
+class GuideDef(_Strict):
+    role: Key
+    title: str
+    steps: list[GuideStep]
+
+
+class SampleRecord(_Strict):
+    alias: Key
+    table: Key
+    data: dict[str, Any]  # a value like "@alias" points at another sample record
 
 
 class Pack(_Strict):
@@ -365,6 +449,9 @@ class Pack(_Strict):
     tables: list[TableDef]
     rules: list[RuleDef]
     measures: list[MeasureDef]
+    automations: list[AutomationDef] = []
+    guides: list[GuideDef] = []
+    samples: list[SampleRecord] = []
     screens: list[ScreenDef] = []
     navigation: list[NavItem] = []
     roles: list[RoleDef] = []

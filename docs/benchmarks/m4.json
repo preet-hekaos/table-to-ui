@@ -1,0 +1,26 @@
+{
+  "records": 100000,
+  "first_sweep": {
+    "runs_started": 753,
+    "seconds": 18.44
+  },
+  "steady_sweep": {
+    "runs_started": 0,
+    "seconds": 2.23
+  },
+  "save_with_automations": {
+    "n": 100,
+    "p50_ms": 27.4,
+    "p95_ms": 34.0,
+    "p99_ms": 35.7,
+    "mean_ms": 27.3
+  },
+  "save_without_automations": {
+    "n": 100,
+    "p50_ms": 23.6,
+    "p95_ms": 29.7,
+    "p99_ms": 42.2,
+    "mean_ms": 23.6
+  },
+  "added_to_a_save_p95_ms": 4.3
+}

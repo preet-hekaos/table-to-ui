@@ -192,6 +192,7 @@ async def _write_row(
         after,
         row.owner_id,
         row.created_at,
+        [k for k in {*after, *before} if after.get(k) != before.get(k)],
     )
     return BatchResult(op, True, op.record_id, before, warnings=warnings)
 

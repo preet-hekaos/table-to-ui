@@ -22,6 +22,7 @@ import {
 import { can, useMe } from '@/features/auth/useMe'
 import { DataTab } from './DataTab'
 import { FlowTab } from './FlowTab'
+import { AutomationsTab } from './AutomationsTab'
 import { InsightsTab } from './InsightsTab'
 import { LinkHealth, RelationshipsTab } from './RelationshipsTab'
 import { MapTab } from './MapTab'
@@ -29,7 +30,7 @@ import { NavTab } from './NavTab'
 import { PreviewTab } from './PreviewTab'
 import { ScreensTab } from './ScreensTab'
 
-export type StudioTab = 'data' | 'map' | 'links' | 'flow' | 'screens' | 'insights' | 'menu' | 'preview' | 'versions'
+export type StudioTab = 'data' | 'map' | 'links' | 'flow' | 'screens' | 'insights' | 'automations' | 'menu' | 'preview' | 'versions'
 
 function EnvironmentSwitch({ releases }: { releases: ReleaseRow[] }) {
   const test = releases.find((r) => r.is_test)
@@ -48,13 +49,13 @@ function EnvironmentSwitch({ releases }: { releases: ReleaseRow[] }) {
   )
 }
 
-const KIND_LABEL: Record<string, string> = { tables: 'Tables', screens: 'Screens', navs: 'Menu', rules: 'Rules', measures: 'Measures' }
+const KIND_LABEL: Record<string, string> = { tables: 'Tables', screens: 'Screens', navs: 'Menu', rules: 'Rules', measures: 'Measures', automations: 'Automations' }
 
 export function DiffList({ diff }: { diff: ManifestDiff }) {
   if (!diff.changed) return <p className="text-sm text-muted">No differences.</p>
   return (
     <div className="flex flex-col gap-3" data-testid="diff">
-      {(['tables', 'screens', 'navs', 'rules', 'measures'] as const).map((kind) =>
+      {(['tables', 'screens', 'navs', 'rules', 'measures', 'automations'] as const).map((kind) =>
         diff[kind].length === 0 ? null : (
           <section key={kind}>
             <h3 className="text-xs font-bold tracking-wide text-muted uppercase">{KIND_LABEL[kind]}</h3>
@@ -110,7 +111,7 @@ function DraftBanner({ canPublish, onReview }: { canPublish: boolean; onReview: 
   })
   const d = status.data
   if (!d?.draft_changed) return null
-  const count = (['tables', 'screens', 'navs', 'rules', 'measures'] as const).reduce((n, k) => n + d.changes[k].length, 0)
+  const count = (['tables', 'screens', 'navs', 'rules', 'measures', 'automations'] as const).reduce((n, k) => n + d.changes[k].length, 0)
   return (
     <div className="flex flex-col gap-2">
     <div role="status" className="flex flex-wrap items-center gap-3 rounded-lg border border-warn-soft bg-warn-soft px-4 py-3 text-sm text-warn-ink" data-testid="draft-banner">
@@ -277,7 +278,7 @@ function VersionsTab({ releases, canPublish, isOwner }: { releases: ReleaseRow[]
               <dl className="mt-2 grid grid-cols-[8rem_1fr] gap-x-3 gap-y-1 text-xs">
                 <dt className="text-muted">Pack</dt>
                 <dd className="text-ink">{r.manifest.pack ? `${r.manifest.pack.id} ${r.manifest.pack.version}` : 'none'}</dd>
-                {(['tables', 'rules', 'measures'] as const).map((kind) => (
+                {(['tables', 'rules', 'measures', 'automations'] as const).map((kind) => (
                   <div key={kind} className="contents">
                     <dt className="text-muted capitalize">{kind}</dt>
                     <dd className="text-ink">
@@ -334,6 +335,7 @@ export function Studio({ tab = 'data', table, link }: { tab?: StudioTab; table?:
           <TabsTrigger value="flow">Stages &amp; rules</TabsTrigger>
           <TabsTrigger value="screens">Screens</TabsTrigger>
           <TabsTrigger value="insights">Insights</TabsTrigger>
+          <TabsTrigger value="automations">Automations</TabsTrigger>
           <TabsTrigger value="menu">Menu</TabsTrigger>
           <TabsTrigger value="preview">Preview</TabsTrigger>
           <TabsTrigger value="versions">Versions</TabsTrigger>
@@ -355,6 +357,9 @@ export function Studio({ tab = 'data', table, link }: { tab?: StudioTab; table?:
         </TabsContent>
         <TabsContent value="insights" className="pt-4">
           <InsightsTab canEdit={canEdit} />
+        </TabsContent>
+        <TabsContent value="automations" className="pt-4">
+          <AutomationsTab canEdit={canEdit} />
         </TabsContent>
         <TabsContent value="menu" className="pt-4">
           <NavTab canEdit={canEdit} />

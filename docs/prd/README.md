@@ -10,4 +10,5 @@ The approved requirement documents live as shared Claude docs, which stay the ed
 | M2 PRD: Recruiting workflow | https://claude.ai/code/artifact/abf3c6dc-726b-41b0-aa1f-a4980d238100 |
 | M2.5 PRD: Relationship builder | https://claude.ai/artifact/Hc5xaAs6SMzvTNcrVYRG9E |
 | M3 PRD: Insights | https://claude.ai/artifact/Q9p2HADFsNzWkiEgY7e7Mj |
+| M4 PRD: Automation, notifications and guided start | https://claude.ai/artifact/SQQJ5SNnQnqPgTqbJdYVhD |
 | HLD and LLD (Recruitment Pack) | https://claude.ai/code/artifact/af67be98-273f-4744-a2e7-eebe04cc1f56 |

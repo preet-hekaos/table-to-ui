@@ -13,7 +13,7 @@ CREATE TABLE "{s}".schema_migration (
 );
 CREATE TABLE "{s}".metadata_object (
   tenant_id uuid NOT NULL,
-  kind text NOT NULL CHECK (kind IN ('pack','table','rule','measure','screen','nav')),
+  kind text NOT NULL CHECK (kind IN ('pack','table','rule','measure','automation','screen','nav')),
   key text NOT NULL,
   definition jsonb NOT NULL,
   source text NOT NULL DEFAULT 'pack',
