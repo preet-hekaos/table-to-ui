@@ -86,13 +86,13 @@ name = "Shared kernel (platform) imports no module"
 type = "forbidden"
 allow_indirect_imports = true
 source_modules = ["tableui.platform"]
-forbidden_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.approvals", "tableui.duplicates"]
+forbidden_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ai", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.approvals", "tableui.duplicates"]
 
 [[tool.importlinter.contracts]]
 name = "Module 'audit': only its public interface is importable from other modules"
 type = "forbidden"
 allow_indirect_imports = true
-source_modules = ["tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.approvals", "tableui.duplicates"]
+source_modules = ["tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ai", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.approvals", "tableui.duplicates"]
 forbidden_modules = ["tableui.audit.application", "tableui.audit.domain", "tableui.audit.adapters", "tableui.audit.api.router"]
 
 [[tool.importlinter.contracts]]
@@ -104,7 +104,7 @@ layers = ["tableui.audit.api", "tableui.audit.adapters", "tableui.audit.applicat
 name = "Module 'metadata': only its public interface is importable from other modules"
 type = "forbidden"
 allow_indirect_imports = true
-source_modules = ["tableui.audit", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.approvals", "tableui.duplicates"]
+source_modules = ["tableui.audit", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ai", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.approvals", "tableui.duplicates"]
 forbidden_modules = ["tableui.metadata.application", "tableui.metadata.domain", "tableui.metadata.adapters", "tableui.metadata.api.router"]
 
 [[tool.importlinter.contracts]]
@@ -116,7 +116,7 @@ layers = ["tableui.metadata.api", "tableui.metadata.adapters", "tableui.metadata
 name = "Module 'tenancy': only its public interface is importable from other modules"
 type = "forbidden"
 allow_indirect_imports = true
-source_modules = ["tableui.audit", "tableui.metadata", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.approvals", "tableui.duplicates"]
+source_modules = ["tableui.audit", "tableui.metadata", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ai", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.approvals", "tableui.duplicates"]
 forbidden_modules = ["tableui.tenancy.application", "tableui.tenancy.domain", "tableui.tenancy.adapters", "tableui.tenancy.api.router"]
 
 [[tool.importlinter.contracts]]
@@ -128,7 +128,7 @@ layers = ["tableui.tenancy.api", "tableui.tenancy.adapters", "tableui.tenancy.ap
 name = "Module 'identity': only its public interface is importable from other modules"
 type = "forbidden"
 allow_indirect_imports = true
-source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.approvals", "tableui.duplicates"]
+source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ai", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.approvals", "tableui.duplicates"]
 forbidden_modules = ["tableui.identity.application", "tableui.identity.domain", "tableui.identity.adapters", "tableui.identity.api.router"]
 
 [[tool.importlinter.contracts]]
@@ -140,7 +140,7 @@ layers = ["tableui.identity.api", "tableui.identity.adapters", "tableui.identity
 name = "Module 'rules': only its public interface is importable from other modules"
 type = "forbidden"
 allow_indirect_imports = true
-source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.commands", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.approvals", "tableui.duplicates"]
+source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.commands", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ai", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.approvals", "tableui.duplicates"]
 forbidden_modules = ["tableui.rules.application", "tableui.rules.domain", "tableui.rules.adapters", "tableui.rules.api.router"]
 
 [[tool.importlinter.contracts]]
@@ -152,7 +152,7 @@ layers = ["tableui.rules.api", "tableui.rules.adapters", "tableui.rules.applicat
 name = "Module 'commands': only its public interface is importable from other modules"
 type = "forbidden"
 allow_indirect_imports = true
-source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.approvals", "tableui.duplicates"]
+source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ai", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.approvals", "tableui.duplicates"]
 forbidden_modules = ["tableui.commands.application", "tableui.commands.domain", "tableui.commands.adapters", "tableui.commands.api.router"]
 
 [[tool.importlinter.contracts]]
@@ -164,7 +164,7 @@ layers = ["tableui.commands.api", "tableui.commands.adapters", "tableui.commands
 name = "Module 'query': only its public interface is importable from other modules"
 type = "forbidden"
 allow_indirect_imports = true
-source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.insights", "tableui.automation", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.approvals", "tableui.duplicates"]
+source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.insights", "tableui.automation", "tableui.ai", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.approvals", "tableui.duplicates"]
 forbidden_modules = ["tableui.query.application", "tableui.query.domain", "tableui.query.adapters", "tableui.query.api.router"]
 
 [[tool.importlinter.contracts]]
@@ -188,7 +188,7 @@ layers = ["tableui.insights.api", "tableui.insights.adapters", "tableui.insights
 name = "Module 'ops': only its public interface is importable from other modules"
 type = "forbidden"
 allow_indirect_imports = true
-source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.automation", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.approvals", "tableui.duplicates"]
+source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ai", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.approvals", "tableui.duplicates"]
 forbidden_modules = ["tableui.ops.application", "tableui.ops.domain", "tableui.ops.adapters", "tableui.ops.api.router"]
 
 [[tool.importlinter.contracts]]
@@ -200,7 +200,7 @@ layers = ["tableui.ops.api", "tableui.ops.adapters", "tableui.ops.application", 
 name = "Module 'workspace': only its public interface is importable from other modules"
 type = "forbidden"
 allow_indirect_imports = true
-source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ops", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.approvals", "tableui.duplicates"]
+source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ai", "tableui.ops", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.approvals", "tableui.duplicates"]
 forbidden_modules = ["tableui.workspace.application", "tableui.workspace.domain", "tableui.workspace.adapters", "tableui.workspace.api.router"]
 
 [[tool.importlinter.contracts]]
@@ -212,7 +212,7 @@ layers = ["tableui.workspace.api", "tableui.workspace.adapters", "tableui.worksp
 name = "Module 'catalog': only its public interface is importable from other modules"
 type = "forbidden"
 allow_indirect_imports = true
-source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ops", "tableui.workspace", "tableui.imports", "tableui.files", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.approvals", "tableui.duplicates"]
+source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ai", "tableui.ops", "tableui.workspace", "tableui.imports", "tableui.files", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.approvals", "tableui.duplicates"]
 forbidden_modules = ["tableui.catalog.application", "tableui.catalog.domain", "tableui.catalog.adapters", "tableui.catalog.api.router"]
 
 [[tool.importlinter.contracts]]
@@ -224,7 +224,7 @@ layers = ["tableui.catalog.api", "tableui.catalog.adapters", "tableui.catalog.ap
 name = "Module 'imports': only its public interface is importable from other modules"
 type = "forbidden"
 allow_indirect_imports = true
-source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.files", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.approvals", "tableui.duplicates"]
+source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ai", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.files", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.approvals", "tableui.duplicates"]
 forbidden_modules = ["tableui.imports.application", "tableui.imports.domain", "tableui.imports.adapters", "tableui.imports.api.router"]
 
 [[tool.importlinter.contracts]]
@@ -236,7 +236,7 @@ layers = ["tableui.imports.api", "tableui.imports.adapters", "tableui.imports.ap
 name = "Module 'files': only its public interface is importable from other modules"
 type = "forbidden"
 allow_indirect_imports = true
-source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.approvals", "tableui.duplicates"]
+source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ai", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.approvals", "tableui.duplicates"]
 forbidden_modules = ["tableui.files.application", "tableui.files.domain", "tableui.files.adapters", "tableui.files.api.router"]
 
 [[tool.importlinter.contracts]]
@@ -248,7 +248,7 @@ layers = ["tableui.files.api", "tableui.files.adapters", "tableui.files.applicat
 name = "Module 'search': only its public interface is importable from other modules"
 type = "forbidden"
 allow_indirect_imports = true
-source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.matching", "tableui.workflow", "tableui.approvals", "tableui.duplicates"]
+source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ai", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.matching", "tableui.workflow", "tableui.approvals", "tableui.duplicates"]
 forbidden_modules = ["tableui.search.application", "tableui.search.domain", "tableui.search.adapters", "tableui.search.api.router"]
 
 [[tool.importlinter.contracts]]
@@ -260,7 +260,7 @@ layers = ["tableui.search.api", "tableui.search.adapters", "tableui.search.appli
 name = "Module 'matching': only its public interface is importable from other modules"
 type = "forbidden"
 allow_indirect_imports = true
-source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.search", "tableui.workflow", "tableui.approvals", "tableui.duplicates"]
+source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ai", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.search", "tableui.workflow", "tableui.approvals", "tableui.duplicates"]
 forbidden_modules = ["tableui.matching.application", "tableui.matching.domain", "tableui.matching.adapters", "tableui.matching.api.router"]
 
 [[tool.importlinter.contracts]]
@@ -272,7 +272,7 @@ layers = ["tableui.matching.api", "tableui.matching.adapters", "tableui.matching
 name = "Module 'workflow': only its public interface is importable from other modules"
 type = "forbidden"
 allow_indirect_imports = true
-source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.search", "tableui.matching", "tableui.approvals", "tableui.duplicates"]
+source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ai", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.search", "tableui.matching", "tableui.approvals", "tableui.duplicates"]
 forbidden_modules = ["tableui.workflow.application", "tableui.workflow.domain", "tableui.workflow.adapters", "tableui.workflow.api.router"]
 
 [[tool.importlinter.contracts]]
@@ -284,7 +284,7 @@ layers = ["tableui.workflow.api", "tableui.workflow.adapters", "tableui.workflow
 name = "Module 'approvals': only its public interface is importable from other modules"
 type = "forbidden"
 allow_indirect_imports = true
-source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.duplicates"]
+source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ai", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.duplicates"]
 forbidden_modules = ["tableui.approvals.application", "tableui.approvals.domain", "tableui.approvals.adapters", "tableui.approvals.api.router"]
 
 [[tool.importlinter.contracts]]
@@ -296,7 +296,7 @@ layers = ["tableui.approvals.api", "tableui.approvals.adapters", "tableui.approv
 name = "Module 'duplicates': only its public interface is importable from other modules"
 type = "forbidden"
 allow_indirect_imports = true
-source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.approvals"]
+source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.automation", "tableui.ai", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.approvals"]
 forbidden_modules = ["tableui.duplicates.application", "tableui.duplicates.domain", "tableui.duplicates.adapters", "tableui.duplicates.api.router"]
 
 [[tool.importlinter.contracts]]
@@ -308,10 +308,22 @@ layers = ["tableui.duplicates.api", "tableui.duplicates.adapters", "tableui.dupl
 name = "Module 'automation': only its public interface is importable from other modules"
 type = "forbidden"
 allow_indirect_imports = true
-source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.approvals", "tableui.duplicates"]
+source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.approvals", "tableui.duplicates", "tableui.ai"]
 forbidden_modules = ["tableui.automation.application", "tableui.automation.domain", "tableui.automation.adapters", "tableui.automation.api.router"]
 
 [[tool.importlinter.contracts]]
 name = "Module 'automation' layers: api > adapters > application > domain"
 type = "layers"
 layers = ["tableui.automation.api", "tableui.automation.adapters", "tableui.automation.application", "tableui.automation.domain"]
+
+[[tool.importlinter.contracts]]
+name = "Module 'ai': only its public interface is importable from other modules"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = ["tableui.audit", "tableui.metadata", "tableui.tenancy", "tableui.identity", "tableui.rules", "tableui.commands", "tableui.query", "tableui.insights", "tableui.ops", "tableui.workspace", "tableui.catalog", "tableui.imports", "tableui.files", "tableui.search", "tableui.matching", "tableui.workflow", "tableui.approvals", "tableui.duplicates", "tableui.automation"]
+forbidden_modules = ["tableui.ai.application", "tableui.ai.domain", "tableui.ai.adapters", "tableui.ai.api.router"]
+
+[[tool.importlinter.contracts]]
+name = "Module 'ai' layers: api > adapters > application > domain"
+type = "layers"
+layers = ["tableui.ai.api", "tableui.ai.adapters", "tableui.ai.application", "tableui.ai.domain"]

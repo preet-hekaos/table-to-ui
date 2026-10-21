@@ -91,6 +91,7 @@ jobs:
       ANALYTICS_DATABASE_URL: postgresql+asyncpg://app:app@localhost:5432/tableui_analytics
       ENVIRONMENT: local
       MAIL_BACKEND: log
+      AI_PROVIDER: fake  # the demo provider: the AI screens run without a key or a network
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5

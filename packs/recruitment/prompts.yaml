@@ -1,0 +1,26 @@
+- feature: extract_fields
+  version: 1
+  instructions: >-
+    The document is a candidate's CV. Names, titles, employers, skills, total experience in months and
+    locations are the fields most worth filling.
+- feature: record_summary
+  version: 1
+  instructions: >-
+    Write for a recruiter who is about to call this person or send them to a client. Lead with current role and
+    experience, then skills, then anything that affects availability or fit. Do not mention pay.
+- feature: explain_match
+  version: 1
+  instructions: >-
+    A recruiter is looking at a candidate ranked against a requirement. Say what lines up and what does not.
+- feature: draft_message
+  version: 1
+  instructions: >-
+    Write as a recruiter at the agency. Be short, polite and specific. Never promise a job, a salary or a date.
+- feature: ask_filter
+  version: 1
+  instructions: >-
+    The recruiter is searching candidates, requirements or clients. Skills and locations are the most common asks.
+- feature: explain_number
+  version: 1
+  instructions: >-
+    The reader is an agency owner or manager looking at a recruiting number.

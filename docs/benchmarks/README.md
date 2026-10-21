@@ -72,3 +72,12 @@ The duplicate list was 10.5 s before a trigram index and a smaller scan cap (150
 | Hourly date check, steady state (nothing new due) | < 30 s | **2.2 s** | pass |
 | Added to a save by automations (p95 with starters on minus off) | < 50 ms | **4.3 ms** (34.0 vs 29.7) | pass |
 
+## M5 gates — `m5.json`
+`apps/api/scripts/bench_m5.py`: 100 saves with AI off and on, 100 record reads, 100 uncached and 100 cached summaries, on a model that answers instantly (the demo provider). Real model time is the provider's and is not measured.
+
+| Gate | Target | Measured | |
+|---|---|---|---|
+| Added to a save by AI being on (p95) | none | **-2.9 ms** (30.7 vs 33.6, noise) | pass |
+| Everything around one model call: permissions, context, call log (p95, uncached) | < 50 ms | **44.0 ms** (a plain record read: 20.1 ms) | pass |
+| Same, answered from the cache (p95) | < 50 ms | **46.1 ms** | pass |
+

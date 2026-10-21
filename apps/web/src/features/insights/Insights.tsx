@@ -6,6 +6,7 @@ import { app, type RangeQuery } from '@/api/endpoints'
 import type { Measure } from '@/api/types'
 import { Card, CardTitle, EmptyState, ErrorState, Field, Input, LoadingState, Select } from '@/design-system'
 import { useNavigate } from '@tanstack/react-router'
+import { ExplainNumber } from '@/features/ai/Ai'
 import { BarsChart, TrendChart, formatValue, type DrillLink } from './charts'
 
 export const RANGES: [string, string][] = [
@@ -70,6 +71,7 @@ function MeasureCard({ m, range }: { m: Measure; range: RangeQuery }) {
       </Link>
       {m.display === 'trend' && m.series && <TrendChart label={m.label} series={m.series} unit={unit} drill={(b) => drillFor(m.key, range, { bucket: b })} />}
       {m.display === 'bars' && m.series && <BarsChart label={m.label} series={m.series} drill={(g) => drillFor(m.key, range, { group: g })} />}
+      {range.range !== 'custom' && <ExplainNumber measure={m.key} table={m.table} range={range.range ?? 'last_30_days'} />}
       <p className="mt-auto text-xs text-muted">
         {m.period ? '' : 'Right now · '}
         {asOf(m)}

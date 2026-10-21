@@ -445,3 +445,27 @@ export const duplicates = {
   merges: (table: string) => g<MergeRow[]>(`/v1/duplicates/${table}/merges`),
   undo: (table: string, id: string) => send<{ links: number }>('POST', `/v1/duplicates/${table}/merges/${id}/undo`),
 }
+
+export interface AiSettings {
+  enabled: boolean
+  available: boolean
+  provider: string | null
+  tables: string[]
+  monthly_token_cap?: number
+  used_tokens?: number
+  all_tables?: string[]
+  recent?: { at: string; feature: string; prompt_version: string; subject: string | null; provider: string | null; model: string | null; tokens: number; outcome: string; detail: string | null; by: string | null }[]
+}
+export interface AiText { text: string; cached: boolean; prompt_version: string }
+export interface AiSuggestions { suggestions: Record<string, { value: unknown; quote: string }>; current: Record<string, unknown>; review: string[]; cached: boolean; note?: string }
+
+export const ai = {
+  settings: () => g<AiSettings>('/v1/ai/settings'),
+  saveSettings: (body: { enabled?: boolean; tables?: string[]; monthly_token_cap?: number }) => send<AiSettings>('PUT', '/v1/ai/settings', body),
+  extract: (screen: string, file_id: string) => send<AiSuggestions>('POST', '/v1/ai/extract', { screen, file_id }),
+  summary: (table: string, id: string) => send<AiText & { used: string[] }>('POST', '/v1/ai/summary', { table, id }),
+  explainMatch: (screen: string, source_id: string, target_id: string) => send<AiText & { score: number }>('POST', '/v1/ai/explain-match', { screen, source_id, target_id }),
+  ask: (table: string, question: string) => send<{ filters: Record<string, string>; q: string; cached: boolean }>('POST', '/v1/ai/ask', { table, question }),
+  draft: (table: string, id: string, intent: string) => send<{ subject: string; body: string; cached: boolean }>('POST', '/v1/ai/draft', { table, id, intent }),
+  explainNumber: (measure: string, range?: string) => send<AiText & { figures: { value: number | null } }>('POST', '/v1/ai/explain-number', { measure, range }),
+}

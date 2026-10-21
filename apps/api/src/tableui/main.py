@@ -15,6 +15,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import tableui.ai.public as ai
 import tableui.approvals.public as approvals
 import tableui.automation.public as automation
 import tableui.catalog.public as catalog
@@ -96,6 +97,7 @@ def create_app(
             if settings.cv_parser == "rchilli"
             else files.RuleParser()
         )
+        app.state.ai_provider = ai.build_provider(settings)
         app.state.catalog = catalog.PackCatalog.load(
             settings.packs_dir
         )  # fail fast on a broken pack
@@ -245,6 +247,7 @@ def create_app(
         query_router,
         insights_router,
         automation.router,
+        ai.router,
         audit_router,
         ops_router,
         workspace_router,
