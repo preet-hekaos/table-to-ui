@@ -23,7 +23,7 @@ from tableui.platform.ids import new_id
 from tableui.query.public import get_record
 
 UNDO_DAYS = 7
-SCAN_CAP = 400
+SCAN_CAP = 150
 
 
 def _detector(app: RuntimeApp, table: TableDef) -> tuple[str, str, int]:
@@ -56,7 +56,7 @@ async def suspected(
         f'AND b."{exact}_norm" = a."{exact}_norm" AND b."{fuzzy}_norm" OPERATOR(public.%) a."{fuzzy}_norm" '
         f'AND left(b."{fuzzy}_norm", 1) = left(a."{fuzzy}_norm", 1) '
         f"AND NOT EXISTS (SELECT 1 FROM control.duplicate_dismissal d WHERE d.tenant_id = :t "
-        f"AND d.table_key = :k AND d.a_id = a.id AND d.b_id = b.id) LIMIT 5) m "
+        f"AND d.table_key = :k AND d.a_id = a.id AND d.b_id = b.id) LIMIT 3) m "
         f'WHERE a."{exact}_norm" IS NOT NULL AND a."{fuzzy}_norm" IS NOT NULL LIMIT :cap'
     )
     async with db.tenant(p.tenant_id) as s:
