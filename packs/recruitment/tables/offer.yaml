@@ -11,8 +11,8 @@ effects:
 fields:
   - {key: summary, label: Summary, type: text, required: true, searchable: true}
   - {key: submission, label: Submission, type: reference, ref_table: submission, required: true, filterable: true}
-  - {key: annual_ctc, label: Annual CTC, type: money}
+  - {key: annual_ctc, label: Annual CTC, type: money, analytics: true}
   - {key: joining_on, label: Joining date, type: date}
-  - {key: status, label: Status, type: select, required: true, default: Draft, options: [Draft, Sent, Accepted, Declined], filterable: true}
-  - {key: sent_on, label: Sent on, type: date}
+  - {key: status, label: Status, type: select, required: true, default: Draft, options: [Draft, Sent, Accepted, Declined], filterable: true, analytics: true}
+  - {key: sent_on, label: Sent on, type: date, analytics: true}
   - {key: decline_reason, label: Reason for declining, type: text}

@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from tableui.identity.api.deps import PrincipalDep
 from tableui.metadata.api.deps import LiveAppDep
 from tableui.metadata.application import draft, releases, studio
+from tableui.metadata.application import measures as measure_builder
 from tableui.metadata.application import relationships as rel
 from tableui.metadata.domain.diff import diff_manifests
 from tableui.platform.db import Database
@@ -510,3 +511,55 @@ async def studio_rules(p: PrincipalDep, db: DbDep) -> list[dict[str, Any]]:
     assert p.tenant_id
     async with db.control() as s:
         return await studio.read_draft(s, p.tenant_id, "rule")
+
+
+@router.get("/studio/measures")
+async def studio_measures(p: PrincipalDep, db: DbDep) -> list[dict[str, Any]]:
+    p.require("metadata.read")
+    assert p.tenant_id
+    async with db.control() as s:
+        return await measure_builder.list_measures(s, p.tenant_id)
+
+
+@router.post("/studio/measures", status_code=201)
+async def add_measure(
+    body: dict[str, Any], p: PrincipalDep, db: DbDep, request: Request
+) -> dict[str, Any]:
+    p.require("metadata.write")
+    assert p.tenant_id
+    async with db.control() as s:
+        return await measure_builder.save_measure(
+            s,
+            tenant_id=p.tenant_id,
+            user_id=p.user_id,
+            key=None,
+            body=body,
+            request_id=get_request_id(request),
+        )
+
+
+@router.put("/studio/measures/{key}")
+async def change_measure(
+    key: str, body: dict[str, Any], p: PrincipalDep, db: DbDep, request: Request
+) -> dict[str, Any]:
+    p.require("metadata.write")
+    assert p.tenant_id
+    async with db.control() as s:
+        return await measure_builder.save_measure(
+            s,
+            tenant_id=p.tenant_id,
+            user_id=p.user_id,
+            key=key,
+            body=body,
+            request_id=get_request_id(request),
+        )
+
+
+@router.delete("/studio/measures/{key}", status_code=204)
+async def delete_measure(key: str, p: PrincipalDep, db: DbDep, request: Request) -> None:
+    p.require("metadata.write")
+    assert p.tenant_id
+    async with db.control() as s:
+        await measure_builder.remove_measure(
+            s, tenant_id=p.tenant_id, user_id=p.user_id, key=key, request_id=get_request_id(request)
+        )

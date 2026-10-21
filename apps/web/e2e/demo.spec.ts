@@ -106,7 +106,7 @@ test('M0 demo script', async ({ browser }) => {
 
   await test.step('6. Priya adds Arjun Menon and sees him in the list and on his detail page', async () => {
     await p.page.goto('/')
-    await p.page.getByRole('link', { name: 'Candidates' }).click()
+    await p.page.getByRole('link', { name: 'Candidates', exact: true }).click()
     await expect(p.page.getByText('No candidates yet')).toBeVisible()
     await p.page.getByRole('button', { name: 'Add candidate' }).first().click()
     await p.page.getByLabel(/Full name/).fill(arjun.full_name)

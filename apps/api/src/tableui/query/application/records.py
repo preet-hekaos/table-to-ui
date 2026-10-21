@@ -229,6 +229,7 @@ async def list_records(
     ranges: dict[str, str] | None = None,
     owner: str | None = None,
     has: dict[str, str] | None = None,
+    ids: list[uuid.UUID] | None = None,
 ) -> dict[str, Any]:
     principal.require(f"record.{table_key}.read")
     table = app.table(table_key)
@@ -248,6 +249,9 @@ async def list_records(
     conds_f, params_f = _filter_conditions(principal, table, filters or {}, q, ranges, owner, has)
     conds += conds_f
     params |= params_f
+    if ids is not None:
+        conds.append("id = ANY(CAST(:only_ids AS uuid[]))")
+        params["only_ids"] = ids
     if cursor:
         value, rid = _decode(cursor)
         conds.append(f"({expr}, id) {op} (CAST(:cv AS {sql_type}), CAST(:cid AS uuid))")

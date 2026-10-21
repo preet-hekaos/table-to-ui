@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, Outlet, useNavigate } from '@tanstack/react-router'
-import { Bell, CheckCheck, ClipboardList, Home, LayoutGrid, LogOut, Menu, Settings2, Bookmark, Upload, UserPlus, Users, X } from 'lucide-react'
+import { BarChart3, Bell, CheckCheck, ClipboardList, Home, LayoutGrid, LogOut, Menu, Settings2, Bookmark, Upload, UserPlus, Users, X } from 'lucide-react'
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { ApiError } from '@/api/client'
 import { app, approvals, auth } from '@/api/endpoints'
@@ -88,6 +88,9 @@ export function AppShell() {
             ) : null
           })}
         </div>
+      )}
+      {can(perms, 'measure.read') && (
+        <NavLink to="/insights" icon={<BarChart3 className="size-4" aria-hidden />} onNavigate={close}>Insights</NavLink>
       )}
       <NavLink to="/approvals" icon={<CheckCheck className="size-4" aria-hidden />} onNavigate={close}>
         Approvals{pending.data?.pending ? <span className="ml-auto rounded-full bg-accent px-1.5 text-[11px] text-white" aria-label={`${pending.data.pending} waiting`}>{pending.data.pending}</span> : null}

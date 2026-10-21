@@ -2,7 +2,7 @@
 
 A metadata-first platform that turns tables into complete business apps. First industry pack: recruitment agencies.
 
-Status: M0 is merged; M1 (Data and screens) and M2 (Recruiting workflow) are merged; M2.5 (Relationship builder) is in review. Requirements are indexed in [docs/prd](docs/prd), decisions in [docs/adr](docs/adr), benchmarks in [docs/benchmarks](docs/benchmarks).
+Status: M0 is merged; M1 (Data and screens) and M2 (Recruiting workflow) are merged; M2.5 (Relationship builder) is merged; M3 (Insights) is in review. Requirements are indexed in [docs/prd](docs/prd), decisions in [docs/adr](docs/adr), benchmarks in [docs/benchmarks](docs/benchmarks).
 
 ## Run it locally (about 5 minutes)
 
@@ -51,6 +51,7 @@ Create the first platform operator (password on stdin, prints the authenticator 
 | M1 gates on 50,000 candidates (needs the API running) | `uv run python scripts/bench_m1.py` in `apps/api` |
 | M2 gates: board, stage moves, duplicates, merge (needs the API running) | `uv run python scripts/bench_m2.py` in `apps/api` |
 | M2.5 gate: Relationships list (needs the API running) | `uv run python scripts/bench_m25.py` in `apps/api` |
+| M3 gate: Insights dashboard (needs the API and `ANALYTICS_DATABASE_URL`) | `uv run python scripts/bench_m3.py` in `apps/api` |
 | CV parser accuracy on the synthetic corpus | `uv run python -m tools.parser_accuracy` in `apps/api` |
 
 ## Deploy

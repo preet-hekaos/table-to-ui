@@ -1,0 +1,11 @@
+key: placement_fees
+label: Placement fees
+table: placement
+aggregate: sum
+field: fee
+help: Total fees for people who started in the chosen dates.
+order: 80
+time_field: start_on
+where:
+  - field: start_on
+    op: not_empty

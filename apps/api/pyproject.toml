@@ -58,6 +58,8 @@ ignore = ["S101", "E501"]
 # Record tables are named by metadata keys, which the model restricts to ^[a-z][a-z0-9_]{0,62}$;
 # values always travel as bound parameters. The read side builds its SQL from those keys.
 "src/tableui/query/application/records.py" = ["S608"]
+"src/tableui/insights/application/engine.py" = ["S608"]
+"src/tableui/insights/application/analytics.py" = ["S608"]
 "src/tableui/matching/application/match.py" = ["S608"]
 "src/tableui/imports/application/jobs.py" = ["S608"]
 "src/tableui/rules/application/bulk.py" = ["S608"]

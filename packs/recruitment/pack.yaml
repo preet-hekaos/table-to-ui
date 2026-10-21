@@ -1,5 +1,5 @@
 id: recruitment
-version: 1.2.1
+version: 1.3.0
 title: Recruitment agency
 description: Candidates, clients, requirements and placements for a staffing or search
   firm.
@@ -54,3 +54,11 @@ rules:
 - rules/R-14-placement-needs-accepted-offer.yaml
 measures:
 - measures/active-candidates.yaml
+- measures/open-jobs.yaml
+- measures/submissions-by-stage.yaml
+- measures/submissions-sent.yaml
+- measures/offers-made.yaml
+- measures/offers-accepted.yaml
+- measures/placements-started.yaml
+- measures/placement-fees.yaml
+- measures/average-offer-ctc.yaml

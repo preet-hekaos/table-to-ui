@@ -1,0 +1,13 @@
+key: submissions_sent
+label: Submissions sent to clients
+table: submission
+aggregate: count
+help: Submissions by the date they were sent, per week.
+order: 40
+home: true
+display: trend
+time_field: submitted_on
+by_time: week
+where:
+  - field: submitted_on
+    op: not_empty

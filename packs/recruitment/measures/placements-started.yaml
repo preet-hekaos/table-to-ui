@@ -1,0 +1,13 @@
+key: placements_started
+label: Placements started
+table: placement
+aggregate: count
+help: People who started a job, per month.
+order: 70
+home: true
+display: trend
+time_field: start_on
+by_time: month
+where:
+  - field: start_on
+    op: not_empty

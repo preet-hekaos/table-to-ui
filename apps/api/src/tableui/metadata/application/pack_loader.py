@@ -8,6 +8,7 @@ import cel
 import yaml
 from pydantic import BaseModel, ValidationError
 
+from tableui.metadata.domain.measures import problems as measure_problems
 from tableui.metadata.domain.models import (
     FixtureDef,
     MeasureDef,
@@ -198,14 +199,8 @@ def _cross_check(
         if table is None:
             issues.append(PackIssue(f, "table", f"unknown table '{m.table}'"))
             continue
-        for i, flt in enumerate(m.where):
-            fld = table.field(flt.field)
-            if fld is None:
-                issues.append(PackIssue(f, f"where.{i}.field", f"unknown field '{flt.field}'"))
-            elif not fld.analytics:
-                issues.append(
-                    PackIssue(f, f"where.{i}.field", f"field '{flt.field}' is not analytics: true")
-                )
+        for path, message in measure_problems(m, table):
+            issues.append(PackIssue(f, path, message))
 
 
 def _check_generality(

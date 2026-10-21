@@ -9,6 +9,7 @@ from rapidfuzz import fuzz
 from sqlalchemy import text
 
 from tableui.audit.public import append_history, write_audit
+from tableui.commands.public import emit_change
 from tableui.identity.public import Principal
 from tableui.metadata.public import (
     RuntimeApp,
@@ -191,6 +192,9 @@ async def merge(
         if errs:
             raise ValidationFailed(errors=errs)
         await s.execute(text(f'DELETE FROM "{table_key}" WHERE id = :i'), {"i": drop})  # noqa: S608 - identifiers are validated metadata keys
+        await emit_change(
+            s, tid, table, kind="deleted", record_id=drop, version=d.version + 1, data={}
+        )
         shadow = shadow_columns(table, clean)
         sets = ", ".join(f'"{c}" = :n_{i}' for i, c in enumerate(shadow))
         await s.execute(
@@ -206,6 +210,10 @@ async def merge(
                 **{f"n_{i}": v for i, v in enumerate(shadow.values())},
             },
         )
+        await emit_change(
+            s, tid, table, kind="updated", record_id=keep, version=k.version + 1, data=clean,
+            owner_id=k.owner_id, created_at=k.created_at,
+        )  # fmt: skip
         relinked: list[dict[str, str]] = []
         for tk, fk in _pointers(app, table_key):
             moved = (

@@ -19,3 +19,4 @@
 | [15](0015-approvals.md) | Approvals hold a change; the decision applies it |
 | [16](0016-duplicate-merge.md) | Merge removes the second record and keeps a snapshot for seven days |
 | [17](0017-relationship-builder.md) | Links are reference fields; the builder composes the Studio's own operations |
+| [18](0018-insights.md) | Insights are governed measures read from the analytics store; every number links to its records |

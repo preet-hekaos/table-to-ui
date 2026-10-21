@@ -247,6 +247,8 @@ async def _emit(
     record_id: uuid.UUID,
     version: int,
     data: dict[str, Any],
+    owner_id: uuid.UUID | None = None,
+    created_at: datetime | None = None,
 ) -> None:
     """Outbox row, written in the same transaction as the change it announces."""
     analytics = {f.key: data.get(f.key) for f in table.fields if f.analytics}
@@ -260,6 +262,8 @@ async def _emit(
         "version": version,
         "occurred_at": datetime.now(UTC).isoformat(),
         "fields": analytics,
+        "owner_id": str(owner_id) if owner_id else None,
+        "created_at": created_at.isoformat() if created_at else None,
     }
     await s.execute(
         text(
@@ -336,7 +340,17 @@ async def create_record(
                 request_id=ctx.request_id,
             )
             await apply_effects(s, ctx, table, "create", None, clean)
-            await _emit(s, ctx, table, f"{table_key}.created", record_id, row.version, clean)
+            await _emit(
+                s,
+                ctx,
+                table,
+                f"{table_key}.created",
+                record_id,
+                row.version,
+                clean,
+                ctx.principal.user_id,
+                row.created_at,
+            )
             result = CommandResult(201, _record_body(table, row, ctx.principal), warnings=warnings)
             result.body["warnings"] = warnings
             await _store_idempotency(s, ctx, result)
@@ -409,7 +423,7 @@ async def update_record(
                     text(
                         f'UPDATE "{table_key}" SET data = CAST(:d AS jsonb), search_doc = :sd, version = version + 1, '  # noqa: S608 - identifiers are validated metadata keys
                         f"updated_at = now(), updated_by = :u{', ' + sets if sets else ''} "
-                        "WHERE id = :id RETURNING id, version, data, created_at, updated_at"
+                        "WHERE id = :id RETURNING id, version, data, created_at, updated_at, owner_id"
                     ),
                     {
                         "d": json.dumps(merged_clean),
@@ -443,7 +457,17 @@ async def update_record(
                 request_id=ctx.request_id,
             )
             await apply_effects(s, ctx, table, "update", before, merged_clean)
-            await _emit(s, ctx, table, f"{table_key}.updated", record_id, row.version, merged_clean)
+            await _emit(
+                s,
+                ctx,
+                table,
+                f"{table_key}.updated",
+                record_id,
+                row.version,
+                merged_clean,
+                row.owner_id,
+                row.created_at,
+            )
             result = CommandResult(200, _record_body(table, row, ctx.principal), warnings=warnings)
             result.body["warnings"] = warnings
             await _store_idempotency(s, ctx, result)
@@ -479,3 +503,39 @@ async def check_record(
             s, ctx, table, "update" if record_id else "create", merged, shadow, record_id, before
         )
     return [o.as_dict() for o in outcomes]
+
+
+async def emit_change(
+    s: AsyncSession,
+    tenant_id: uuid.UUID,
+    table: TableDef,
+    *,
+    kind: str,
+    record_id: uuid.UUID,
+    version: int,
+    data: dict[str, Any],
+    owner_id: uuid.UUID | None = None,
+    created_at: datetime | None = None,
+) -> None:
+    """For changes made outside the command pipeline (a merge, an import undone): keep analytics in step."""
+    event_id = new_id()
+    topic = f"{table.key}.{kind}"
+    payload = {
+        "event_id": str(event_id),
+        "topic": topic,
+        "tenant_id": str(tenant_id),
+        "table": table.key,
+        "record_id": str(record_id),
+        "version": version,
+        "occurred_at": datetime.now(UTC).isoformat(),
+        "fields": {f.key: data.get(f.key) for f in table.fields if f.analytics},
+        "owner_id": str(owner_id) if owner_id else None,
+        "created_at": created_at.isoformat() if created_at else None,
+    }
+    await s.execute(
+        text(
+            "INSERT INTO outbox (tenant_id, event_id, topic, payload) "
+            "VALUES (:t, :e, :topic, CAST(:p AS jsonb))"
+        ),
+        {"t": tenant_id, "e": event_id, "topic": topic, "p": json.dumps(payload)},
+    )

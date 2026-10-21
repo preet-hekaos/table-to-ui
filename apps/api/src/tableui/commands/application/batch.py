@@ -101,7 +101,7 @@ async def _write_row(
             await s.execute(
                 text(
                     f'INSERT INTO "{tk}" (id, tenant_id, data, owner_id, search_doc, created_by, updated_by{cols}) '  # noqa: S608 - identifiers are validated metadata keys
-                    f"VALUES (:id, :t, CAST(:d AS jsonb), :u, :sd, :u, :u{vals}) RETURNING version"
+                    f"VALUES (:id, :t, CAST(:d AS jsonb), :u, :sd, :u, :u{vals}) RETURNING version, created_at"
                 ),
                 {
                     "id": rid,
@@ -117,7 +117,17 @@ async def _write_row(
             s, tenant_id=tenant_id, table_key=tk, record_id=rid, action="create", before=None,
             after=clean, actor_id=ctx.principal.user_id, app_version=ctx.app_version,
         )  # fmt: skip
-        await _emit(s, ctx, table, f"{tk}.created", rid, row.version, clean)
+        await _emit(
+            s,
+            ctx,
+            table,
+            f"{tk}.created",
+            rid,
+            row.version,
+            clean,
+            ctx.principal.user_id,
+            row.created_at,
+        )
         return BatchResult(op, True, rid, None, warnings=warnings)
 
     assert op.record_id is not None
@@ -157,7 +167,7 @@ async def _write_row(
         await s.execute(
             text(
                 f'UPDATE "{tk}" SET data = CAST(:d AS jsonb), search_doc = :sd, version = version + 1, '  # noqa: S608 - identifiers are validated metadata keys
-                f"updated_at = now(), updated_by = :u{sets} WHERE id = :id RETURNING version"
+                f"updated_at = now(), updated_by = :u{sets} WHERE id = :id RETURNING version, owner_id, created_at"
             ),
             {
                 "d": json.dumps(after),
@@ -172,7 +182,17 @@ async def _write_row(
         s, tenant_id=tenant_id, table_key=tk, record_id=op.record_id, action="update", before=before,
         after=after, actor_id=ctx.principal.user_id, app_version=ctx.app_version,
     )  # fmt: skip
-    await _emit(s, ctx, table, f"{tk}.updated", op.record_id, row.version, after)
+    await _emit(
+        s,
+        ctx,
+        table,
+        f"{tk}.updated",
+        op.record_id,
+        row.version,
+        after,
+        row.owner_id,
+        row.created_at,
+    )
     return BatchResult(op, True, op.record_id, before, warnings=warnings)
 
 

@@ -9,6 +9,8 @@ import type {
   MergeRow,
   HistoryEntry,
   Measure,
+  MeasureDraft,
+  MeasureRecords,
   Me,
   RecordPage,
   RecordRow,
@@ -58,6 +60,8 @@ const send = <T>(method: 'POST' | 'PUT' | 'PATCH' | 'DELETE', path: string, body
   const call = (api as never as Record<string, ((p: string, o?: unknown) => Promise<unknown>) | undefined>)[method]
   return cast<T>(call!.call(api, path, body === undefined ? {} : { body }))
 }
+
+export interface RangeQuery { range?: string; start?: string; end?: string }
 
 export interface RoleRow { key: string; name: string; description: string; members: number; grants: string[]; scopes: Record<string, string>; field_deny: string[] }
 export interface PersonRow { id: string; email: string; full_name: string; active: boolean; role: string; teams: string[] }
@@ -118,6 +122,10 @@ export const studio = {
   saveStages: (table: string, body: { labels: Record<string, string>; add?: { key: string; after: string } }) => send<unknown>('PUT', `/v1/studio/tables/${table}/stages`, body),
   setSeverity: (rule: string, check: string, severity: string) => send<unknown>('PUT', `/v1/studio/rules/${rule}/checks/${check}`, { severity }),
   relationships: () => g<Link[]>('/v1/studio/relationships'),
+  measures: () => g<MeasureDraft[]>('/v1/studio/measures'),
+  addMeasure: (body: unknown) => send<MeasureDraft>('POST', '/v1/studio/measures', body),
+  saveMeasure: (key: string, body: unknown) => send<MeasureDraft>('PUT', `/v1/studio/measures/${key}`, body),
+  removeMeasure: (key: string) => send<void>('DELETE', `/v1/studio/measures/${key}`),
   linkHealth: () => g<LinkIssue[]>('/v1/studio/relationships/health'),
   layout: () => g<{ positions: Record<string, { x: number; y: number }> }>('/v1/studio/layout'),
   saveLayout: (positions: Record<string, { x: number; y: number }>) => send<unknown>('PUT', '/v1/studio/layout', { positions }),
@@ -256,7 +264,13 @@ export const app = {
     cast<RecordPage>(api.GET('/v1/records/{table}', { params: { path: { table }, query: { limit: 200, sort: 'updated_at', direction: 'desc' } } })),
   check: (table: string, data: Json) =>
     cast<{ outcomes: RuleOutcome[] }>(api.POST('/v1/records/{table}/check', { params: { path: { table } }, body: { data } })),
-  measures: () => cast<Measure[]>(api.GET('/v1/measures')),
+  measures: (range?: RangeQuery, home = false) => g<Measure[]>(`/v1/measures${qs({ ...range, home: home ? 'true' : undefined })}`),
+  measure: (key: string, range?: RangeQuery) => g<Measure>(`/v1/measures/${key}${qs({ ...range })}`),
+  measureRecords: (key: string, range?: RangeQuery, drill?: { group?: string; bucket?: string }) =>
+    g<MeasureRecords>(`/v1/measures/${key}/records${qs({ ...range, ...drill })}`),
+  previewMeasure: (body: unknown, range?: string) =>
+    send<{ ok: boolean; problems: string[]; note?: string; card?: Measure }>('POST', `/v1/measures/preview${qs({ range })}`, body),
+  rebuildMeasures: () => send<Record<string, number>>('POST', '/v1/measures/rebuild'),
   activity: () => cast<ActivityRow[]>(api.GET('/v1/activity')),
 }
 

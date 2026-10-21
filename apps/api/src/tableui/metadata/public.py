@@ -17,6 +17,7 @@ from tableui.metadata.domain.ddl import (
     table_ddl_sql,
     tenant_schema_sql,
 )
+from tableui.metadata.domain.measures import problems as measure_problems
 from tableui.metadata.domain.models import (
     ContextLoader,
     EffectDef,
@@ -38,6 +39,7 @@ from tableui.metadata.domain.values import (
 )
 
 __all__ = [
+    "measure_problems",
     "add_field",
     "add_field_index_sql",
     "add_shadow_column_sql",

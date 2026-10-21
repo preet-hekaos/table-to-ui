@@ -7,7 +7,7 @@ fields:
   - {key: title, label: Title, type: text, required: true, group: role, searchable: true}
   - {key: client, label: Client, type: reference, ref_table: client, required: true, group: role, filterable: true}
   - {key: contact, label: Client contact, type: reference, ref_table: contact, group: role}
-  - {key: status, label: Status, type: select, group: role, required: true, default: Open, options: [Open, On hold, Filled, Closed], filterable: true}
+  - {key: status, label: Status, type: select, group: role, required: true, default: Open, options: [Open, On hold, Filled, Closed], filterable: true, analytics: true}
   - {key: positions, label: Positions, type: integer, group: role, min: 1, default: 1}
   - {key: filled, label: Filled, type: integer, group: role, min: 0, default: 0}
   - {key: skills, label: Skills, type: tags, group: needs, searchable: true}

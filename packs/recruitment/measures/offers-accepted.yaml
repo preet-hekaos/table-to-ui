@@ -1,0 +1,11 @@
+key: offers_accepted
+label: Offers accepted
+table: offer
+aggregate: count
+help: Accepted offers sent in the chosen dates.
+order: 60
+time_field: sent_on
+where:
+  - field: status
+    op: eq
+    value: Accepted

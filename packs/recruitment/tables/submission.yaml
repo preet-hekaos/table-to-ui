@@ -27,9 +27,9 @@ fields:
   - {key: summary, label: Summary, type: text, required: true, searchable: true}
   - {key: candidate, label: Candidate, type: reference, ref_table: candidate, required: true, filterable: true}
   - {key: requirement, label: Requirement, type: reference, ref_table: requirement, required: true, filterable: true}
-  - {key: stage, label: Stage, type: select, required: true, default: Sourced, options: [Sourced, Screened, Submitted, Client shortlisted, Interview, Offer, Placed, Rejected, Withdrawn, On hold], filterable: true}
+  - {key: stage, label: Stage, type: select, required: true, default: Sourced, options: [Sourced, Screened, Submitted, Client shortlisted, Interview, Offer, Placed, Rejected, Withdrawn, On hold], filterable: true, analytics: true}
   - {key: contact, label: Client contact, type: reference, ref_table: contact}
-  - {key: submitted_on, label: Submitted on, type: date}
+  - {key: submitted_on, label: Submitted on, type: date, analytics: true}
   - {key: rejection_reason, label: Reason for rejection, type: select, options: [Skills mismatch, Pay mismatch, Notice too long, Client declined, Candidate withdrew, Other]}
   - {key: client_feedback, label: Client feedback, type: long_text}
   - {key: note, label: Note, type: long_text}

@@ -53,3 +53,12 @@ The duplicate list was 10.5 s before a trigram index and a smaller scan cap (150
 | Gate | Target | Measured | |
 |---|---|---|---|
 | Relationships list, 100 tables and 500 links | p95 < 600 ms | **p95 177.2 ms** (p50 94.6) | pass |
+
+## M3 gate — `m3.json`
+`apps/api/scripts/bench_m3.py`: 100,000 records in the analytics store, 9 measures, 30 sequential calls each.
+
+| Gate | Target | Measured | |
+|---|---|---|---|
+| Insights dashboard, 9 cards over 100,000 records | p95 < 1 s | **p95 396.8 ms** (p50 263.2) | pass |
+| One card (bars by stage) | n/a | p95 61.2 ms | |
+| Drill-down to the records behind a number | n/a | p95 58.3 ms | |
