@@ -28,9 +28,10 @@ import { LinkHealth, RelationshipsTab } from './RelationshipsTab'
 import { MapTab } from './MapTab'
 import { NavTab } from './NavTab'
 import { PreviewTab } from './PreviewTab'
+import { SetupChat } from '@/features/ai/SetupChat'
 import { ScreensTab } from './ScreensTab'
 
-export type StudioTab = 'data' | 'map' | 'links' | 'flow' | 'screens' | 'insights' | 'automations' | 'menu' | 'preview' | 'versions'
+export type StudioTab = 'data' | 'map' | 'links' | 'flow' | 'screens' | 'insights' | 'automations' | 'menu' | 'preview' | 'versions' | 'chat'
 
 function EnvironmentSwitch({ releases }: { releases: ReleaseRow[] }) {
   const test = releases.find((r) => r.is_test)
@@ -329,6 +330,7 @@ export function Studio({ tab = 'data', table, link }: { tab?: StudioTab; table?:
       <DraftBanner canPublish={canPublish} onReview={() => go({ tab: 'versions' })} />
       <Tabs value={tab} onValueChange={(v) => go({ tab: v as StudioTab })}>
         <TabsList aria-label="Studio sections" className="overflow-x-auto">
+          {can(perms, 'ai.setup') && <TabsTrigger value="chat">Set up by chat</TabsTrigger>}
           <TabsTrigger value="data">Data</TabsTrigger>
           <TabsTrigger value="map">Canvas</TabsTrigger>
           <TabsTrigger value="links">Relationships</TabsTrigger>
@@ -340,6 +342,9 @@ export function Studio({ tab = 'data', table, link }: { tab?: StudioTab; table?:
           <TabsTrigger value="preview">Preview</TabsTrigger>
           <TabsTrigger value="versions">Versions</TabsTrigger>
         </TabsList>
+        <TabsContent value="chat" className="pt-4">
+          <SetupChat />
+        </TabsContent>
         <TabsContent value="data" className="pt-4">
           <DataTab selected={table} defaultTable={defaultTable} onSelect={(k) => go({ table: k })} canEdit={canEdit} />
         </TabsContent>

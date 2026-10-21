@@ -19,6 +19,22 @@
         "title": "AcceptRequest",
         "type": "object"
       },
+      "ApplyBody": {
+        "properties": {
+          "steps": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Steps",
+            "type": "array"
+          }
+        },
+        "required": [
+          "steps"
+        ],
+        "title": "ApplyBody",
+        "type": "object"
+      },
       "AskBody": {
         "properties": {
           "question": {
@@ -1001,6 +1017,19 @@
         "title": "SettingsBody",
         "type": "object"
       },
+      "SetupMessage": {
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "title": "SetupMessage",
+        "type": "object"
+      },
       "SignInRequest": {
         "properties": {
           "email": {
@@ -1609,6 +1638,208 @@
           }
         },
         "summary": "Put Settings",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/v1/ai/setup": {
+      "get": {
+        "operationId": "setup_state_v1_ai_setup_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Setup State V1 Ai Setup Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Setup State",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/v1/ai/setup/messages": {
+      "post": {
+        "operationId": "setup_message_v1_ai_setup_messages_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetupMessage"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Setup Message V1 Ai Setup Messages Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Setup Message",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/v1/ai/setup/plans/{plan_id}/apply": {
+      "post": {
+        "operationId": "setup_apply_v1_ai_setup_plans__plan_id__apply_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "plan_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Plan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Setup Apply V1 Ai Setup Plans  Plan Id  Apply Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Setup Apply",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/v1/ai/setup/plans/{plan_id}/discard": {
+      "post": {
+        "operationId": "setup_discard_v1_ai_setup_plans__plan_id__discard_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "plan_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Plan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Setup Discard",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/v1/ai/setup/plans/{plan_id}/undo": {
+      "post": {
+        "operationId": "setup_undo_v1_ai_setup_plans__plan_id__undo_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "plan_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Plan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Setup Undo V1 Ai Setup Plans  Plan Id  Undo Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Setup Undo",
         "tags": [
           "ai"
         ]

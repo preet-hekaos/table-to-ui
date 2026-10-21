@@ -108,10 +108,11 @@ async def run(
     max_tokens: int = 1500,
     limit_seconds: float = 20.0,
     cache_hours: int = 24,
+    permission: str = "ai.use",
 ) -> dict[str, Any]:
     """Run one AI feature. The answer is only ever a suggestion; the caller decides what it may do."""
     assert p.tenant_id
-    p.require("ai.use")
+    p.require(permission)
     setting = await get_setting(db, p.tenant_id)
     if not setting["enabled"]:
         raise AiOff("AI is switched off for this workspace.")

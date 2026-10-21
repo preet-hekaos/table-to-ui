@@ -22,3 +22,4 @@
 | [18](0018-insights.md) | Insights are governed measures read from the analytics store; every number links to its records |
 | [19](0019-automation.md) | Automations are metadata that run after a save, once, within limits; people choose how they hear |
 | [20](0020-ai-assist.md) | AI proposes, rules and people decide; every call is gated, capped, checked and logged |
+| [21](0021-chat-setup.md) | The AI plans from a fixed list of Studio operations; dry run, apply to Draft in one step, one-click undo |

@@ -1,6 +1,15 @@
 """Public interface of the metadata module."""
 
 from tableui.metadata.application.draft import build_manifest, read_draft_tables, seed_draft
+from tableui.metadata.application.ops import (
+    REGISTRY,
+    operations_help,
+    outline,
+    restore,
+    run_op,
+    snapshot,
+    snapshot_hash,
+)
 from tableui.metadata.application.pack_loader import PackInvalid, PackIssue, load_pack
 from tableui.metadata.application.releases import (
     list_releases,
@@ -44,6 +53,13 @@ from tableui.metadata.domain.values import (
 )
 
 __all__ = [
+    "REGISTRY",
+    "operations_help",
+    "outline",
+    "restore",
+    "run_op",
+    "snapshot",
+    "snapshot_hash",
     "AutomationDef",
     "GuideDef",
     "PromptDef",

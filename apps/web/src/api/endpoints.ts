@@ -459,7 +459,23 @@ export interface AiSettings {
 export interface AiText { text: string; cached: boolean; prompt_version: string }
 export interface AiSuggestions { suggestions: Record<string, { value: unknown; quote: string }>; current: Record<string, unknown>; review: string[]; cached: boolean; note?: string }
 
+export interface SetupStep { op: string; args: Record<string, unknown>; why: string; ok: boolean; error?: string }
+export interface SetupPlan { id: string; request: string; reply: string; steps: SetupStep[]; status: 'proposed' | 'applied' | 'undone' | 'discarded'; created_at: string; applied_at: string | null; undone_at: string | null }
+export interface SetupState {
+  messages: { role: 'user' | 'assistant'; content: string; plan_id: string | null; at: string }[]
+  open_plan: SetupPlan | null
+  undoable: SetupPlan | null
+  enabled: boolean
+  available: boolean
+  can_apply: boolean
+}
+
 export const ai = {
+  setupState: () => g<SetupState>('/v1/ai/setup'),
+  setupSay: (message: string) => send<{ reply: string; plan: SetupPlan | null }>('POST', '/v1/ai/setup/messages', { message }),
+  setupApply: (id: string, steps: number[]) => send<SetupPlan>('POST', `/v1/ai/setup/plans/${id}/apply`, { steps }),
+  setupUndo: (id: string) => send<SetupPlan>('POST', `/v1/ai/setup/plans/${id}/undo`),
+  setupDiscard: (id: string) => send<void>('POST', `/v1/ai/setup/plans/${id}/discard`),
   settings: () => g<AiSettings>('/v1/ai/settings'),
   saveSettings: (body: { enabled?: boolean; tables?: string[]; monthly_token_cap?: number }) => send<AiSettings>('PUT', '/v1/ai/settings', body),
   extract: (screen: string, file_id: string) => send<AiSuggestions>('POST', '/v1/ai/extract', { screen, file_id }),

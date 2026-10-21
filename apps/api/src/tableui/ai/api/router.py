@@ -4,11 +4,11 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
-from tableui.ai.application import features, gateway
+from tableui.ai.application import features, gateway, setup
 from tableui.ai.application import settings as store
 from tableui.identity.api.deps import PrincipalDep
 from tableui.metadata.api.deps import LiveAppDep
-from tableui.metadata.public import Pack
+from tableui.metadata.public import Pack, outline
 from tableui.platform.config import Settings
 from tableui.platform.db import Database
 from tableui.platform.web import get_analytics, get_db, get_request_id, get_settings_dep
@@ -75,8 +75,14 @@ async def _ctx(
     )
 
 
+async def _draft_tables(db: Database, tenant_id: uuid.UUID) -> list[str]:
+    """Table keys from the Draft, so a workspace with nothing published yet can still set AI up."""
+    async with db.control() as s:
+        return sorted(t["key"] for t in (await outline(s, tenant_id))["tables"])
+
+
 @router.get("/settings")
-async def get_settings(p: PrincipalDep, app: LiveAppDep, db: DbDep, req: Request) -> dict[str, Any]:
+async def get_settings(p: PrincipalDep, db: DbDep, req: Request) -> dict[str, Any]:
     """Anyone can ask whether AI is on (so buttons show or hide); the usage detail is for those who configure it."""
     assert p.tenant_id
     cur = await gateway.get_setting(db, p.tenant_id)
@@ -91,7 +97,7 @@ async def get_settings(p: PrincipalDep, app: LiveAppDep, db: DbDep, req: Request
         out |= {
             "monthly_token_cap": cur["monthly_token_cap"],
             "used_tokens": cur["used_tokens"],
-            "all_tables": sorted(app.tables),
+            "all_tables": await _draft_tables(db, p.tenant_id),
             "recent": await store.recent_calls(db, p.tenant_id),
         }
     return out
@@ -99,15 +105,15 @@ async def get_settings(p: PrincipalDep, app: LiveAppDep, db: DbDep, req: Request
 
 @router.put("/settings")
 async def put_settings(
-    body: SettingsBody, req: Request, p: PrincipalDep, app: LiveAppDep, db: DbDep
+    body: SettingsBody, req: Request, p: PrincipalDep, db: DbDep
 ) -> dict[str, Any]:
     p.require("ai.configure")
     assert p.tenant_id
     await store.set_setting(
-        db, tenant_id=p.tenant_id, user_id=p.user_id, known_tables=set(app.tables), enabled=body.enabled,
+        db, tenant_id=p.tenant_id, user_id=p.user_id, known_tables=set(await _draft_tables(db, p.tenant_id)), enabled=body.enabled,
         tables=body.tables, cap=body.monthly_token_cap, request_id=get_request_id(req),
     )  # fmt: skip
-    return await get_settings(p, app, db, req)
+    return await get_settings(p, db, req)
 
 
 @router.post("/extract")
@@ -196,3 +202,60 @@ async def explain_number(
     return await features.explain_number(
         await _ctx(req, p, db, an, s), p, app, body.measure, body.range
     )
+
+
+# ---- setup by chat -----------------------------------------------------------------------------------
+# These never need a Live app: a new workspace with no pack builds its first tables this way.
+
+
+class SetupMessage(BaseModel):
+    message: str
+
+
+class ApplyBody(BaseModel):
+    steps: list[int]
+
+
+@router.get("/setup")
+async def setup_state(p: PrincipalDep, db: DbDep, req: Request) -> dict[str, Any]:
+    p.require("ai.setup")
+    assert p.tenant_id
+    cur = await gateway.get_setting(db, p.tenant_id)
+    prov = req.app.state.ai_provider
+    return {
+        **await setup.current(db, p.tenant_id),
+        "enabled": cur["enabled"],
+        "available": prov is not None,
+        "can_apply": p.allows("metadata.write"),
+    }
+
+
+@router.post("/setup/messages")
+async def setup_message(
+    body: SetupMessage, req: Request, p: PrincipalDep, db: DbDep, an: AnalyticsDep, s: SettingsDep
+) -> dict[str, Any]:
+    return await setup.propose(await _ctx(req, p, db, an, s), p, body.message, get_request_id(req))
+
+
+@router.post("/setup/plans/{plan_id}/apply")
+async def setup_apply(
+    plan_id: uuid.UUID, body: ApplyBody, req: Request, p: PrincipalDep, db: DbDep
+) -> dict[str, Any]:
+    p.require("ai.setup")
+    p.require("metadata.write")
+    return await setup.apply(db, p, plan_id, body.steps, get_request_id(req))
+
+
+@router.post("/setup/plans/{plan_id}/undo")
+async def setup_undo(
+    plan_id: uuid.UUID, req: Request, p: PrincipalDep, db: DbDep
+) -> dict[str, Any]:
+    p.require("ai.setup")
+    p.require("metadata.write")
+    return await setup.undo(db, p, plan_id, get_request_id(req))
+
+
+@router.post("/setup/plans/{plan_id}/discard", status_code=204)
+async def setup_discard(plan_id: uuid.UUID, p: PrincipalDep, db: DbDep) -> None:
+    p.require("ai.setup")
+    await setup.discard(db, p, plan_id)
