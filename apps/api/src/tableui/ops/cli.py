@@ -30,6 +30,23 @@ async def _create(email: str, name: str, non_interactive: bool) -> None:
         print(f"secret={out['otpauth_uri'].split('secret=')[1].split('&')[0]}")
 
 
+async def _purge_due() -> None:
+    from tableui.files.public import LocalFileStore
+    from tableui.ops.application.lifecycle import purge_due
+
+    settings = get_settings()
+    db, analytics = (
+        Database(settings.database_url),
+        Database(settings.analytics_database_url, pool_size=2),
+    )
+    try:
+        gone = await purge_due(db, analytics, LocalFileStore(settings.files_dir))
+    finally:
+        await db.dispose()
+        await analytics.dispose()
+    print(f"Purged {len(gone)} workspace(s).")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="tableui-ops")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -41,7 +58,10 @@ def main() -> None:
         action="store_true",
         help="read the password from stdin (CI and local scripts)",
     )
+    sub.add_parser("purge-due", help="delete workspaces whose deletion grace period is over")
     args = parser.parse_args()
+    if args.cmd == "purge-due":
+        asyncio.run(_purge_due())
     if args.cmd == "create-operator":
         asyncio.run(_create(args.email, args.name, args.non_interactive))
 

@@ -83,6 +83,46 @@ async def _member(s: AsyncSession, tenant_id: uuid.UUID, user_id: uuid.UUID) -> 
     return row
 
 
+async def remove_member(
+    s: AsyncSession,
+    *,
+    tenant_id: uuid.UUID,
+    actor_id: uuid.UUID,
+    user_id: uuid.UUID,
+    request_id: str | None,
+) -> None:
+    """End a person's access for good. Their name stays on past history and audit lines (the user row stays)."""
+    member = await _member(s, tenant_id, user_id)
+    if user_id == actor_id:
+        raise ValidationFailed("You cannot remove yourself. Ask another administrator.")
+    if await _active_admins(s, tenant_id) == [member.id]:
+        raise ValidationFailed("This is the last administrator and cannot be removed.")
+    await s.execute(text("UPDATE control.session SET revoked = true WHERE user_id = :u"), {"u": user_id})  # fmt: skip
+    await s.execute(text("DELETE FROM control.team_member WHERE user_id = :u"), {"u": user_id})
+    await s.execute(
+        text("DELETE FROM control.membership WHERE user_id = :u AND tenant_id = :t"),
+        {"u": user_id, "t": tenant_id},
+    )
+    # The sign-in is closed and the email is free for someone else; the name stays on old history.
+    await s.execute(
+        text(
+            "UPDATE control.app_user SET active = false, email = 'removed-' || id::text || '@removed.invalid', "
+            "password_hash = '!', mfa_secret = NULL, mfa_enabled = false WHERE id = :u"
+        ),
+        {"u": user_id},
+    )
+    await write_audit(
+        s,
+        tenant_id=tenant_id,
+        scope="tenant",
+        actor_id=actor_id,
+        action="user.remove",
+        subject_type="user",
+        subject_id=str(user_id),
+        request_id=request_id,
+    )
+
+
 async def set_active(
     s: AsyncSession,
     *,

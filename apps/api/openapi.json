@@ -234,6 +234,29 @@
         "title": "DecisionIn",
         "type": "object"
       },
+      "DeleteBody": {
+        "properties": {
+          "confirm_name": {
+            "title": "Confirm Name",
+            "type": "string"
+          },
+          "grace_days": {
+            "default": 7,
+            "title": "Grace Days",
+            "type": "integer"
+          },
+          "reason": {
+            "default": "",
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "confirm_name"
+        ],
+        "title": "DeleteBody",
+        "type": "object"
+      },
       "DismissBody": {
         "properties": {
           "dismissed": {
@@ -294,6 +317,17 @@
           "target_id"
         ],
         "title": "ExplainBody",
+        "type": "object"
+      },
+      "ExportBody": {
+        "properties": {
+          "reason": {
+            "default": "",
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "title": "ExportBody",
         "type": "object"
       },
       "ExtractBody": {
@@ -648,6 +682,35 @@
           "key"
         ],
         "title": "NewRoleBody",
+        "type": "object"
+      },
+      "NewWorkspace": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "owner_email": {
+            "title": "Owner Email",
+            "type": "string"
+          },
+          "pack_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pack Id"
+          }
+        },
+        "required": [
+          "name",
+          "owner_email"
+        ],
+        "title": "NewWorkspace",
         "type": "object"
       },
       "NumberBody": {
@@ -1254,6 +1317,17 @@
           "weights"
         ],
         "title": "WeightsIn",
+        "type": "object"
+      },
+      "Why": {
+        "properties": {
+          "reason": {
+            "default": "",
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "title": "Why",
         "type": "object"
       }
     }
@@ -5245,6 +5319,71 @@
         ]
       }
     },
+    "/v1/ops/exports/{token}": {
+      "get": {
+        "description": "The link emailed to the client owner. The token is the credential; it expires after 24 hours.",
+        "operationId": "download_export_v1_ops_exports__token__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Download Export",
+        "tags": [
+          "operations"
+        ]
+      }
+    },
+    "/v1/ops/maintenance/purge-due": {
+      "post": {
+        "description": "Delete every workspace whose grace period is over. Also run by `tableui-ops purge-due`.",
+        "operationId": "purge_due_v1_ops_maintenance_purge_due_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Purge Due V1 Ops Maintenance Purge Due Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Purge Due",
+        "tags": [
+          "operations"
+        ]
+      }
+    },
     "/v1/ops/packs": {
       "get": {
         "operationId": "packs_v1_ops_packs_get",
@@ -5337,6 +5476,385 @@
           }
         },
         "summary": "Tenants",
+        "tags": [
+          "operations"
+        ]
+      }
+    },
+    "/v1/ops/workspaces": {
+      "get": {
+        "operationId": "workspaces_v1_ops_workspaces_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Workspaces V1 Ops Workspaces Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Workspaces",
+        "tags": [
+          "operations"
+        ]
+      },
+      "post": {
+        "operationId": "create_workspace_v1_ops_workspaces_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewWorkspace"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Create Workspace V1 Ops Workspaces Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Workspace",
+        "tags": [
+          "operations"
+        ]
+      }
+    },
+    "/v1/ops/workspaces/{tenant_id}/cancel-deletion": {
+      "post": {
+        "operationId": "cancel_delete_v1_ops_workspaces__tenant_id__cancel_deletion_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tenant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Tenant Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Cancel Delete V1 Ops Workspaces  Tenant Id  Cancel Deletion Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel Delete",
+        "tags": [
+          "operations"
+        ]
+      }
+    },
+    "/v1/ops/workspaces/{tenant_id}/delete": {
+      "post": {
+        "operationId": "schedule_delete_v1_ops_workspaces__tenant_id__delete_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tenant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Tenant Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Schedule Delete V1 Ops Workspaces  Tenant Id  Delete Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Schedule Delete",
+        "tags": [
+          "operations"
+        ]
+      }
+    },
+    "/v1/ops/workspaces/{tenant_id}/export": {
+      "post": {
+        "operationId": "export_workspace_v1_ops_workspaces__tenant_id__export_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tenant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Tenant Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExportBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Export Workspace V1 Ops Workspaces  Tenant Id  Export Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export Workspace",
+        "tags": [
+          "operations"
+        ]
+      }
+    },
+    "/v1/ops/workspaces/{tenant_id}/limits": {
+      "put": {
+        "operationId": "set_limits_v1_ops_workspaces__tenant_id__limits_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tenant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Tenant Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Set Limits V1 Ops Workspaces  Tenant Id  Limits Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Limits",
+        "tags": [
+          "operations"
+        ]
+      }
+    },
+    "/v1/ops/workspaces/{tenant_id}/resume": {
+      "post": {
+        "operationId": "resume_v1_ops_workspaces__tenant_id__resume_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tenant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Tenant Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Resume V1 Ops Workspaces  Tenant Id  Resume Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resume",
+        "tags": [
+          "operations"
+        ]
+      }
+    },
+    "/v1/ops/workspaces/{tenant_id}/suspend": {
+      "post": {
+        "operationId": "suspend_v1_ops_workspaces__tenant_id__suspend_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tenant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Tenant Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Why"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Suspend V1 Ops Workspaces  Tenant Id  Suspend Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Suspend",
         "tags": [
           "operations"
         ]
@@ -7406,6 +7924,42 @@
           }
         },
         "summary": "People",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
+    "/v1/workspace/people/{user_id}": {
+      "delete": {
+        "operationId": "remove_person_v1_workspace_people__user_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Remove Person",
         "tags": [
           "workspace"
         ]

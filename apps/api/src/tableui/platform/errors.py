@@ -89,6 +89,18 @@ class IdempotencyConflict(ProblemError):
     title = "Idempotency key reused with a different request"
 
 
+class LimitReached(ProblemError):
+    status = 409
+    type_slug = "limit-reached"
+    title = "This workspace has reached a limit"
+
+
+class WorkspaceSuspended(ProblemError):
+    status = 403
+    type_slug = "workspace-suspended"
+    title = "This workspace is not available"
+
+
 class TooManyAttempts(ProblemError):
     status = 429
     type_slug = "too-many-attempts"

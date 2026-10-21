@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from tableui.audit.public import append_history, write_audit
 from tableui.commands.application.effects import apply_effects
+from tableui.commands.application.limits import check_record_limit, record_limit
 from tableui.identity.public import Principal, hidden_fields, scope_predicate, strip_hidden
 from tableui.metadata.public import (
     RuntimeApp,
@@ -293,11 +294,13 @@ async def create_record(
     request_hash = _hash(f"{table_key}.create", payload)
     tenant_id = ctx.principal.tenant_id
     assert tenant_id is not None
+    cap = await record_limit(db, tenant_id)
     try:
         async with db.tenant(tenant_id) as s:
             replay = await _claim_idempotency(s, ctx, request_hash)
             if replay:
                 return replay
+            await check_record_limit(s, sorted(ctx.app.tables), cap)
             await _check_references(s, table, clean)
             warnings, used = _resolve(
                 ctx, await _evaluate_rules(s, ctx, table, "create", clean, shadow, None)

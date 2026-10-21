@@ -13,4 +13,5 @@ The approved requirement documents live as shared Claude docs, which stay the ed
 | M4 PRD: Automation, notifications and guided start | https://claude.ai/artifact/SQQJ5SNnQnqPgTqbJdYVhD |
 | M5 PRD: AI assist, deterministic by design | https://claude.ai/artifact/GZwuVcs14db1VnCLnDJAgh |
 | M5.5 PRD: Chat setup | https://claude.ai/artifact/HuQZmeSv2Mg75QTYpLR7xJ |
+| M6 PRD: Operator console and client lifecycle | https://claude.ai/artifact/PmRYwg4tMm8mB513Sqige2 |
 | HLD and LLD (Recruitment Pack) | https://claude.ai/code/artifact/af67be98-273f-4744-a2e7-eebe04cc1f56 |

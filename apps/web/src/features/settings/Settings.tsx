@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { admin, app, files, type RoleRow } from '@/api/endpoints'
-import { Badge, Button, Card, CardTitle, Field, Input, LoadingState, PermissionDenied, Select, Table, Tabs, TabsContent, TabsList, TabsTrigger, Td, Th, useToast } from '@/design-system'
+import { Badge, Button, Card, CardTitle, Field, Input, LoadingState, PermissionDenied, Select, Dialog, DialogClose, DialogContent, DialogTrigger, Table, Tabs, TabsContent, TabsList, TabsTrigger, Td, Th, useToast } from '@/design-system'
 import { can, useMe } from '@/features/auth/useMe'
 import { AiSettings } from './AiSettings'
 import { useFileUrl } from '@/features/workspace/useBrand'
@@ -16,6 +16,7 @@ function People() {
   const refresh = () => qc.invalidateQueries({ queryKey: ['people'] })
   const active = useMutation({ mutationFn: (v: { id: string; on: boolean }) => admin.setActive(v.id, v.on), onSuccess: refresh, onError: (e) => toast({ title: errMsg(e), tone: 'bad' }) })
   const role = useMutation({ mutationFn: (v: { id: string; role: string }) => admin.setRole(v.id, v.role), onSuccess: refresh, onError: (e) => toast({ title: errMsg(e), tone: 'bad' }) })
+  const remove = useMutation({ mutationFn: (id: string) => admin.removePerson(id), onSuccess: refresh, onError: (e) => toast({ title: errMsg(e), tone: 'bad' }) })
   if (!people.data || !roles.data) return <LoadingState label="Loading people" />
   return (
     <Table aria-label="People">
@@ -32,7 +33,20 @@ function People() {
             </Td>
             <Td>{p.teams.join(', ') || '—'}</Td>
             <Td><Badge tone={p.active ? 'ok' : 'neutral'}>{p.active ? 'Active' : 'Deactivated'}</Badge></Td>
-            <Td><Button size="sm" variant="secondary" onClick={() => active.mutate({ id: p.id, on: !p.active })}>{p.active ? 'Deactivate' : 'Reactivate'}</Button></Td>
+            <Td>
+              <div className="flex gap-2">
+                <Button size="sm" variant="secondary" onClick={() => active.mutate({ id: p.id, on: !p.active })}>{p.active ? 'Deactivate' : 'Reactivate'}</Button>
+                <Dialog>
+                  <DialogTrigger asChild><Button size="sm" variant="secondary" aria-label={`Remove ${p.full_name}`}>Remove</Button></DialogTrigger>
+                  <DialogContent title={`Remove ${p.full_name}?`} description="They lose access now and cannot sign in again. Their name stays on past activity. You cannot remove yourself or the last admin.">
+                    <div className="flex justify-end gap-2">
+                      <DialogClose asChild><Button variant="secondary">Cancel</Button></DialogClose>
+                      <DialogClose asChild><Button variant="primary" onClick={() => remove.mutate(p.id)}>Remove {p.full_name}</Button></DialogClose>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </Td>
           </tr>
         ))}
       </tbody>

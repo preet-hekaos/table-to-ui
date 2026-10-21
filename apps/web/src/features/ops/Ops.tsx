@@ -3,9 +3,9 @@ import { Link, Outlet, useNavigate } from '@tanstack/react-router'
 import { LogOut, Building2, Package } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { ApiError } from '@/api/client'
-import { ops } from '@/api/endpoints'
+import { ops, type WorkspaceRow } from '@/api/endpoints'
 import { tokens } from '@/api/session'
-import { Badge, Button, Card, EmptyState, ErrorState, Field, Input, LoadingState, Table, Td, Th, useToast } from '@/design-system'
+import { Badge, Button, Card, Dialog, DialogContent, EmptyState, ErrorState, Field, Input, LoadingState, Select, Table, Td, Th, useToast } from '@/design-system'
 import { AuthLayout } from '@/features/auth/AuthLayout'
 
 /** Screen 0.1: operator sign-in. A separate realm: password, then an authenticator code. */
@@ -31,7 +31,7 @@ export function OpsSignIn() {
       } else {
         await ops.verify(code, pending)
         tokens.setOps(pending)
-        await navigate({ to: '/ops/tenants' })
+        await navigate({ to: '/ops/workspaces' })
       }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Something went wrong.')
@@ -79,6 +79,7 @@ export function OpsShell() {
         </div>
         <nav aria-label="Operations">
           {[
+            { to: '/ops/workspaces', label: 'Workspaces', icon: <Building2 className="size-4" aria-hidden /> },
             { to: '/ops/tenants', label: 'Tenants', icon: <Building2 className="size-4" aria-hidden /> },
             { to: '/ops/packs', label: 'Packs', icon: <Package className="size-4" aria-hidden /> },
           ].map((l) => (
@@ -204,5 +205,226 @@ export function PackCatalog() {
         </Card>
       ))}
     </div>
+  )
+}
+
+const STATUS_LABEL: Record<WorkspaceRow['status'], string> = {
+  provisioning: 'Setting up',
+  active: 'Active',
+  suspended: 'Suspended',
+  scheduled_deletion: 'Scheduled for deletion',
+}
+const STATUS_TONE: Record<WorkspaceRow['status'], 'ok' | 'warn' | 'bad' | 'neutral'> = {
+  provisioning: 'neutral',
+  active: 'ok',
+  suspended: 'warn',
+  scheduled_deletion: 'bad',
+}
+
+type Action = { kind: 'suspend' | 'export' | 'delete' | 'limits'; ws: WorkspaceRow }
+
+/** Screen 0.3: every client workspace, with counts only. Never record contents. */
+export function WorkspaceConsole() {
+  const qc = useQueryClient()
+  const toast = useToast()
+  const q = useQuery({ queryKey: ['ops-workspaces'], queryFn: ops.workspaces, retry: false })
+  const [action, setAction] = useState<Action | null>(null)
+  const [creating, setCreating] = useState(false)
+  const refresh = () => qc.invalidateQueries({ queryKey: ['ops-workspaces'] })
+  const fail = (e: unknown) => toast({ title: e instanceof Error ? e.message : 'Something went wrong', tone: 'bad' })
+  const resume = useMutation({ mutationFn: (id: string) => ops.resume(id), onSuccess: async () => { toast({ title: 'Workspace resumed', tone: 'ok' }); await refresh() }, onError: fail })
+  const cancel = useMutation({ mutationFn: (id: string) => ops.cancelDelete(id), onSuccess: async () => { toast({ title: 'Deletion canceled. The workspace is suspended.', tone: 'ok' }); await refresh() }, onError: fail })
+
+  if (q.isLoading) return <LoadingState label="Loading workspaces" />
+  if (q.isError) return <ErrorState requestId={(q.error as ApiError).requestId} onRetry={() => void q.refetch()} />
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-3">
+        <h1 className="text-xl font-bold text-ink">Workspaces</h1>
+        <Button variant="primary" size="sm" className="ml-auto" onClick={() => setCreating(true)}>New workspace</Button>
+      </div>
+      {q.data?.length ? (
+        <Table aria-label="Workspaces">
+          <thead>
+            <tr><Th>Workspace</Th><Th>Pack</Th><Th>Status</Th><Th>People</Th><Th>Records</Th><Th>Storage</Th><Th>Last activity</Th><Th><span className="sr-only">Actions</span></Th></tr>
+          </thead>
+          <tbody>
+            {q.data.map((w) => (
+              <tr key={w.id}>
+                <Td className="font-semibold text-ink">
+                  {w.name}
+                  <span className="block text-xs font-normal text-muted">{w.owner_email ?? 'No owner'}</span>
+                </Td>
+                <Td>{w.pack ?? 'Blank'}</Td>
+                <Td>
+                  <Badge tone={STATUS_TONE[w.status]}>{STATUS_LABEL[w.status]}</Badge>
+                  {w.status === 'scheduled_deletion' && w.delete_after && (
+                    <span className="block text-xs text-muted">Deleted {new Date(w.delete_after).toLocaleDateString()}</span>
+                  )}
+                  {w.status === 'suspended' && w.reason && <span className="block text-xs text-muted">{w.reason}</span>}
+                </Td>
+                <Td>{w.people}{w.limits.max_people != null && ` / ${w.limits.max_people}`}</Td>
+                <Td>{w.records}{w.limits.max_records != null && ` / ${w.limits.max_records}`}</Td>
+                <Td>{w.storage_mb} MB</Td>
+                <Td>{w.last_activity ? new Date(w.last_activity).toLocaleDateString() : 'Never'}</Td>
+                <Td>
+                  <div className="flex flex-wrap gap-2">
+                    {w.status === 'active' && <Button size="sm" variant="secondary" aria-label={`Suspend ${w.name}`} onClick={() => setAction({ kind: 'suspend', ws: w })}>Suspend</Button>}
+                    {w.status === 'suspended' && (
+                      <>
+                        <Button size="sm" variant="secondary" aria-label={`Resume ${w.name}`} loading={resume.isPending && resume.variables === w.id} onClick={() => resume.mutate(w.id)}>Resume</Button>
+                        <Button size="sm" variant="secondary" aria-label={`Delete ${w.name}`} onClick={() => setAction({ kind: 'delete', ws: w })}>Delete…</Button>
+                      </>
+                    )}
+                    {w.status === 'scheduled_deletion' && <Button size="sm" variant="secondary" aria-label={`Cancel deletion of ${w.name}`} loading={cancel.isPending && cancel.variables === w.id} onClick={() => cancel.mutate(w.id)}>Cancel deletion</Button>}
+                    {w.status !== 'provisioning' && <Button size="sm" variant="secondary" aria-label={`Export ${w.name}`} onClick={() => setAction({ kind: 'export', ws: w })}>Export</Button>}
+                    <Button size="sm" variant="secondary" aria-label={`Limits for ${w.name}`} onClick={() => setAction({ kind: 'limits', ws: w })}>Limits</Button>
+                  </div>
+                </Td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      ) : (
+        <EmptyState title="No client workspaces yet" />
+      )}
+      <Dialog open={creating} onOpenChange={setCreating}>
+        <DialogContent title="New workspace" description="The owner gets an invitation by email and full access to this workspace only.">
+          <NewWorkspaceForm onDone={async () => { setCreating(false); await refresh() }} />
+        </DialogContent>
+      </Dialog>
+      <Dialog open={action !== null} onOpenChange={(o) => !o && setAction(null)}>
+        {action && (
+          <DialogContent
+            title={{ suspend: `Suspend ${action.ws.name}`, export: `Export ${action.ws.name}`, delete: `Delete ${action.ws.name}`, limits: `Limits for ${action.ws.name}` }[action.kind]}
+            description={{
+              suspend: 'Everyone in this workspace is signed out now and cannot sign in until you resume it.',
+              export: 'Sends a download link to the workspace owner. The link expires in 24 hours.',
+              delete: 'Starts a grace period. After it ends, everything in the workspace is permanently erased.',
+              limits: 'Leave a box empty for no limit. Only the new thing is blocked when a limit is reached.',
+            }[action.kind]}
+          >
+            {action.kind === 'limits' ? (
+              <LimitsForm ws={action.ws} onDone={async () => { setAction(null); await refresh() }} />
+            ) : (
+              <ReasonForm kind={action.kind} ws={action.ws} onDone={async () => { setAction(null); await refresh() }} />
+            )}
+          </DialogContent>
+        )}
+      </Dialog>
+    </div>
+  )
+}
+
+function NewWorkspaceForm({ onDone }: { onDone: () => void | Promise<void> }) {
+  const toast = useToast()
+  const packs = useQuery({ queryKey: ['ops-packs'], queryFn: ops.packs })
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [pack, setPack] = useState('')
+  const [error, setError] = useState<string>()
+  const [link, setLink] = useState<string | null>(null)
+  const create = useMutation({
+    mutationFn: () => ops.createWorkspace({ name, owner_email: email, pack_id: pack || null }),
+    onSuccess: async (r) => {
+      toast({ title: `Created ${name}. Invitation sent to ${email}.`, tone: 'ok' })
+      if (r.invite_link) setLink(r.invite_link)
+      else await onDone()
+    },
+    onError: (e) => setError(e.message),
+  })
+  if (link) {
+    return (
+      <div className="flex flex-col gap-3">
+        <p className="rounded-md bg-soft p-2 text-xs break-all" data-testid="owner-invite-link"><b>Local development only:</b> {link}</p>
+        <Button variant="primary" onClick={() => void onDone()}>Done</Button>
+      </div>
+    )
+  }
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); setError(undefined); create.mutate() }} className="flex flex-col gap-4">
+      <Field label="Workspace name" required><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
+      <Field label="Owner email" required error={error}><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
+      <Field label="Start from">
+        <Select value={pack} onChange={(e) => setPack(e.target.value)}>
+          <option value="">Blank workspace</option>
+          {packs.data?.filter((p) => p.is_published).map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
+        </Select>
+      </Field>
+      <Button type="submit" variant="primary" loading={create.isPending}>Create workspace</Button>
+    </form>
+  )
+}
+
+function ReasonForm({ kind, ws, onDone }: { kind: 'suspend' | 'export' | 'delete'; ws: WorkspaceRow; onDone: () => void | Promise<void> }) {
+  const toast = useToast()
+  const [reason, setReason] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [grace, setGrace] = useState('7')
+  const [error, setError] = useState<string>()
+  const [link, setLink] = useState<string | null>(null)
+  const run = useMutation({
+    mutationFn: () =>
+      kind === 'suspend'
+        ? ops.suspend(ws.id, reason)
+        : kind === 'export'
+          ? ops.exportWorkspace(ws.id, reason)
+          : ops.scheduleDelete(ws.id, { confirm_name: confirm, reason, grace_days: Number(grace) }),
+    onSuccess: async (r) => {
+      const done = { suspend: 'Workspace suspended', export: 'Export sent to the workspace owner', delete: `Deletion scheduled in ${grace} days` }[kind]
+      toast({ title: done, tone: 'ok' })
+      const dl = (r as { download_link?: string }).download_link
+      if (kind === 'export' && dl) setLink(dl)
+      else await onDone()
+    },
+    onError: (e) => setError(e.message),
+  })
+  if (link) {
+    return (
+      <div className="flex flex-col gap-3">
+        <p className="rounded-md bg-soft p-2 text-xs break-all" data-testid="export-link"><b>Local development only:</b> {link}</p>
+        <Button variant="primary" onClick={() => void onDone()}>Done</Button>
+      </div>
+    )
+  }
+  const label = { suspend: 'Suspend workspace', export: 'Send export', delete: 'Schedule deletion' }[kind]
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); setError(undefined); run.mutate() }} className="flex flex-col gap-4">
+      {kind === 'delete' && (
+        <>
+          <Field label={`Type "${ws.name}" to confirm`} required><Input value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="off" /></Field>
+          <Field label="Grace period (days)" hint="You can cancel until it ends." required><Input type="number" min={0} max={90} value={grace} onChange={(e) => setGrace(e.target.value)} /></Field>
+        </>
+      )}
+      <Field label="Reason" required error={error}><Input value={reason} onChange={(e) => setReason(e.target.value)} /></Field>
+      <Button type="submit" variant="primary" loading={run.isPending}>{label}</Button>
+    </form>
+  )
+}
+
+function LimitsForm({ ws, onDone }: { ws: WorkspaceRow; onDone: () => void | Promise<void> }) {
+  const toast = useToast()
+  const keys = [
+    ['max_people', 'People'],
+    ['max_records', 'Records'],
+    ['max_storage_mb', 'Storage (MB)'],
+    ['ai_monthly_tokens', 'AI tokens per month'],
+  ] as const
+  const [v, setV] = useState<Record<string, string>>(Object.fromEntries(keys.map(([k]) => [k, ws.limits[k] == null ? '' : String(ws.limits[k])])))
+  const [error, setError] = useState<string>()
+  const save = useMutation({
+    mutationFn: () => ops.setLimits(ws.id, Object.fromEntries(keys.map(([k]) => [k, v[k] === '' ? null : Number(v[k])]))),
+    onSuccess: async () => { toast({ title: 'Limits saved', tone: 'ok' }); await onDone() },
+    onError: (e) => setError(e.message),
+  })
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); setError(undefined); save.mutate() }} className="flex flex-col gap-4">
+      {keys.map(([k, label], i) => (
+        <Field key={k} label={label} error={i === 0 ? error : undefined}>
+          <Input type="number" min={0} value={v[k]} onChange={(e) => setV({ ...v, [k]: e.target.value })} />
+        </Field>
+      ))}
+      <Button type="submit" variant="primary" loading={save.isPending}>Save limits</Button>
+    </form>
   )
 }

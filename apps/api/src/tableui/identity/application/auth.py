@@ -8,11 +8,16 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tableui.audit.public import write_audit
-from tableui.identity.application.sessions import create_session
+from tableui.identity.application.sessions import SUSPENDED_MESSAGE, create_session
 from tableui.identity.domain.ports import OrganisationProvider, TenantProvisioner
 from tableui.platform.config import Settings
 from tableui.platform.db import Database
-from tableui.platform.errors import TooManyAttempts, Unauthenticated, ValidationFailed
+from tableui.platform.errors import (
+    TooManyAttempts,
+    Unauthenticated,
+    ValidationFailed,
+    WorkspaceSuspended,
+)
 from tableui.platform.ids import new_id
 from tableui.platform.security import hash_password, token_hash, verify_password
 
@@ -194,14 +199,16 @@ async def sign_in(
     email = email.strip().lower()
     result: SignInResult | None = None
     locked = False
+    unavailable = False
     async with db.control() as s:
         locked = await _locked(s, realm, email, settings, request_id)
         if not locked:
             user = (
                 await s.execute(
                     text(
-                        "SELECT u.id, u.password_hash, u.mfa_enabled, m.tenant_id FROM control.app_user u "
+                        "SELECT u.id, u.password_hash, u.mfa_enabled, m.tenant_id, t.status AS tenant_status FROM control.app_user u "
                         "LEFT JOIN control.membership m ON m.user_id = u.id "
+                        "LEFT JOIN control.tenant t ON t.id = m.tenant_id "
                         "WHERE u.realm = :r AND u.email = :e ORDER BY m.created_at LIMIT 1"
                     ),
                     {"r": realm, "e": email},
@@ -221,6 +228,8 @@ async def sign_in(
                     detail={"realm": realm},
                     request_id=request_id,
                 )
+            elif realm == "tenant" and user.tenant_status not in (None, "active", "provisioning"):
+                unavailable = True
             else:
                 needs_mfa = realm == "operator" or user.mfa_enabled
                 token = await create_session(
@@ -241,6 +250,8 @@ async def sign_in(
     # Raise only after the transaction committed, so failed attempts and locks stay on record.
     if locked:
         raise _lock_error(settings)
+    if unavailable:
+        raise WorkspaceSuspended(SUSPENDED_MESSAGE)
     if result is None:
         raise Unauthenticated("The email or password is not right.")
     return result

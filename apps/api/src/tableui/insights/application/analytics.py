@@ -42,6 +42,13 @@ async def ensure_schema(analytics: Database) -> None:
             await s.execute(text(stmt))
 
 
+async def purge_tenant(analytics: Database, tenant_id: uuid.UUID) -> None:
+    """Remove everything the analytics store holds for a deleted workspace."""
+    async with analytics.control() as s:
+        for table in ("fact_record", "projection_state"):
+            await s.execute(text(f"DELETE FROM {table} WHERE tenant_id = :t"), {"t": tenant_id})  # noqa: S608
+
+
 async def handle_event(analytics: Database, event: dict[str, Any]) -> None:
     """Idempotent consumer: processing the same event twice has no extra effect."""
     async with analytics.control() as s:

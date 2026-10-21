@@ -201,6 +201,19 @@ async def activate(user_id: uuid.UUID, p: PrincipalDep, db: DbDep, request: Requ
         )
 
 
+@router.delete("/people/{user_id}", status_code=204)
+async def remove_person(user_id: uuid.UUID, p: PrincipalDep, db: DbDep, request: Request) -> None:
+    tid = _manage(p)
+    async with db.control() as s:
+        await admin.remove_member(
+            s,
+            tenant_id=tid,
+            actor_id=p.user_id,
+            user_id=user_id,
+            request_id=get_request_id(request),
+        )
+
+
 @router.put("/people/{user_id}/role", status_code=204)
 async def change_role(
     user_id: uuid.UUID, body: RoleChange, p: PrincipalDep, db: DbDep, request: Request
