@@ -81,3 +81,12 @@ The duplicate list was 10.5 s before a trigram index and a smaller scan cap (150
 | Everything around one model call: permissions, context, call log (p95, uncached) | < 50 ms | **44.0 ms** (a plain record read: 20.1 ms) | pass |
 | Same, answered from the cache (p95) | < 50 ms | **46.1 ms** | pass |
 
+
+## M5.5 gates — `m55.json`
+`apps/api/scripts/bench_m55.py`: 30 plans of 20 steps (a table, a select field and 18 text fields), each proposed and dry-run, applied, then undone, on a model that answers instantly (the demo provider). Real model time is the provider's and is not measured.
+
+| Gate | Target | Measured | |
+|---|---|---|---|
+| Propose and dry-run a 20-step plan (p95) | < 2 s | **340 ms** | pass |
+| Apply 20 steps to the Draft (p95) | < 3 s | **323 ms** | pass |
+| Undo the plan (p95, not a gate) | | 146 ms | |

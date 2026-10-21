@@ -2,7 +2,7 @@
 
 A metadata-first platform that turns tables into complete business apps. First industry pack: recruitment agencies.
 
-Status: M0 is merged; M1 (Data and screens) and M2 (Recruiting workflow) are merged; M2.5 (Relationship builder) is merged; M3 (Insights) is merged; M4 (Automation, notifications and guided start) is merged; M5 (AI assist) is in review. Requirements are indexed in [docs/prd](docs/prd), decisions in [docs/adr](docs/adr), benchmarks in [docs/benchmarks](docs/benchmarks).
+Status: M0 is merged; M1 (Data and screens) and M2 (Recruiting workflow) are merged; M2.5 (Relationship builder) is merged; M3 (Insights) is merged; M4 (Automation, notifications and guided start) is merged; M5 (AI assist) is merged; M5.5 (Chat setup) is in review. Requirements are indexed in [docs/prd](docs/prd), decisions in [docs/adr](docs/adr), benchmarks in [docs/benchmarks](docs/benchmarks).
 
 ## Run it locally (about 5 minutes)
 
@@ -53,6 +53,8 @@ Create the first platform operator (password on stdin, prints the authenticator 
 | M2.5 gate: Relationships list (needs the API running) | `uv run python scripts/bench_m25.py` in `apps/api` |
 | M3 gate: Insights dashboard (needs the API and `ANALYTICS_DATABASE_URL`) | `uv run python scripts/bench_m3.py` in `apps/api` |
 | M4 gates: hourly date check and save overhead (needs the API and `DATABASE_URL`) | `uv run python scripts/bench_m4.py` in `apps/api` |
+| M5.5 gates: dry run and apply of a 20-step plan (API with `AI_PROVIDER=fake`) | `uv run python scripts/bench_m55.py` in `apps/api` |
+| Try chat setup on real providers (not in CI) | `uv run python scripts/ai_live_setup.py` in `apps/api` |
 | M5 gates: AI overhead (needs the API running with `AI_PROVIDER=fake`) | `uv run python scripts/bench_m5.py` in `apps/api` |
 | Check the real AI providers with your keys in `apps/api/.env.local` (`GROQ_API_KEY`, `GOOGLE_API_KEY`) | `uv run python scripts/ai_live.py` in `apps/api` |
 | CV parser accuracy on the synthetic corpus | `uv run python -m tools.parser_accuracy` in `apps/api` |

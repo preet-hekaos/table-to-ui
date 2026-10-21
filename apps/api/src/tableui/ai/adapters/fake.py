@@ -40,6 +40,8 @@ def demo_answer(system: str, user: str) -> object:
             if len(chunk) == 3:
                 out[f["key"]] = {"value": " ".join(chunk), "quote": " ".join(chunk)}
         return {"fields": out}
+    if "You plan changes to the setup" in system:
+        return _demo_plan(data)
     if "search filters" in system:
         spec = json.loads(user.split("Fields: ", 1)[1].split("\n", 1)[0])
         filters: dict[str, str] = {}
@@ -54,3 +56,42 @@ def demo_answer(system: str, user: str) -> object:
             "body": "Hi,\n\nThis is a demo draft written without a real AI provider.\n\n[Your name]",
         }
     return {"text": "Demo answer: " + (data[:160] or "no details were given.")}
+
+
+def _demo_plan(words: str) -> object:
+    """A tiny plan for trying the chat without a key: a table named after what the owner says to track."""
+    import re
+
+    m = re.search(
+        r"(?:track|keep|manage|record)\s+(?:our\s+|my\s+|the\s+)?([A-Za-z]+)", words, re.I
+    )
+    if not m:
+        return {"reply": "Demo mode: tell me what to track, for example 'track our projects'.", "steps": []}  # fmt: skip
+    word = m.group(1).lower()
+    one = word[:-1] if word.endswith("s") and len(word) > 3 else word
+    extra = re.search(r"with (\d{1,2}) fields", words, re.I)
+    more = [
+        {"op": "field.add", "args": {"table": one, "label": f"Detail {i}", "type": "text"}, "why": "An extra detail."}
+        for i in range(1, min(int(extra.group(1)), 18) + 1)
+    ] if extra else []  # fmt: skip
+    return {
+        "reply": f"Demo plan: a {one} table with a status, a list screen and a menu entry.",
+        "steps": [
+            {
+                "op": "table.add",
+                "args": {"label": one.title(), "plural_label": one.title() + "s"},
+                "why": f"A place to keep your {word}.",
+            },  # fmt: skip
+            {
+                "op": "field.add",
+                "args": {
+                    "table": one,
+                    "label": "Status",
+                    "type": "select",
+                    "options": ["Open", "In progress", "Done"],
+                },
+                "why": "See how each one is going.",
+            },  # fmt: skip
+            *more,
+        ],
+    }
