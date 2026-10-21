@@ -38,11 +38,11 @@ Not a PRD gate, but worth knowing: ranked matches over 34,266 candidates that pa
 
 | Gate | Target | Measured | |
 |---|---|---|---|
-| Pipeline board, 500 cards (counts for all, 25 cards per stage sent) | p95 < 800 ms | **p95 80.8 ms** | pass |
-| Stage move | p95 < 300 ms | **p95 28.5 ms** | pass |
-| Approvals inbox | p95 < 600 ms | **p95 19.9 ms** | pass |
-| Pipeline filtered to one requirement | p95 < 600 ms | **p95 83.4 ms** | pass |
-| Duplicate list over 50,000 candidates | < 3 s | **p50 830.4 ms**, p95 4201.1 ms over 10 calls | p50 passes; p95 does not |
-| Merge with 100 linked records | < 5 s | **0.12 s** | pass |
+| Pipeline board, 500 cards (counts for all, 25 cards per stage sent) | p95 < 800 ms | **p95 68.5 ms** | pass |
+| Stage move | p95 < 300 ms | **p95 23.8 ms** | pass |
+| Approvals inbox | p95 < 600 ms | **p95 11.6 ms** | pass |
+| Pipeline filtered to one requirement | p95 < 600 ms | **p95 84.8 ms** | pass |
+| Duplicate list over 50,000 candidates | < 3 s | **p95 562.4 ms** (p50 480.9) over 10 calls | pass |
+| Merge with 100 linked records | < 5 s | **0.11 s** | pass |
 
-The duplicate list was 10.5 s before the trigram index and early cut-off. The p95 above is one cold first call (the other nine average about 0.85 s), so it is a warm-up cost, not steady state; it should still be closed before calling this gate met. The index is created for new tables only; workspaces created before M2 would need it added.
+The duplicate list was 10.5 s before a trigram index and a smaller scan cap (150 rows). The index is created for new tables only; workspaces created before M2 would need it added. Pairs are the first matches found, best first within that scan, not a global ranking.
