@@ -165,3 +165,70 @@ async def test_table_box_positions_are_remembered_per_workspace(
         "/v1/studio/layout", headers=a.h(), json={"positions": {"candidate": {"x": "left"}}}
     )
     assert bad.status_code == 422
+
+
+async def _health(client: httpx.AsyncClient, a: Agency) -> list[dict[str, object]]:
+    r = await client.get("/v1/studio/relationships/health", headers=a.h())
+    assert r.status_code == 200, r.text
+    return r.json()  # type: ignore[no-any-return]
+
+
+async def test_required_loop_is_refused_in_plain_words(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    tag = await _tag_table(client, a)
+    ok = await client.post(
+        "/v1/studio/relationships",
+        headers=a.h(),
+        json={"table": tag, "to": "candidate", "label": "Main person", "required": True},
+    )
+    assert ok.status_code == 201, ok.text
+    loop = await client.post(
+        "/v1/studio/relationships",
+        headers=a.h(),
+        json={"table": "candidate", "to": tag, "label": "Main tag", "required": True},
+    )
+    assert loop.status_code == 422, loop.text
+    err = loop.json()["errors"][0]
+    assert err["code"] == "circular_required" and "first" in err["message"]
+    optional = await client.post(
+        "/v1/studio/relationships",
+        headers=a.h(),
+        json={"table": "candidate", "to": tag, "label": "Main tag"},
+    )
+    assert optional.status_code == 201
+    flip = await client.patch(
+        "/v1/studio/tables/candidate/fields/main_tag", headers=a.h(), json={"required": True}
+    )
+    assert flip.status_code == 422 and flip.json()["errors"][0]["code"] == "circular_required"
+
+
+async def test_health_reports_empty_required_self_links_and_repeated_pairs(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    assert not [i for i in await _health(client, a) if i["severity"] != "note"]
+    tag = await _tag_table(client, a)
+    r = await client.post(
+        "/v1/studio/relationships",
+        headers=a.h(),
+        json={"table": "candidate", "to": tag, "label": "Favourite tag"},
+    )
+    assert r.status_code == 201
+    await a.publish_live()
+    assert (await a.create_candidate(candidate())).status_code == 201
+    flip = await client.patch(
+        "/v1/studio/tables/candidate/fields/favourite_tag", headers=a.h(), json={"required": True}
+    )
+    assert flip.status_code == 200, flip.text
+    issues = await _health(client, a)
+    empty = [i for i in issues if i["kind"] == "required_empty"]
+    assert empty and "have no Favourite tag" in str(empty[0]["message"])
+    selfie = await client.post(
+        "/v1/studio/relationships",
+        headers=a.h(),
+        json={"table": "candidate", "to": "candidate", "label": "Referred by"},
+    )
+    assert selfie.status_code == 201, selfie.text
+    assert any(i["kind"] == "self_link" for i in await _health(client, a))

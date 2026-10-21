@@ -4526,6 +4526,32 @@
         ]
       }
     },
+    "/v1/studio/relationships/health": {
+      "get": {
+        "operationId": "relationship_health_v1_studio_relationships_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Relationship Health V1 Studio Relationships Health Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Relationship Health",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
     "/v1/studio/relationships/many-to-many": {
       "post": {
         "operationId": "add_many_to_many_v1_studio_relationships_many_to_many_post",

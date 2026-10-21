@@ -113,6 +113,14 @@ async def relationships(p: PrincipalDep, db: DbDep) -> list[dict[str, Any]]:
         return await rel.list_links(s, p.tenant_id)
 
 
+@router.get("/studio/relationships/health")
+async def relationship_health(p: PrincipalDep, db: DbDep) -> list[dict[str, Any]]:
+    p.require("metadata.read")
+    assert p.tenant_id
+    async with db.control() as s:
+        return await rel.health(s, p.tenant_id)
+
+
 @router.post("/studio/relationships", status_code=201)
 async def add_relationship(
     body: dict[str, Any], p: PrincipalDep, db: DbDep, request: Request

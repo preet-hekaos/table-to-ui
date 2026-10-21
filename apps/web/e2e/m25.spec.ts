@@ -128,6 +128,17 @@ test('M2.5 demo: relationship builder', async ({ page }) => {
     await expect(page.getByText('Could not remove the link', { exact: true })).toBeVisible()
   })
 
+  await test.step('7b. Link health explains risky links in plain words and refuses a required loop', async () => {
+    await api(page, 'POST', '/v1/studio/relationships', { table: 'candidate', to: 'candidate', label: 'Referred by' })
+    await api(page, 'POST', '/v1/studio/relationships', { table: 'tag', to: 'candidate', label: 'Main person', required: true })
+    await expect(api(page, 'POST', '/v1/studio/relationships', { table: 'candidate', to: 'tag', label: 'Lead tag', required: true })).rejects.toThrow(/circular_required/)
+    await page.goto('/studio?tab=links')
+    const panel = page.getByTestId('link-health')
+    await expect(panel).toContainText('Good to know')
+    await expect(panel).toContainText('Referred by')
+    await shot(page, 'link-health')
+  })
+
   await test.step('8. The tab passes WCAG 2.2 AA and fits a 360 px phone', async () => {
     await page.goto('/studio?tab=map')
     await expect(page.getByTestId('canvas')).toBeVisible()

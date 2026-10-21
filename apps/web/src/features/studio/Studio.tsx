@@ -22,7 +22,7 @@ import {
 import { can, useMe } from '@/features/auth/useMe'
 import { DataTab } from './DataTab'
 import { FlowTab } from './FlowTab'
-import { RelationshipsTab } from './RelationshipsTab'
+import { LinkHealth, RelationshipsTab } from './RelationshipsTab'
 import { MapTab } from './MapTab'
 import { NavTab } from './NavTab'
 import { PreviewTab } from './PreviewTab'
@@ -111,6 +111,7 @@ function DraftBanner({ canPublish, onReview }: { canPublish: boolean; onReview: 
   if (!d?.draft_changed) return null
   const count = (['tables', 'screens', 'navs', 'rules', 'measures'] as const).reduce((n, k) => n + d.changes[k].length, 0)
   return (
+    <div className="flex flex-col gap-2">
     <div role="status" className="flex flex-wrap items-center gap-3 rounded-lg border border-warn-soft bg-warn-soft px-4 py-3 text-sm text-warn-ink" data-testid="draft-banner">
       <span>
         <b>The Draft has {count} unpublished change{count === 1 ? '' : 's'}.</b> Nobody sees them until they are published and made Live.
@@ -123,6 +124,8 @@ function DraftBanner({ canPublish, onReview }: { canPublish: boolean; onReview: 
           Publish Draft to Test
         </Button>
       )}
+    </div>
+    <LinkHealth compact />
     </div>
   )
 }

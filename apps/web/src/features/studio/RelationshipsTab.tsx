@@ -1,13 +1,35 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { ApiError } from '@/api/client'
-import { studio, type Link } from '@/api/endpoints'
+import { studio, type Link, type LinkIssue } from '@/api/endpoints'
 import { Badge, Button, Card, Dialog, DialogContent, EmptyState, ErrorState, Field, Input, LoadingState, Select, useToast } from '@/design-system'
 import { useDraftTables } from './DataTab'
 
 const refresh = (qc: ReturnType<typeof useQueryClient>) =>
   Promise.all(['studio-relationships', 'studio-tables', 'studio-status'].map((k) => qc.invalidateQueries({ queryKey: [k] })))
 const fieldErrors = (e: unknown) => (e instanceof ApiError ? Object.fromEntries(e.errors.map((x) => [x.field.split('.').pop() ?? x.field, x.message])) : {})
+
+const tone = { problem: 'text-bad', warning: 'text-warn-ink', note: 'text-muted' } as const
+const heading = { problem: 'Fix before publishing', warning: 'Worth a look', note: 'Good to know' } as const
+
+/** Plain-words problems with how tables link. Shown here and next to Publish. */
+export function LinkHealth({ compact = false }: { compact?: boolean }) {
+  const health = useQuery({ queryKey: ['studio-relationships', 'health'], queryFn: studio.linkHealth, retry: false })
+  const issues: LinkIssue[] = (health.data ?? []).filter((i) => !compact || i.severity !== 'note')
+  if (issues.length === 0) return null
+  return (
+    <section aria-label={compact ? 'Link health before publishing' : 'Link health'} className="flex flex-col gap-1 rounded-lg border border-line bg-surface p-3 text-sm" data-testid={compact ? 'link-health-publish' : 'link-health'}>
+      <p className="font-semibold text-ink">Link health</p>
+      <ul className="flex flex-col gap-1">
+        {issues.map((i, n) => (
+          <li key={n} className={tone[i.severity]}>
+            <b>{heading[i.severity]}:</b> {i.message}
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
 
 /** Every link between tables in one place: add, rename, make required, remove. Saved to Draft. */
 export function RelationshipsTab({ canEdit, selected, onSelect }: { canEdit: boolean; selected?: string; onSelect: (id: string | undefined) => void }) {
@@ -29,6 +51,7 @@ export function RelationshipsTab({ canEdit, selected, onSelect }: { canEdit: boo
           </>
         )}
       </div>
+      <LinkHealth />
       {list.length === 0 ? (
         <EmptyState title="No links yet" />
       ) : (
@@ -216,6 +239,12 @@ export function EditLink({ link, onClose }: { link: Link; onClose: () => void })
               <input type="checkbox" checked={required} onChange={(e) => setRequired(e.target.checked)} /> Required
             </label>
           )}
+          {!isPack && required && !link.required && link.empty > 0 && (
+            <p className="text-xs text-warn-ink">
+              {link.empty} of {link.total} existing records have no {link.label}. They keep working, but will need one the next time someone edits them.
+            </p>
+          )}
+          {errors.required && <p role="alert" className="text-xs text-bad">{errors.required}</p>}
           <label className="flex items-center gap-2 text-sm text-ink">
             <input type="checkbox" checked={hidden} onChange={(e) => setHidden(e.target.checked)} /> Hide from screens
           </label>

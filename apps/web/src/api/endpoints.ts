@@ -94,6 +94,15 @@ export interface Link {
   help: string | null
   source: 'pack' | 'agency'
   used: number
+  empty: number
+  total: number
+}
+
+export interface LinkIssue {
+  kind: string
+  severity: 'problem' | 'warning' | 'note'
+  link: string | null
+  message: string
 }
 
 export const studio = {
@@ -109,6 +118,7 @@ export const studio = {
   saveStages: (table: string, body: { labels: Record<string, string>; add?: { key: string; after: string } }) => send<unknown>('PUT', `/v1/studio/tables/${table}/stages`, body),
   setSeverity: (rule: string, check: string, severity: string) => send<unknown>('PUT', `/v1/studio/rules/${rule}/checks/${check}`, { severity }),
   relationships: () => g<Link[]>('/v1/studio/relationships'),
+  linkHealth: () => g<LinkIssue[]>('/v1/studio/relationships/health'),
   layout: () => g<{ positions: Record<string, { x: number; y: number }> }>('/v1/studio/layout'),
   saveLayout: (positions: Record<string, { x: number; y: number }>) => send<unknown>('PUT', '/v1/studio/layout', { positions }),
   addRelationship: (body: { table: string; to: string; label?: string; required?: boolean }) => send<Link>('POST', '/v1/studio/relationships', body),

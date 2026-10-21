@@ -16,3 +16,7 @@ M2.5 lets an admin see and manage every link between tables from one screen, inc
 
 ## Consequences
 A one-to-one link is a link marked required plus a unique value on the parent, which the builder does not offer yet. Linking tables show up in the menu like any other table; hiding them from the menu is done in the Menu tab.
+
+## Link health
+
+A read-only check (`GET /v1/studio/relationships/health`) explains link problems in plain words, on the Relationships tab and next to "Publish Draft to Test". It reports: a loop of required links (refused when the link is added or made required, because neither record could be created first); required links that existing records leave empty (a warning, never a block, since existing records keep working); a table linking to itself; several links between the same two tables; and a many-to-many pair stored twice. Pure graph logic lives in `metadata/domain/links.py`.

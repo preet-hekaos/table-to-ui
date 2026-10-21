@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from tableui.audit.public import write_audit
 from tableui.metadata.domain.ddl import add_field_index_sql, add_shadow_column_sql, table_ddl_sql
+from tableui.metadata.domain.links import describe_cycle, required_cycle
 from tableui.metadata.domain.models import FieldDef, NavItem, RuleDef, ScreenDef, TableDef
 from tableui.platform.errors import NotFound, ValidationFailed
 from tableui.platform.ids import schema_name
@@ -339,6 +340,19 @@ async def update_field(
         )
     except ValidationError as e:
         raise _pydantic_errors(e) from None
+    if nf.type == "reference" and nf.required and not f.required:
+        rows = await s.execute(text("SELECT definition FROM metadata_object WHERE kind = 'table'"))
+        others = [
+            TableDef.model_validate(r.definition) for r in rows if r.definition["key"] != table_key
+        ]
+        cycle = required_cycle([updated, *others])
+        if cycle:
+            labels = {t.key: t.label for t in [updated, *others]}
+            raise _bad(
+                "required",
+                describe_cycle(cycle, labels) + " Make one of the links optional.",
+                "circular_required",
+            )
     await _put(s, tenant_id, "table", table_key, updated.model_dump(mode="json"), source)
     await _audit(
         s,

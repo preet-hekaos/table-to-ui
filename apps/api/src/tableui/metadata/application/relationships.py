@@ -13,6 +13,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tableui.metadata.application import studio
+from tableui.metadata.domain.links import describe_cycle, required_cycle
 from tableui.metadata.domain.models import FieldDef, TableDef
 from tableui.platform.errors import NotFound
 
@@ -43,7 +44,7 @@ async def _used(s: AsyncSession, schema: str, table: str, field: str) -> int:
     )
 
 
-def _link(t: TableDef, f: Any, to: TableDef | None, used: int) -> dict[str, Any]:
+def _link(t: TableDef, f: Any, to: TableDef | None, used: int, total: int = 0) -> dict[str, Any]:
     return {
         "id": f"{t.key}.{f.key}",
         "table": t.key,
@@ -57,10 +58,14 @@ def _link(t: TableDef, f: Any, to: TableDef | None, used: int) -> dict[str, Any]
         "help": f.help,
         "source": f.source,
         "used": used,
+        "empty": max(total - used, 0),
+        "total": total,
     }
 
 
-async def _usage(s: AsyncSession, schema: str, tables: list[TableDef]) -> dict[str, int]:
+async def _usage(
+    s: AsyncSession, schema: str, tables: list[TableDef]
+) -> dict[str, tuple[int, int]]:
     """Records using each link: one query per table that exists, not one per link."""
     live = {
         r.relname
@@ -71,12 +76,12 @@ async def _usage(s: AsyncSession, schema: str, tables: list[TableDef]) -> dict[s
             {"n": schema},
         )
     }
-    out: dict[str, int] = {}
+    out: dict[str, tuple[int, int]] = {}
     for t in tables:
         refs = [f.key for f in t.fields if f.type == "reference"]
         if not refs or t.key not in live:
             continue
-        cols = ", ".join(
+        cols = "count(*), " + ", ".join(
             f"count(*) FILTER (WHERE data->>:f{i} IS NOT NULL)" for i in range(len(refs))
         )
         row = (
@@ -85,7 +90,7 @@ async def _usage(s: AsyncSession, schema: str, tables: list[TableDef]) -> dict[s
                 {f"f{i}": k for i, k in enumerate(refs)},
             )
         ).one()
-        out.update({f"{t.key}.{k}": int(row[i]) for i, k in enumerate(refs)})
+        out.update({f"{t.key}.{k}": (int(row[i + 1]), int(row[0])) for i, k in enumerate(refs)})
     return out
 
 
@@ -95,7 +100,7 @@ async def list_links(s: AsyncSession, tenant_id: uuid.UUID) -> list[dict[str, An
     by_key = {t.key: t for t in tables}
     usage = await _usage(s, schema, tables)
     return [
-        _link(t, f, by_key.get(f.ref_table or ""), usage.get(f"{t.key}.{f.key}", 0))
+        _link(t, f, by_key.get(f.ref_table or ""), *usage.get(f"{t.key}.{f.key}", (0, 0)))
         for t in tables
         for f in t.fields
         if f.type == "reference"
@@ -125,6 +130,29 @@ async def add_link(
                 "label",
                 f"{tables[child].label} already links to {tables[parent].label} as '{f.label}'",
                 "duplicate",
+            )
+    if body.get("required"):
+        trial = tables[child].model_copy(
+            update={
+                "fields": [
+                    *tables[child].fields,
+                    FieldDef(
+                        key="new_link",
+                        label=label,
+                        type="reference",
+                        ref_table=parent,
+                        required=True,
+                    ),
+                ]
+            }
+        )
+        cycle = required_cycle([trial, *[t for k, t in tables.items() if k != child]])
+        if cycle:
+            raise studio._bad(
+                "required",
+                describe_cycle(cycle, {k: t.label for k, t in tables.items()})
+                + " Make one of the links optional.",
+                "circular_required",
             )
     field = await studio.add_field(
         s,
@@ -297,3 +325,85 @@ async def save_layout(
         {"t": tenant_id, "p": json.dumps(clean), "u": user_id},
     )
     return clean
+
+
+async def health(s: AsyncSession, tenant_id: uuid.UUID) -> list[dict[str, Any]]:
+    """Plain-words problems and notes about the links in the Draft."""
+    schema = await studio._enter_tenant(s, tenant_id)
+    tables = await _tables(s)
+    labels = {t.key: t.label for t in tables}
+    usage = await _usage(s, schema, tables)
+    issues: list[dict[str, Any]] = []
+
+    def add(kind: str, severity: str, link: str | None, message: str) -> None:
+        issues.append({"kind": kind, "severity": severity, "link": link, "message": message})
+
+    cycle = required_cycle(tables)
+    if cycle:
+        add(
+            "circular_required",
+            "problem",
+            None,
+            describe_cycle(cycle, labels) + " Make one of the links optional.",
+        )
+    pairs: dict[tuple[str, str], list[str]] = {}
+    for t in tables:
+        for f in t.fields:
+            if f.type != "reference":
+                continue
+            lid = f"{t.key}.{f.key}"
+            used, total = usage.get(lid, (0, 0))
+            if f.required and total > used:
+                add(
+                    "required_empty",
+                    "warning",
+                    lid,
+                    f"{total - used} of {total} {t.plural_label} have no {f.label}. They will need one the next time someone edits them.",
+                )
+            if f.ref_table == t.key:
+                add(
+                    "self_link",
+                    "note",
+                    lid,
+                    f"{t.label} links to other {t.plural_label} ('{f.label}'). That suits things like 'reports to'; keep it optional.",
+                )
+            pairs.setdefault((t.key, f.ref_table or ""), []).append(f.label)
+    for (a, b), names in pairs.items():
+        if len(names) > 1 and a != b:
+            add(
+                "parallel_links",
+                "note",
+                None,
+                f"{labels[a]} has {len(names)} links to {labels.get(b, b)} ({', '.join(names)}). Fine if they mean different things.",
+            )
+    for t in tables:
+        refs = [f for f in t.fields if f.type == "reference" and f.required]
+        if (
+            t.source != "agency"
+            or len(refs) != 2
+            or len([f for f in t.fields if f.type == "reference"]) != 2
+        ):
+            continue
+        exists = (
+            await s.execute(text("SELECT to_regclass(:n)"), {"n": f'"{schema}"."{t.key}"'})
+        ).scalar_one()
+        if exists is None:
+            continue
+        a, b = refs[0].key, refs[1].key
+        dup = (
+            await s.execute(
+                text(
+                    f'SELECT count(*) FROM (SELECT 1 FROM "{schema}"."{t.key}" WHERE data->>:a IS NOT NULL AND data->>:b IS NOT NULL '  # noqa: S608 - identifiers are validated metadata keys
+                    "GROUP BY data->>:a, data->>:b HAVING count(*) > 1) x"
+                ),
+                {"a": a, "b": b},
+            )
+        ).scalar_one()
+        if dup:
+            add(
+                "duplicate_pairs",
+                "warning",
+                f"{t.key}.{a}",
+                f"{dup} pair{'s are' if dup != 1 else ' is'} stored twice in {t.label}. Remove the repeats so each pair appears once.",
+            )
+    return issues
