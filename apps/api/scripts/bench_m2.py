@@ -16,12 +16,13 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+import bench_m1 as b
 import httpx
 
-import bench_m1 as b
 
-
-async def make(c: httpx.AsyncClient, h: dict[str, str], table: str, data: dict[str, Any]) -> dict[str, Any]:
+async def make(
+    c: httpx.AsyncClient, h: dict[str, str], table: str, data: dict[str, Any]
+) -> dict[str, Any]:
     r = await c.post(f"/v1/records/{table}", headers=h, json={"data": data})
     r.raise_for_status()
     return r.json()  # type: ignore[no-any-return]
@@ -33,7 +34,12 @@ async def main(api: str, rows: int, samples: int) -> dict[str, Any]:
         out: dict[str, Any] = {}
         client = await make(c, h, "client", {"name": "Bench Client", "status": "Active"})
         reqs = [
-            await make(c, h, "requirement", {"title": f"Role {i}", "client": client["id"], "status": "Open"})
+            await make(
+                c,
+                h,
+                "requirement",
+                {"title": f"Role {i}", "client": client["id"], "status": "Open"},
+            )
             for i in range(5)
         ]
         entries: list[dict[str, Any]] = []
@@ -44,7 +50,10 @@ async def main(api: str, rows: int, samples: int) -> dict[str, Any]:
                 "phone": f"+91 7{(i * 7919 + 12345) % 10**9:09d}", "skills": ["Java"], "status": "Active"})  # fmt: skip
             entries.append(await make(c, h, "submission", {
                 "summary": f"Person {i}", "candidate": cand["id"], "requirement": reqs[i % 5]["id"]}))  # fmt: skip
-        out["seeded_submissions"] = {"n": len(entries), "seconds": round(time.perf_counter() - t0, 1)}
+        out["seeded_submissions"] = {
+            "n": len(entries),
+            "seconds": round(time.perf_counter() - t0, 1),
+        }
 
         board = []
         for _ in range(samples):
@@ -62,7 +71,9 @@ async def main(api: str, rows: int, samples: int) -> dict[str, Any]:
 
         inbox = []
         for _ in range(samples):
-            ms, r = await b.timed(c, "GET", "/v1/approvals", headers=h, params={"status": "pending"})
+            ms, r = await b.timed(
+                c, "GET", "/v1/approvals", headers=h, params={"status": "pending"}
+            )
             r.raise_for_status()
             inbox.append(ms)
         out["approvals_inbox"] = b.summary(inbox)
