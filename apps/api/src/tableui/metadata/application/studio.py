@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from tableui.audit.public import write_audit
 from tableui.metadata.domain.ddl import add_field_index_sql, add_shadow_column_sql, table_ddl_sql
-from tableui.metadata.domain.models import FieldDef, NavItem, ScreenDef, TableDef
+from tableui.metadata.domain.models import FieldDef, NavItem, RuleDef, ScreenDef, TableDef
 from tableui.platform.errors import NotFound, ValidationFailed
 from tableui.platform.ids import schema_name
 from tableui.platform.sql import split_statements
@@ -517,3 +517,142 @@ async def read_draft(s: AsyncSession, tenant_id: uuid.UUID, kind: str) -> list[d
         {"k": kind},
     )
     return [{**r.definition, "source": r.definition.get("source", r.source)} for r in rows]
+
+
+STAGE_KEY = re.compile(r"^[A-Za-z][A-Za-z0-9 ./&-]{0,38}$")
+
+
+async def set_check_severity(
+    s: AsyncSession,
+    *,
+    tenant_id: uuid.UUID,
+    user_id: uuid.UUID,
+    rule_id: str,
+    check_id: str,
+    severity: str,
+    request_id: str | None,
+) -> dict[str, Any]:
+    """Turn a policy up or down: block, warn, or hold for approval. Only checks the pack marks editable."""
+    await _enter_tenant(s, tenant_id)
+    found = await _draft(s, "rule", rule_id)
+    if found is None:
+        raise NotFound(f"There is no rule '{rule_id}'.")
+    definition, source = found
+    rule = RuleDef.model_validate(definition)
+    check = next((c for c in rule.checks if c.id == check_id), None)
+    if check is None:
+        raise NotFound(f"There is no check '{check_id}' on {rule_id}.")
+    if not check.editable:
+        raise _bad(
+            "severity", "this rule is fixed by the pack and cannot be loosened", "not_editable"
+        )
+    if severity not in ("block", "warn", "approval"):
+        raise _bad("severity", "must be block, warn or approval")
+    updated = rule.model_copy(
+        update={
+            "version": rule.version + 1,
+            "checks": [
+                c.model_copy(
+                    update={
+                        "severity": severity,
+                        "edited": True,
+                        "overridable": c.overridable and severity == "block",
+                    }
+                )
+                if c.id == check_id
+                else c
+                for c in rule.checks
+            ],
+        }
+    )
+    await _put(s, tenant_id, "rule", rule_id, updated.model_dump(mode="json"), source)
+    await _audit(
+        s,
+        tenant_id,
+        user_id,
+        "metadata.rule.severity",
+        f"{rule_id}.{check_id}",
+        {"from": check.severity, "to": severity},
+        request_id,
+    )
+    return {"rule": rule_id, "check": check_id, "severity": severity}
+
+
+async def update_stages(
+    s: AsyncSession,
+    *,
+    tenant_id: uuid.UUID,
+    user_id: uuid.UUID,
+    table_key: str,
+    body: dict[str, Any],
+    request_id: str | None,
+) -> dict[str, Any]:
+    """Relabel stages (the stored value never changes) and add a stage after another."""
+    await _enter_tenant(s, tenant_id)
+    found = await _draft(s, "table", table_key)
+    if found is None:
+        raise NotFound(f"There is no table '{table_key}'.")
+    definition, source = found
+    table = TableDef.model_validate(definition)
+    wf = table.workflow
+    if wf is None:
+        raise _bad("table", "this table has no stages")
+    labels: dict[str, str] = body.get("labels") or {}
+    stages = {st.key: st.model_dump(mode="json") for st in wf.stages}
+    order = [st.key for st in wf.stages]
+    for key, label in labels.items():
+        if key not in stages:
+            raise _bad("labels", f"unknown stage '{key}'", "unknown")
+        if not str(label).strip():
+            raise _bad("labels", "a stage needs a label", "required")
+        stages[key]["label"] = str(label).strip()
+    transitions = {k: list(v) for k, v in wf.transitions.items()}
+    options = list(table.field(wf.field).options)  # type: ignore[union-attr]
+    add = body.get("add")
+    if add:
+        key = str(add.get("key", "")).strip()
+        after = str(add.get("after", ""))
+        if not STAGE_KEY.match(key) or key in stages:
+            raise _bad("add.key", "needs a new name of letters and numbers", "invalid")
+        if after not in stages or stages[after]["end"]:
+            raise _bad("add.after", "pick the stage it follows", "invalid")
+        stages[key] = {
+            "key": key,
+            "label": str(add.get("label") or key).strip(),
+            "end": False,
+            "ask": [],
+        }
+        order.insert(order.index(after) + 1, key)
+        options.append(key)
+        # Reached from the stage it follows; from there it can go wherever that stage could.
+        transitions[key] = [t for t in transitions.get(after, []) if t != key]
+        transitions[after] = [*transitions.get(after, []), key]
+    try:
+        fields = [
+            {**x, "options": options} if x["key"] == wf.field else x for x in definition["fields"]
+        ]
+        updated = TableDef.model_validate(
+            {
+                **definition,
+                "fields": fields,
+                "workflow": {
+                    "field": wf.field,
+                    "stages": [stages[k] for k in order],
+                    "transitions": transitions,
+                },
+                "version": table.version + 1,
+            }
+        )
+    except ValidationError as e:
+        raise _pydantic_errors(e) from None
+    await _put(s, tenant_id, "table", table_key, updated.model_dump(mode="json"), source)
+    await _audit(
+        s,
+        tenant_id,
+        user_id,
+        "metadata.stages.update",
+        table_key,
+        {"relabelled": sorted(labels), "added": (add or {}).get("key")},
+        request_id,
+    )
+    return updated.workflow.model_dump(mode="json")  # type: ignore[union-attr]

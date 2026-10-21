@@ -79,7 +79,7 @@ test('Studio: fields, tables, map, screens, menu, preview and versions', async (
     await page.getByLabel('Label for Candidates').fill('Talent')
     await page.getByRole('button', { name: 'Save menu' }).click()
     await expect(page.getByText('Menu saved in Draft').first()).toBeVisible()
-    await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Candidates' })).toBeVisible()
+    await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Candidates', exact: true })).toBeVisible()
   })
 
   await test.step('S17. Compare the Draft with Live, then publish and make it Live', async () => {
@@ -91,7 +91,7 @@ test('Studio: fields, tables, map, screens, menu, preview and versions', async (
     await expect(diff).toContainText('candidates')
     await publishAndMakeLive(page)
     await page.reload()
-    await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Talent' })).toBeVisible()
+    await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Talent', exact: true })).toBeVisible()
     await page.goto('/records/candidate/new')
     await expect(page.getByLabel(/^Preferred shift/)).toBeVisible()
     await page.goto('/s/candidates')
@@ -104,7 +104,7 @@ test('Studio: fields, tables, map, screens, menu, preview and versions', async (
     const frame = page.frameLocator('iframe')
     await expect(frame.getByTestId('preview-banner')).toContainText('sourcer')
     await page.getByRole('button', { name: /Run pack fixtures/ }).click()
-    await expect(page.getByTestId('fixture-results')).toContainText('8 of 8 passed')
+    await expect(page.getByTestId('fixture-results')).toContainText('24 of 24 passed')
   })
 
   await test.step('Studio screens pass axe', async () => {

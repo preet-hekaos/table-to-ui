@@ -2,10 +2,35 @@ key: submission
 label: Submission
 plural_label: Submissions
 title_field: summary
+workflow:
+  field: stage
+  stages:
+    - {key: Sourced}
+    - {key: Screened}
+    - {key: Submitted, ask: [contact]}
+    - {key: Client shortlisted, ask: [client_feedback]}
+    - {key: Interview}
+    - {key: Offer}
+    - {key: Placed, end: true}
+    - {key: Rejected, end: true, ask: [rejection_reason]}
+    - {key: Withdrawn, end: true}
+    - {key: On hold}
+  transitions:
+    Sourced: [Screened, Rejected, Withdrawn, On hold]
+    Screened: [Submitted, Rejected, Withdrawn, On hold]
+    Submitted: [Client shortlisted, Rejected, Withdrawn, On hold]
+    Client shortlisted: [Interview, Rejected, Withdrawn, On hold]
+    Interview: [Offer, Rejected, Withdrawn, On hold]
+    Offer: [Placed, Interview, Client shortlisted, Rejected, Withdrawn, On hold]
+    On hold: [Sourced, Screened, Submitted, Client shortlisted, Interview, Offer]
 fields:
   - {key: summary, label: Summary, type: text, required: true, searchable: true}
   - {key: candidate, label: Candidate, type: reference, ref_table: candidate, required: true, filterable: true}
   - {key: requirement, label: Requirement, type: reference, ref_table: requirement, required: true, filterable: true}
-  - {key: status, label: Status, type: select, required: true, default: Submitted, options: [Submitted, Shortlisted, Rejected, On hold], filterable: true}
+  - {key: stage, label: Stage, type: select, required: true, default: Sourced, options: [Sourced, Screened, Submitted, Client shortlisted, Interview, Offer, Placed, Rejected, Withdrawn, On hold], filterable: true}
+  - {key: contact, label: Client contact, type: reference, ref_table: contact}
   - {key: submitted_on, label: Submitted on, type: date}
+  - {key: rejection_reason, label: Reason for rejection, type: select, options: [Skills mismatch, Pay mismatch, Notice too long, Client declined, Candidate withdrew, Other]}
+  - {key: client_feedback, label: Client feedback, type: long_text}
   - {key: note, label: Note, type: long_text}
+  - {key: status, label: Status (earlier version), type: select, default: Submitted, options: [Submitted, Shortlisted, Rejected, On hold], hidden: true, help: Replaced by Stage}

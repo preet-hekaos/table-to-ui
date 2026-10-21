@@ -1,0 +1,4 @@
+key: duplicate_candidates
+title: Duplicate candidates
+pattern: duplicate_review
+table: candidate

@@ -1,0 +1,15 @@
+id: R-02
+title: Consent on record before a candidate is submitted
+table: submission
+applies_to: [create, update]
+context:
+  consent_given:
+    kind: count
+    table: consent_record
+    match: {candidate: candidate}
+    where: {status: Given}
+checks:
+  - id: R-02.consent
+    severity: block
+    when: "record.stage in ['Submitted', 'Client shortlisted', 'Interview', 'Offer', 'Placed'] && before.stage != record.stage && ctx.consent_given == 0"
+    message: "This candidate has not given consent to be shared. Record their consent first."

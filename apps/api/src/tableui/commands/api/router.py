@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from tableui.commands.application.pipeline import (
     CommandContext,
+    Overrides,
     check_record,
     create_record,
     update_record,
@@ -21,17 +22,29 @@ DbDep = Annotated[Database, Depends(get_db)]
 SettingsDep = Annotated[Settings, Depends(get_settings_dep)]
 
 
+class OverrideBody(BaseModel):
+    checks: list[str]
+    reason: str
+
+
 class CreateBody(BaseModel):
     data: dict[str, Any]
+    override: OverrideBody | None = None
 
 
 class UpdateBody(BaseModel):
     version: int
     data: dict[str, Any]
+    override: OverrideBody | None = None
 
 
 def _ctx(
-    p: PrincipalDep, app: LiveAppDep, settings: Settings, request: Request, key: str | None
+    p: PrincipalDep,
+    app: LiveAppDep,
+    settings: Settings,
+    request: Request,
+    key: str | None,
+    override: OverrideBody | None = None,
 ) -> CommandContext:
     return CommandContext(
         principal=p,
@@ -39,6 +52,7 @@ def _ctx(
         app_version=settings.app_version,
         request_id=get_request_id(request),
         idempotency_key=key,
+        overrides=Overrides(frozenset(override.checks), override.reason) if override else None,
     )
 
 
@@ -55,7 +69,7 @@ async def create(
     idempotency_key: Annotated[str | None, Header()] = None,
 ) -> dict[str, Any]:
     result = await create_record(
-        db, _ctx(p, app, settings, request, idempotency_key), table, body.data
+        db, _ctx(p, app, settings, request, idempotency_key, body.override), table, body.data
     )
     response.status_code = result.status
     if result.replayed:
@@ -78,7 +92,7 @@ async def update(
 ) -> dict[str, Any]:
     result = await update_record(
         db,
-        _ctx(p, app, settings, request, idempotency_key),
+        _ctx(p, app, settings, request, idempotency_key, body.override),
         table,
         record_id,
         body.data,

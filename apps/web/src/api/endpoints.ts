@@ -3,6 +3,10 @@
 import { api, unwrap } from './client'
 import type {
   ActivityRow,
+  HeldChange,
+  Board,
+  DuplicatePair,
+  MergeRow,
   HistoryEntry,
   Measure,
   Me,
@@ -86,6 +90,9 @@ export const studio = {
   updateField: (table: string, field: string, body: Partial<FieldDef>) =>
     send<FieldDef>('PATCH', `/v1/studio/tables/${table}/fields/${field}`, body),
   removeField: (table: string, field: string) => send<void>('DELETE', `/v1/studio/tables/${table}/fields/${field}`),
+  rules: () => g<{ id: string; checks: { id: string; severity: string; message: string; editable?: boolean; edited?: boolean }[] }[]>('/v1/studio/rules'),
+  saveStages: (table: string, body: { labels: Record<string, string>; add?: { key: string; after: string } }) => send<unknown>('PUT', `/v1/studio/tables/${table}/stages`, body),
+  setSeverity: (rule: string, check: string, severity: string) => send<unknown>('PUT', `/v1/studio/rules/${rule}/checks/${check}`, { severity }),
   screens: () => g<DraftScreen[]>('/v1/studio/screens'),
   saveScreen: (key: string, body: Omit<DraftScreen, 'key' | 'version' | 'source'>) => send<DraftScreen>('PUT', `/v1/studio/screens/${key}`, body),
   navigation: () => g<DraftNav[]>('/v1/studio/navigation'),
@@ -293,4 +300,48 @@ export const imports = {
   start: (id: string) => send<ImportJob>('POST', `/v1/imports/${id}/start`),
   undo: (id: string) => send<ImportJob>('POST', `/v1/imports/${id}/undo`),
   errorFile: (id: string) => unwrap<Blob>(api.GET(`/v1/imports/${id}/errors.csv` as never, { parseAs: 'blob' } as never) as never),
+}
+
+export interface OverrideInput { checks: string[]; reason: string }
+
+export const flow = {
+  board: (table: string, filters: Record<string, string>, q?: string) =>
+    g<Board>(`/v1/workflow/${table}/board${qs({ q, ...Object.fromEntries(Object.entries(filters).map(([k, v]) => [`f.${k}`, v])) })}`),
+  stages: (table: string, id: string) =>
+    g<{ from: string | null; to: string; at: string; actor_name: string | null }[]>(`/v1/workflow/${table}/${id}/stages`),
+  move: (table: string, id: string, version: number, data: Json, override?: OverrideInput) =>
+    send<RecordRow>('PATCH', `/v1/records/${table}/${id}`, { version, data, override }),
+}
+
+export interface ApprovalRequestInput {
+  table: string
+  action: 'create' | 'update'
+  data: Json
+  record_id?: string
+  version?: number
+  note?: string
+}
+
+export const approvals = {
+  list: (status: string | null, mine = false) => g<{ items: HeldChange[]; pending: number }>(`/v1/approvals${qs({ status: status ?? '', mine: mine ? 'true' : undefined })}`),
+  request: (body: ApprovalRequestInput) => send<HeldChange>('POST', '/v1/approvals', body),
+  decide: (id: string, decision: 'approve' | 'reject', note: string) => send<HeldChange>('POST', `/v1/approvals/${id}/decision`, { decision, note }),
+  cancel: (id: string) => send<HeldChange>('POST', `/v1/approvals/${id}/cancel`),
+}
+
+export interface CompareResult {
+  a: RecordRow
+  b: RecordRow
+  fields: { key: string; label: string; a: unknown; b: unknown; same: boolean }[]
+  links: { table: string; label: string; a: number; b: number }[]
+}
+
+export const duplicates = {
+  pairs: (table: string) => g<{ items: DuplicatePair[]; table: string }>(`/v1/duplicates/${table}`),
+  compare: (table: string, a: string, b: string) => g<CompareResult>(`/v1/duplicates/${table}/compare${qs({ a, b })}`),
+  dismiss: (table: string, a: string, b: string) => send<void>('POST', `/v1/duplicates/${table}/dismiss`, { a, b }),
+  merge: (table: string, keep: string, drop: string, take: Record<string, string>) =>
+    send<{ id: string; relinked: number }>('POST', `/v1/duplicates/${table}/merge`, { keep, drop, take }),
+  merges: (table: string) => g<MergeRow[]>(`/v1/duplicates/${table}/merges`),
+  undo: (table: string, id: string) => send<{ links: number }>('POST', `/v1/duplicates/${table}/merges/${id}/undo`),
 }

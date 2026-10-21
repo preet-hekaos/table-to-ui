@@ -15,3 +15,6 @@
 | [11](0011-imports-through-the-pipeline.md) | Imports run through the command pipeline in batches |
 | [12](0012-search-and-matching.md) | Search in PostgreSQL; matching is a deterministic weighted score |
 | [13](0013-files-and-document-reading.md) | Files are checked by content and scanned before anything reads them |
+| [14](0014-effects-and-stages.md) | Stages and follow-on changes are metadata, applied in the same transaction |
+| [15](0015-approvals.md) | Approvals hold a change; the decision applies it |
+| [16](0016-duplicate-merge.md) | Merge removes the second record and keeps a snapshot for seven days |

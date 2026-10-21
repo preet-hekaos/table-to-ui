@@ -15,14 +15,17 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import tableui.approvals.public as approvals
 import tableui.catalog.public as catalog
 import tableui.commands.public as commands
+import tableui.duplicates.public as duplicates
 import tableui.files.public as files
 import tableui.identity.public as identity
 import tableui.imports.public as imports
 import tableui.insights.public as insights
 import tableui.matching.public as matching
 import tableui.search.public as search
+import tableui.workflow.public as workflow
 from tableui.audit.api.router import router as audit_router
 from tableui.commands.api.router import router as commands_router
 from tableui.identity.api.router import router as identity_router
@@ -232,6 +235,9 @@ def create_app(
         imports.router,
         search.router,
         matching.router,
+        workflow.router,
+        approvals.router,
+        duplicates.router,
         catalog.router,
     ):
         app.include_router(r)

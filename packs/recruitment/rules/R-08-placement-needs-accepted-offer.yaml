@@ -1,0 +1,15 @@
+id: R-08
+title: A placement needs an accepted offer
+table: submission
+applies_to: [update]
+context:
+  accepted:
+    kind: count
+    table: offer
+    match: {submission: $id}
+    where: {status: Accepted}
+checks:
+  - id: R-08.offer
+    severity: block
+    when: "record.stage == 'Placed' && before.stage != 'Placed' && ctx.accepted == 0"
+    message: "There is no accepted offer for this candidate yet."

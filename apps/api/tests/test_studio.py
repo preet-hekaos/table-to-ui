@@ -289,3 +289,45 @@ async def test_preview_never_gives_more_than_the_builder_has(
     rec, _ = await _team_mate(client, agency, mailer, "recruiter")
     r = await client.get("/v1/app/navigation", headers=rec.h(**{"X-Preview-Role": "admin"}))
     assert r.status_code == 403  # previewing needs builder rights
+
+
+async def test_builder_renames_and_adds_stages_but_not_to_an_unknown_one(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    r = await client.put(
+        "/v1/studio/tables/submission/stages",
+        headers=a.h(),
+        json={
+            "labels": {"Interview": "Client interview"},
+            "add": {"key": "Assessment", "after": "Screened"},
+        },
+    )
+    assert r.status_code == 200, r.text
+    wf = r.json()
+    labels = {s["key"]: s["label"] for s in wf["stages"]}
+    assert labels["Interview"] == "Client interview" and "Assessment" in labels
+    assert "Assessment" in wf["transitions"]["Screened"]
+    bad = await client.put(
+        "/v1/studio/tables/submission/stages", headers=a.h(), json={"labels": {"Nope": "X"}}
+    )
+    assert bad.status_code == 422
+    await a.publish_live()
+    live = (await client.get("/v1/app/tables/submission", headers=a.h())).json()["table"]
+    assert {s["key"] for s in live["workflow"]["stages"]} >= {"Interview", "Assessment"}
+
+
+async def test_builder_changes_a_policy_severity_and_fixtures_respect_it(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    r = await client.put(
+        "/v1/studio/rules/R-04/checks/R-04.notice", headers=a.h(), json={"severity": "block"}
+    )
+    assert r.status_code == 200, r.text
+    fixed = await client.put(
+        "/v1/studio/rules/R-01/checks/R-01.email", headers=a.h(), json={"severity": "warn"}
+    )
+    assert fixed.status_code in (404, 422)
+    out = (await client.post("/v1/apps/current/fixtures/run", headers=a.h())).json()
+    assert out["failed"] == 0, [x for x in out["results"] if not x["passed"]]

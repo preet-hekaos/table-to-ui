@@ -1,9 +1,9 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, Outlet, useNavigate } from '@tanstack/react-router'
-import { Bell, ClipboardList, Home, LayoutGrid, LogOut, Menu, Settings2, Bookmark, Upload, UserPlus, Users, X } from 'lucide-react'
+import { Bell, CheckCheck, ClipboardList, Home, LayoutGrid, LogOut, Menu, Settings2, Bookmark, Upload, UserPlus, Users, X } from 'lucide-react'
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { ApiError } from '@/api/client'
-import { app, auth } from '@/api/endpoints'
+import { app, approvals, auth } from '@/api/endpoints'
 import { preview, tokens } from '@/api/session'
 import { can, useMe } from '@/features/auth/useMe'
 import { Button, LoadingState } from '@/design-system'
@@ -36,6 +36,7 @@ export function AppShell() {
   const [open, setOpen] = useState(false)
   const { brand, logo, style } = useBrand()
   const saved = useQuery({ queryKey: ['saved-searches'], queryFn: search.saved, enabled: !!me.data, retry: false })
+  const pending = useQuery({ queryKey: ['approvals', 'count'], queryFn: () => approvals.list('pending'), enabled: !!me.data, retry: false, refetchInterval: 60_000 })
   const menu = useQuery({
     queryKey: ['navigation'],
     queryFn: app.navigation,
@@ -88,6 +89,9 @@ export function AppShell() {
           })}
         </div>
       )}
+      <NavLink to="/approvals" icon={<CheckCheck className="size-4" aria-hidden />} onNavigate={close}>
+        Approvals{pending.data?.pending ? <span className="ml-auto rounded-full bg-accent px-1.5 text-[11px] text-white" aria-label={`${pending.data.pending} waiting`}>{pending.data.pending}</span> : null}
+      </NavLink>
       {can(perms, 'metadata.read') && (
         <NavLink to="/studio" icon={<LayoutGrid className="size-4" aria-hidden />} onNavigate={close}>Studio</NavLink>
       )}

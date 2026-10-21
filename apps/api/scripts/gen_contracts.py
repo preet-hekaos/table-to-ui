@@ -18,6 +18,9 @@ MODULES = [
     "files",
     "search",
     "matching",
+    "workflow",
+    "approvals",
+    "duplicates",
 ]
 
 

@@ -27,6 +27,7 @@ export interface TableDef {
   groups: { key: string; label: string }[]
   fields: FieldDef[]
   counts?: { key: string; label: string; table: string; via: string; where: Record<string, unknown> }[]
+  workflow?: { field: string; stages: { key: string; label: string | null; end: boolean; ask: string[] }[]; transitions: Record<string, string[]> } | null
 }
 export interface RecordRef {
   table: string
@@ -52,7 +53,8 @@ export interface RecordPage {
 export interface RuleOutcome {
   rule: string
   check: string
-  severity: 'block' | 'warn'
+  severity: 'block' | 'warn' | 'approval'
+  overridable?: boolean
   message: string
   link: { table: string; id: string; label: string } | null
 }
@@ -127,4 +129,54 @@ export interface ScreenConfig {
   fields?: string[]
   actions?: string[]
   empty_text?: string
+}
+
+export interface BoardColumn {
+  stage: string
+  label: string
+  end: boolean
+  count: number
+  cards: RecordRow[]
+  next: string[]
+  ask: string[]
+}
+export interface Board {
+  table: string
+  field: string
+  total: number
+  columns: BoardColumn[]
+}
+export interface HeldChange {
+  id: string
+  table: string
+  action: 'create' | 'update'
+  record_id: string | null
+  payload: Record<string, unknown>
+  checks: RuleOutcome[]
+  title: string
+  note: string
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'failed'
+  requested_by: string
+  requested_by_name: string | null
+  requested_at: string
+  decided_by_name: string | null
+  decided_at: string | null
+  decision_note: string | null
+  result_record_id: string | null
+  error: string | null
+}
+export interface DuplicatePair {
+  a: { id: string; label: string | null; data: Record<string, unknown> }
+  b: { id: string; label: string | null; data: Record<string, unknown> }
+  score: number
+}
+export interface MergeRow {
+  id: string
+  kept: string
+  merged: string
+  merged_label: string | null
+  merged_at: string
+  relinked: number
+  undone: boolean
+  can_undo: boolean
 }

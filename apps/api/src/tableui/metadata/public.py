@@ -19,13 +19,16 @@ from tableui.metadata.domain.ddl import (
 )
 from tableui.metadata.domain.models import (
     ContextLoader,
+    EffectDef,
     FieldDef,
     FixtureDef,
     MeasureDef,
     Pack,
     RuleCheck,
     RuleDef,
+    StageDef,
     TableDef,
+    WorkflowDef,
 )
 from tableui.metadata.domain.values import (
     normalise,
@@ -51,7 +54,10 @@ __all__ = [
     "RuleCheck",
     "RuleDef",
     "RuntimeApp",
+    "EffectDef",
+    "StageDef",
     "TableDef",
+    "WorkflowDef",
     "build_manifest",
     "list_releases",
     "live_app",

@@ -21,12 +21,13 @@ import {
 } from '@/design-system'
 import { can, useMe } from '@/features/auth/useMe'
 import { DataTab } from './DataTab'
+import { FlowTab } from './FlowTab'
 import { MapTab } from './MapTab'
 import { NavTab } from './NavTab'
 import { PreviewTab } from './PreviewTab'
 import { ScreensTab } from './ScreensTab'
 
-export type StudioTab = 'data' | 'map' | 'screens' | 'menu' | 'preview' | 'versions'
+export type StudioTab = 'data' | 'map' | 'flow' | 'screens' | 'menu' | 'preview' | 'versions'
 
 function EnvironmentSwitch({ releases }: { releases: ReleaseRow[] }) {
   const test = releases.find((r) => r.is_test)
@@ -324,6 +325,7 @@ export function Studio({ tab = 'data', table }: { tab?: StudioTab; table?: strin
         <TabsList aria-label="Studio sections" className="overflow-x-auto">
           <TabsTrigger value="data">Data</TabsTrigger>
           <TabsTrigger value="map">Map</TabsTrigger>
+          <TabsTrigger value="flow">Stages &amp; rules</TabsTrigger>
           <TabsTrigger value="screens">Screens</TabsTrigger>
           <TabsTrigger value="menu">Menu</TabsTrigger>
           <TabsTrigger value="preview">Preview</TabsTrigger>
@@ -334,6 +336,9 @@ export function Studio({ tab = 'data', table }: { tab?: StudioTab; table?: strin
         </TabsContent>
         <TabsContent value="map" className="pt-4">
           <MapTab onOpen={(k) => go({ tab: 'data', table: k })} />
+        </TabsContent>
+        <TabsContent value="flow" className="pt-4">
+          <FlowTab canEdit={canEdit} />
         </TabsContent>
         <TabsContent value="screens" className="pt-4">
           <ScreensTab canEdit={canEdit} />

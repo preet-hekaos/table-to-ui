@@ -16,6 +16,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tableui.audit.public import append_history, write_audit
+from tableui.commands.application.effects import apply_effects
 from tableui.identity.public import Principal, hidden_fields, scope_predicate, strip_hidden
 from tableui.metadata.public import (
     RuntimeApp,
@@ -26,6 +27,7 @@ from tableui.metadata.public import (
 )
 from tableui.platform.db import Database
 from tableui.platform.errors import (
+    ApprovalRequired,
     IdempotencyConflict,
     NotFound,
     RuleBlocked,
@@ -33,7 +35,22 @@ from tableui.platform.errors import (
     VersionConflict,
 )
 from tableui.platform.ids import new_id
-from tableui.rules.public import Outcome, compile_rule, evaluate, load_context
+from tableui.rules.public import (
+    Outcome,
+    compile_rule,
+    evaluate,
+    full,
+    load_context,
+    transition_outcomes,
+)
+
+
+@dataclass(frozen=True)
+class Overrides:
+    """Block checks a user passes on purpose, with the reason that goes into the audit trail."""
+
+    checks: frozenset[str]
+    reason: str
 
 
 @dataclass(frozen=True)
@@ -43,6 +60,9 @@ class CommandContext:
     app_version: str
     request_id: str | None = None
     idempotency_key: str | None = None
+    overrides: Overrides | None = None
+    approved_checks: frozenset[str] = frozenset()  # approval checks an approver has already allowed
+    approval_id: str | None = None
 
 
 @dataclass
@@ -77,28 +97,73 @@ async def _evaluate_rules(
     clean: dict[str, Any],
     shadow: dict[str, str | None],
     exclude_id: uuid.UUID | None,
+    before: dict[str, Any] | None = None,
 ) -> list[Outcome]:
-    outcomes: list[Outcome] = []
+    record = full(table, clean)
+    was = full(table, before)
+    outcomes = transition_outcomes(table, before, record, action == "create")
     for rule in ctx.app.rules:
         if rule.table != table.key or action not in rule.applies_to:
             continue
-        rule_ctx = await load_context(s, table, rule, shadow, exclude_id, clean)
-        outcomes += evaluate(compile_rule(rule), clean, rule_ctx)
+        rule_ctx = await load_context(s, table, rule, shadow, exclude_id, record, ctx.app.tables)
+        outcomes += evaluate(compile_rule(rule), record, rule_ctx, was)
     return outcomes
 
 
-def _raise_if_blocked(outcomes: list[Outcome]) -> list[dict[str, Any]]:
-    blocks = [o for o in outcomes if o.severity == "block"]
+def _resolve(
+    ctx: CommandContext, outcomes: list[Outcome]
+) -> tuple[list[dict[str, Any]], list[Outcome]]:
+    """Apply overrides and approvals. Returns the warnings to show and the overrides that were used."""
+    used: list[Outcome] = []
+    left: list[Outcome] = []
+    for o in outcomes:
+        if (
+            o.severity == "block"
+            and o.overridable
+            and ctx.overrides
+            and o.check_id in ctx.overrides.checks
+        ):
+            ctx.principal.require("rule.override")
+            if not ctx.overrides.reason.strip():
+                raise ValidationFailed(
+                    errors=[
+                        {
+                            "field": "reason",
+                            "code": "required",
+                            "message": "give a reason for the override",
+                        }
+                    ]
+                )
+            used.append(o)
+        elif o.severity == "approval" and o.check_id in ctx.approved_checks:
+            continue
+        else:
+            left.append(o)
+    blocks = [o for o in left if o.severity == "block"]
     if blocks:
         first = blocks[0]
         raise RuleBlocked(
             first.message,
-            extra={
-                "rule": first.as_dict(),
-                "violations": [o.as_dict() for o in blocks],
-            },
+            extra={"rule": first.as_dict(), "violations": [o.as_dict() for o in blocks]},
         )
-    return [o.as_dict() for o in outcomes]
+    needs = [o for o in left if o.severity == "approval"]
+    if needs:
+        raise ApprovalRequired(
+            needs[0].message,
+            extra={"approval": {"checks": [o.as_dict() for o in needs]}},
+        )
+    return [o.as_dict() for o in left], used
+
+
+def _audit_detail(ctx: CommandContext, used: list[Outcome]) -> dict[str, Any]:
+    detail: dict[str, Any] = {"release_version": ctx.app.release_version}
+    if used and ctx.overrides:
+        detail["overrides"] = [{"check": o.check_id, "message": o.message} for o in used]
+        detail["override_reason"] = ctx.overrides.reason
+    if ctx.approval_id:
+        detail["approval_id"] = ctx.approval_id
+        detail["approved_checks"] = sorted(ctx.approved_checks)
+    return detail
 
 
 def _reject_hidden_writes(ctx: CommandContext, table: TableDef, payload: dict[str, Any]) -> None:
@@ -225,8 +290,8 @@ async def create_record(
             if replay:
                 return replay
             await _check_references(s, table, clean)
-            warnings = _raise_if_blocked(
-                await _evaluate_rules(s, ctx, table, "create", clean, shadow, None)
+            warnings, used = _resolve(
+                ctx, await _evaluate_rules(s, ctx, table, "create", clean, shadow, None)
             )
             record_id = new_id()
             cols = ", ".join(f'"{k}"' for k in shadow)
@@ -267,9 +332,10 @@ async def create_record(
                 action=f"{table_key}.create",
                 subject_type=table_key,
                 subject_id=str(record_id),
-                detail={"release_version": ctx.app.release_version},
+                detail=_audit_detail(ctx, used),
                 request_id=ctx.request_id,
             )
+            await apply_effects(s, ctx, table, "create", None, clean)
             await _emit(s, ctx, table, f"{table_key}.created", record_id, row.version, clean)
             result = CommandResult(201, _record_body(table, row, ctx.principal), warnings=warnings)
             result.body["warnings"] = warnings
@@ -278,7 +344,7 @@ async def create_record(
     except IntegrityError:
         # A concurrent create won the unique index. Re-run the rules to give the proper answer.
         async with db.tenant(tenant_id) as s:
-            _raise_if_blocked(await _evaluate_rules(s, ctx, table, "create", clean, shadow, None))
+            _resolve(ctx, await _evaluate_rules(s, ctx, table, "create", clean, shadow, None))
         raise ValidationFailed("This record conflicts with an existing one.") from None
 
 
@@ -331,8 +397,11 @@ async def update_record(
                 raise ValidationFailed(errors=errs)
             await _check_references(s, table, merged_clean)
             shadow = shadow_columns(table, merged_clean)
-            warnings = _raise_if_blocked(
-                await _evaluate_rules(s, ctx, table, "update", merged_clean, shadow, record_id)
+            warnings, used = _resolve(
+                ctx,
+                await _evaluate_rules(
+                    s, ctx, table, "update", merged_clean, shadow, record_id, before
+                ),
             )
             sets = ", ".join(f'"{k}" = :n_{i}' for i, k in enumerate(shadow))
             row = (
@@ -370,9 +439,10 @@ async def update_record(
                 action=f"{table_key}.update",
                 subject_type=table_key,
                 subject_id=str(record_id),
-                detail={"release_version": ctx.app.release_version},
+                detail=_audit_detail(ctx, used),
                 request_id=ctx.request_id,
             )
+            await apply_effects(s, ctx, table, "update", before, merged_clean)
             await _emit(s, ctx, table, f"{table_key}.updated", record_id, row.version, merged_clean)
             result = CommandResult(200, _record_body(table, row, ctx.principal), warnings=warnings)
             result.body["warnings"] = warnings
@@ -395,7 +465,17 @@ async def check_record(
     clean, _ = validate_record(table, payload, partial=True)
     shadow = shadow_columns(table, clean)
     async with db.tenant(ctx.principal.tenant_id) as s:
+        before = None
+        if record_id:
+            row = (
+                await s.execute(
+                    text(f'SELECT data FROM "{table_key}" WHERE id = :i'),  # noqa: S608 - identifiers are validated metadata keys
+                    {"i": record_id},
+                )
+            ).first()
+            before = row.data if row else None
+        merged = {**(before or {}), **clean} if record_id else clean
         outcomes = await _evaluate_rules(
-            s, ctx, table, "update" if record_id else "create", clean, shadow, record_id
+            s, ctx, table, "update" if record_id else "create", merged, shadow, record_id, before
         )
     return [o.as_dict() for o in outcomes]

@@ -1,0 +1,15 @@
+id: R-14
+title: A placement needs an accepted offer
+table: placement
+applies_to: [create]
+context:
+  accepted:
+    kind: count
+    table: offer
+    match: {submission: submission}
+    where: {status: Accepted}
+checks:
+  - id: R-14.offer
+    severity: block
+    when: "record.submission != null && ctx.accepted == 0"
+    message: "There is no accepted offer for this candidate yet."

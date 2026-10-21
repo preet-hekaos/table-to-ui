@@ -2,11 +2,22 @@ key: placement
 label: Placement
 plural_label: Placements
 title_field: summary
+effects:
+  - id: placement-fills-requirement
+    actions: [create, update]
+    ref: requirement
+    rollup: {field: filled, where: {status: Joined}}
+    then: {field: filled, at_least: positions, set: {status: Filled}}
+  - id: placement-completes-submission
+    actions: [create]
+    ref: submission
+    set: {stage: Placed}
 fields:
   - {key: summary, label: Summary, type: text, required: true, searchable: true}
   - {key: candidate, label: Candidate, type: reference, ref_table: candidate, required: true, filterable: true}
   - {key: client, label: Client, type: reference, ref_table: client, required: true, filterable: true}
   - {key: requirement, label: Requirement, type: reference, ref_table: requirement}
+  - {key: submission, label: Submission, type: reference, ref_table: submission, filterable: true}
   - {key: start_on, label: Start date, type: date}
   - {key: annual_ctc, label: Annual CTC, type: money}
   - {key: fee, label: Fee, type: money}

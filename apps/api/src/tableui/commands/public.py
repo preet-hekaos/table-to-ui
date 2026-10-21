@@ -2,6 +2,7 @@ from tableui.commands.application.batch import BatchOp, BatchResult, apply_batch
 from tableui.commands.application.pipeline import (
     CommandContext,
     CommandResult,
+    Overrides,
     check_record,
     create_record,
     update_record,
@@ -14,6 +15,7 @@ __all__ = [
     "apply_batch",
     "CommandContext",
     "CommandResult",
+    "Overrides",
     "OutboxRelay",
     "check_record",
     "create_record",

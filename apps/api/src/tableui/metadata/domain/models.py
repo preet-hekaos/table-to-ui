@@ -1,5 +1,6 @@
 """Typed metadata: what a pack (and later an agency) can define. No industry terms live here."""
 
+import re
 from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -84,6 +85,66 @@ class CountDef(_Strict):
     where: dict[str, str | int | bool] = {}
 
 
+class StageDef(_Strict):
+    key: str  # the stored value (it is also an option of the stage field)
+    label: str | None = None  # what screens show; builders may rename it
+    end: bool = False  # an end state: nothing moves on from here
+    ask: list[str] = []  # fields the move dialog asks for when a record enters this stage
+
+
+class WorkflowDef(_Strict):
+    """Stages a record moves through, and which moves are allowed. No industry terms live here."""
+
+    field: Key
+    stages: list[StageDef]
+    transitions: dict[str, list[str]] = {}
+
+    @model_validator(mode="after")
+    def _check(self) -> "WorkflowDef":
+        keys = [st.key for st in self.stages]
+        if len(keys) != len(set(keys)) or not keys:
+            raise ValueError("a workflow needs distinct stages")
+        for src, targets in self.transitions.items():
+            if src not in keys or any(t not in keys for t in targets):
+                raise ValueError(f"transition '{src}' uses an unknown stage")
+        return self
+
+    def stage(self, key: str | None) -> StageDef | None:
+        return next((st for st in self.stages if st.key == key), None)
+
+    @property
+    def first(self) -> str:
+        return self.stages[0].key
+
+
+class RollupDef(_Strict):
+    """Keep a count on the record this one points at: ``field`` = rows here that point at it and match ``where``."""
+
+    field: Key
+    where: dict[str, str | int | bool] = {}
+
+
+class FullDef(_Strict):
+    """When ``field`` reaches ``at_least`` (a field of the same record), set ``set`` on that record."""
+
+    field: Key
+    at_least: Key
+    set: dict[str, str | int | bool]
+
+
+class EffectDef(_Strict):
+    """A follow-on change to the record a reference points at, made in the same transaction."""
+
+    id: str
+    actions: list[Literal["create", "update"]]
+    ref: Key  # reference field on this table; the effect changes the record it points at
+    when_changed: dict[str, str | int | bool] = {}  # this record's field has just become this value
+    when_is: dict[str, str | int | bool] = {}  # this record's field has this value
+    set: dict[str, str | int | bool] = {}
+    rollup: RollupDef | None = None
+    then: FullDef | None = None
+
+
 class TableDef(_Strict):
     key: Key
     label: str
@@ -96,6 +157,8 @@ class TableDef(_Strict):
     source: Literal["pack", "agency"] = "pack"
     search_includes: list[SearchInclude] = []
     counts: list[CountDef] = []
+    workflow: WorkflowDef | None = None
+    effects: list[EffectDef] = []
 
     @model_validator(mode="after")
     def _check(self) -> "TableDef":
@@ -108,6 +171,21 @@ class TableDef(_Strict):
         for f in self.fields:
             if f.group and f.group not in groups:
                 raise ValueError(f"field '{f.key}' uses unknown group '{f.group}'")
+        for e in self.effects:
+            ref = self.field(e.ref)
+            if ref is None or ref.type != "reference":
+                raise ValueError(f"effect '{e.id}': '{e.ref}' is not a reference field")
+        if self.workflow is not None:
+            for st in self.workflow.stages:
+                for k in st.ask:
+                    if self.field(k) is None:
+                        raise ValueError(f"stage '{st.key}' asks for unknown field '{k}'")
+            wf_field = self.field(self.workflow.field)
+            if wf_field is None or wf_field.type != "select":
+                raise ValueError("the workflow field must be a select field of this table")
+            missing = [st.key for st in self.workflow.stages if st.key not in wf_field.options]
+            if missing:
+                raise ValueError(f"stages {missing} are not options of '{wf_field.key}'")
         return self
 
     def field(self, key: str) -> FieldDef | None:
@@ -115,8 +193,13 @@ class TableDef(_Strict):
 
 
 class ContextLoader(_Strict):
-    kind: Literal["normalised_match", "fuzzy_match", "lookup"]
-    ref_field: str | None = None  # lookup: the reference field on this table
+    kind: Literal["normalised_match", "fuzzy_match", "lookup", "count"]
+    ref_field: str | None = None  # lookup: the reference field on this table (a.b follows links)
+    table: str | None = None  # count: the table whose records are counted
+    match: dict[
+        str, str
+    ] = {}  # count: field on that table -> field of this record ('$id' = its id)
+    where: dict[str, str | int | bool] = {}  # count: fixed values the counted records must have
     field: str | None = None
     exact_field: str | None = None
     fuzzy_field: str | None = None
@@ -130,15 +213,27 @@ class ContextLoader(_Strict):
             raise ValueError("fuzzy_match needs 'exact_field' and 'fuzzy_field'")
         if self.kind == "lookup" and not (self.ref_field and self.field):
             raise ValueError("lookup needs 'ref_field' and 'field'")
+        if self.kind == "count":
+            if not (self.table and self.match):
+                raise ValueError("count needs 'table' and 'match'")
+            keys = [self.table, *self.match, *self.where]
+            if any(not re.fullmatch(r"[a-z][a-z0-9_]{0,62}", k) for k in keys):
+                raise ValueError("count uses a table or field key that is not valid")
         return self
 
 
 class RuleCheck(_Strict):
     id: str
-    severity: Literal["block", "warn"]
+    # block: refuse. warn: allow and tell. approval: hold until an approver allows it.
+    severity: Literal["block", "warn", "approval"]
     when: str
     message: str
     link: str | None = None
+    overridable: bool = (
+        False  # a block that a user with the override permission may pass, with a reason
+    )
+    editable: bool = False  # a policy: builders may change its severity in the Studio
+    edited: bool = False  # the agency changed the severity, so pack fixtures no longer speak for it
 
 
 class RuleDef(_Strict):
@@ -173,6 +268,8 @@ Pattern = Literal[
     "ranked_list",
     "document_review",
     "detail",
+    "board",
+    "duplicate_review",
 ]
 Scope = Literal["all", "own_team", "own"]
 
@@ -229,7 +326,7 @@ class FixtureDef(_Strict):
     given: list[FixtureRecord] = []
     record: dict[str, Any]
     record_id: str | None = None  # for an update: which given record is being changed
-    expect: Literal["allowed", "blocked", "warned", "invalid"]
+    expect: Literal["allowed", "blocked", "warned", "approval", "invalid"]
     checks: list[str] = []  # rule checks that must fire (for blocked or warned)
 
 
