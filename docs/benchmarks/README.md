@@ -46,3 +46,10 @@ Not a PRD gate, but worth knowing: ranked matches over 34,266 candidates that pa
 | Merge with 100 linked records | < 5 s | **0.11 s** | pass |
 
 The duplicate list was 10.5 s before a trigram index and a smaller scan cap (150 rows). The index is created for new tables only; workspaces created before M2 would need it added. Pairs are the first matches found, best first within that scan, not a global ranking.
+
+## M2.5 gate — `m25.json`
+`apps/api/scripts/bench_m25.py`: 100 tables and 518 links in one workspace, Relationships list, 50 sequential calls.
+
+| Gate | Target | Measured | |
+|---|---|---|---|
+| Relationships list, 100 tables and 500 links | p95 < 600 ms | **p95 177.2 ms** (p50 94.6) | pass |

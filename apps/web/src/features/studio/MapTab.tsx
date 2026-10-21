@@ -11,17 +11,18 @@ interface Edge {
   from: string
   to: string
   label: string
+  id: string
 }
 
 /** Screen 2.5: every table as a box, every link field as a line. Clicking a table opens it in Data. */
-export function MapTab({ onOpen }: { onOpen: (table: string) => void }) {
+export function MapTab({ onOpen, onOpenLink }: { onOpen: (table: string) => void; onOpenLink?: (id: string) => void }) {
   const tables = useDraftTables()
   if (tables.isLoading) return <LoadingState label="Drawing the map" />
   if (tables.isError) return <ErrorState requestId={(tables.error as ApiError).requestId} onRetry={() => void tables.refetch()} />
   const all = tables.data ?? []
   const keys = new Set(all.map((t) => t.key))
   const edges: Edge[] = all.flatMap((t) =>
-    t.fields.filter((f) => f.type === 'reference' && f.ref_table && keys.has(f.ref_table)).map((f) => ({ from: t.key, to: f.ref_table!, label: f.label })),
+    t.fields.filter((f) => f.type === 'reference' && f.ref_table && keys.has(f.ref_table)).map((f) => ({ from: t.key, to: f.ref_table!, label: f.label, id: `${t.key}.${f.key}` })),
   )
   // Most-linked tables first, laid out row by row; deterministic so the map does not jump around.
   const degree = (k: string) => edges.filter((e) => e.from === k || e.to === k).length
@@ -59,6 +60,8 @@ export function MapTab({ onOpen }: { onOpen: (table: string) => void }) {
                   className="fill-none stroke-muted"
                   strokeWidth={1.5}
                   markerEnd="url(#arrow)"
+                  onClick={() => onOpenLink?.(e.id)}
+                  style={{ cursor: onOpenLink ? 'pointer' : undefined }}
                 />
               )
             })}
@@ -87,7 +90,9 @@ export function MapTab({ onOpen }: { onOpen: (table: string) => void }) {
         <ul className="mt-2 flex flex-col gap-1 text-body">
           {edges.map((e, i) => (
             <li key={i}>
-              {all.find((t) => t.key === e.from)?.label} → {all.find((t) => t.key === e.to)?.label} <span className="text-muted">({e.label})</span>
+              <button type="button" className="text-left hover:underline" onClick={() => onOpenLink?.(e.id)}>
+                {all.find((t) => t.key === e.from)?.label} → {all.find((t) => t.key === e.to)?.label} <span className="text-muted">({e.label})</span>
+              </button>
             </li>
           ))}
         </ul>
