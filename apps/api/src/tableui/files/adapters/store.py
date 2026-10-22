@@ -20,3 +20,6 @@ class LocalFileStore:
 
     async def get(self, key: str) -> bytes:
         return self._path(key).read_bytes()
+
+    async def delete(self, key: str) -> None:
+        self._path(key).unlink(missing_ok=True)

@@ -20,7 +20,7 @@ import { Insights } from '@/features/insights/Insights'
 import { MeasureRecords } from '@/features/insights/MeasureRecords'
 import { Approvals } from '@/features/approvals/Approvals'
 import { Onboarding, onboardingKey } from '@/features/onboarding/Onboarding'
-import { OpsShell, OpsSignIn, PackCatalog, TenantDirectory } from '@/features/ops/Ops'
+import { OpsShell, OpsSignIn, PackCatalog, TenantDirectory, WorkspaceConsole } from '@/features/ops/Ops'
 import { Activity } from '@/features/studio/Activity'
 import { ImportWizard } from '@/features/imports/ImportWizard'
 import { RankedList } from '@/patterns/RankedList'
@@ -198,6 +198,7 @@ const team = createRoute({ getParentRoute: () => shell, path: '/team', component
 
 const opsSignIn = createRoute({ getParentRoute: () => root, path: '/ops/sign-in', component: OpsSignIn })
 const opsShell = createRoute({ getParentRoute: () => root, id: 'ops', component: OpsShell })
+const opsWorkspaces = createRoute({ getParentRoute: () => opsShell, path: '/ops/workspaces', component: WorkspaceConsole })
 const opsTenants = createRoute({ getParentRoute: () => opsShell, path: '/ops/tenants', component: TenantDirectory })
 const opsPacks = createRoute({ getParentRoute: () => opsShell, path: '/ops/packs', component: PackCatalog })
 
@@ -209,7 +210,7 @@ const tree = root.addChildren([
   accept,
   shell.addChildren([onboarding, home, screenRoute, list, create, detail, edit, studio, insightsRoute, insightDrill, importRoute, matchRoute, patterns, approvalsRoute, activity, security, team, settings]),
   opsSignIn,
-  opsShell.addChildren([opsTenants, opsPacks]),
+  opsShell.addChildren([opsWorkspaces, opsTenants, opsPacks]),
 ])
 
 export const makeRouter = (queryClient: QueryClient) => createRouter({ routeTree: tree, context: { queryClient }, defaultPreload: 'intent' })

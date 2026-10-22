@@ -13,6 +13,7 @@ from tableui.identity.domain.principal import Principal
 from tableui.platform.config import Settings
 from tableui.platform.errors import NotFound, ValidationFailed
 from tableui.platform.ids import new_id
+from tableui.platform.limits import get_limits, reached
 from tableui.platform.mail import Mailer
 from tableui.platform.security import hash_password, new_token, token_hash
 
@@ -55,6 +56,20 @@ async def send_invitation(
         raise ValidationFailed(
             errors=[{"field": "role", "code": "unknown", "message": "is not a role"}]
         )
+    cap = (await get_limits(s, principal.tenant_id)).max_people
+    if cap is not None:
+        used = (
+            await s.execute(
+                text(
+                    "SELECT (SELECT count(*) FROM control.membership m JOIN control.app_user u ON u.id = m.user_id "
+                    "WHERE m.tenant_id = :t AND u.active) + (SELECT count(*) FROM control.invitation "
+                    "WHERE tenant_id = :t AND accepted_at IS NULL AND expires_at > now())"
+                ),
+                {"t": principal.tenant_id},
+            )
+        ).scalar_one()
+        if used >= cap:
+            raise reached("people (including pending invitations)", cap)
     token = new_token()
     inv_id = new_id()
     await s.execute(

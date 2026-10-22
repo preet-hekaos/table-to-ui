@@ -12,6 +12,7 @@ from tableui.files.domain.kinds import KINDS, sniff
 from tableui.files.domain.scan import Scanner
 from tableui.files.domain.store import FileStore
 from tableui.platform.errors import NotFound, ValidationFailed
+from tableui.platform.limits import get_limits, reached
 
 
 def _bad(message: str, code: str = "invalid") -> ValidationFailed:
@@ -39,6 +40,11 @@ async def upload(
         raise _bad("is empty", "empty")
     if len(data) > k.max_bytes:
         raise _bad(f"is larger than {k.max_bytes // (1024 * 1024)} MB", "too_large")
+    cap = (await get_limits(s, tenant_id)).max_storage_mb
+    if cap is not None:
+        used = (await s.execute(text("SELECT COALESCE(sum(size_bytes), 0) FROM control.file WHERE tenant_id = :t"), {"t": tenant_id})).scalar_one()  # fmt: skip
+        if used + len(data) > cap * 1_048_576:
+            raise reached("MB of files", cap)
     ctype = sniff(data, name)
     if ctype not in k.types:
         raise _bad("is not a type we accept here", "type")

@@ -9,8 +9,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from tableui.identity.domain.principal import Principal, stricter
 from tableui.platform.config import Settings
-from tableui.platform.errors import PermissionDenied, Unauthenticated
+from tableui.platform.errors import PermissionDenied, Unauthenticated, WorkspaceSuspended
 from tableui.platform.security import new_token, token_hash
+
+SUSPENDED_MESSAGE = "This workspace is not available right now. Contact the service owner."
 
 
 async def create_session(
@@ -48,7 +50,7 @@ async def authenticate(
         await s.execute(
             text(
                 "SELECT se.user_id, se.tenant_id, se.realm, se.mfa_verified, se.last_seen_at, se.revoked, "
-                "u.email, u.full_name, u.mfa_enabled, u.active, t.name AS tenant_name, m.role_key "
+                "u.email, u.full_name, u.mfa_enabled, u.active, t.name AS tenant_name, t.status AS tenant_status, m.role_key "
                 "FROM control.session se JOIN control.app_user u ON u.id = se.user_id "
                 "LEFT JOIN control.tenant t ON t.id = se.tenant_id "
                 "LEFT JOIN control.membership m ON m.user_id = se.user_id AND m.tenant_id = se.tenant_id "
@@ -65,6 +67,8 @@ async def authenticate(
             text("UPDATE control.session SET revoked = true WHERE token_hash = :h"), {"h": h}
         )
         raise Unauthenticated("Your session timed out after inactivity. Sign in again.")
+    if realm == "tenant" and row.tenant_status in ("suspended", "scheduled_deletion"):
+        raise WorkspaceSuspended(SUSPENDED_MESSAGE)
     if not row.active:
         raise Unauthenticated("This account has been deactivated. Ask an administrator.")
     needs_mfa = realm == "operator" or row.mfa_enabled

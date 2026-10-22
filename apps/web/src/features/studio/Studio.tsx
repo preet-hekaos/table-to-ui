@@ -328,6 +328,9 @@ export function Studio({ tab = 'data', table, link }: { tab?: StudioTab; table?:
         <a href="/patterns" className="ml-auto text-sm font-semibold text-accent-ink hover:underline">Pattern library</a>
       </div>
       <DraftBanner canPublish={canPublish} onReview={() => go({ tab: 'versions' })} />
+      {!can(perms, 'ai.setup') && (
+        <p className="text-xs text-muted" data-testid="chat-setup-hint">Ask an owner for setup access to build with chat.</p>
+      )}
       <Tabs value={tab} onValueChange={(v) => go({ tab: v as StudioTab })}>
         <TabsList aria-label="Studio sections" className="overflow-x-auto">
           {can(perms, 'ai.setup') && <TabsTrigger value="chat">Set up by chat</TabsTrigger>}

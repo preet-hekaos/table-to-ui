@@ -90,3 +90,12 @@ The duplicate list was 10.5 s before a trigram index and a smaller scan cap (150
 | Propose and dry-run a 20-step plan (p95) | < 2 s | **340 ms** | pass |
 | Apply 20 steps to the Draft (p95) | < 3 s | **323 ms** | pass |
 | Undo the plan (p95, not a gate) | | 146 ms | |
+
+## M6 gates — `m6.json`
+`apps/api/scripts/bench_m6.py`: 100 workspaces created from the Recruitment pack through the operator API, the list read 30 times; then a workspace with 10,000 candidate records exported. Run on a 2-core container with the database on the same machine.
+
+| Gate | Target | Measured | |
+|---|---|---|---|
+| Workspace list, 100 workspaces (p95, warm) | < 500 ms | **21 ms** | pass |
+| Workspace list, first call (counts every workspace) | < 500 ms | 200 ms | pass |
+| Export 10,000 records (zip built, stored and emailed) | < 60 s | **0.22 s** | pass |

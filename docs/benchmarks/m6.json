@@ -1,0 +1,13 @@
+{
+  "workspaces_listed": 100,
+  "list_workspaces_first_call_ms": 200.4,
+  "list_workspaces_warm": {
+    "n": 29,
+    "p50_ms": 14.2,
+    "p95_ms": 20.8,
+    "p99_ms": 23.0,
+    "mean_ms": 14.8
+  },
+  "records_exported": 10000,
+  "export_seconds": 0.22
+}

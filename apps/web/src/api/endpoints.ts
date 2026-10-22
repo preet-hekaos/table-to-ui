@@ -73,6 +73,7 @@ export const admin = {
   people: () => g<PersonRow[]>('/v1/workspace/people'),
   setActive: (id: string, active: boolean) => send<void>('POST', `/v1/workspace/people/${id}/${active ? 'activate' : 'deactivate'}`),
   setRole: (id: string, role: string) => send<void>('PUT', `/v1/workspace/people/${id}/role`, { role }),
+  removePerson: (id: string) => send<void>('DELETE', `/v1/workspace/people/${id}`),
   teams: () => g<TeamRow[]>('/v1/workspace/teams'),
   createTeam: (name: string) => send<TeamRow>('POST', '/v1/workspace/teams', { name }),
   setMembers: (id: string, user_ids: string[]) => send<void>('PUT', `/v1/workspace/teams/${id}/members`, { user_ids }),
@@ -329,7 +330,26 @@ export const app = {
   activity: () => cast<ActivityRow[]>(api.GET('/v1/activity')),
 }
 
+export interface WorkspaceLimits { max_people: number | null; max_records: number | null; max_storage_mb: number | null; ai_monthly_tokens: number | null }
+export interface WorkspaceRow {
+  id: string; name: string; pack: string | null; status: 'provisioning' | 'active' | 'suspended' | 'scheduled_deletion'
+  reason: string | null; delete_after: string | null; created_at: string; owner_email: string | null
+  people: number; records: number; storage_mb: number; last_activity: string | null
+  limits: WorkspaceLimits; ai_tokens_this_month: number
+}
+
 export const ops = {
+  workspaces: () => g<WorkspaceRow[]>('/v1/ops/workspaces'),
+  createWorkspace: (body: { name: string; owner_email: string; pack_id?: string | null }) =>
+    send<{ id: string; invite_link?: string }>('POST', '/v1/ops/workspaces', body),
+  suspend: (id: string, reason: string) => send<unknown>('POST', `/v1/ops/workspaces/${id}/suspend`, { reason }),
+  resume: (id: string) => send<unknown>('POST', `/v1/ops/workspaces/${id}/resume`),
+  scheduleDelete: (id: string, body: { confirm_name: string; reason: string; grace_days: number }) =>
+    send<unknown>('POST', `/v1/ops/workspaces/${id}/delete`, body),
+  cancelDelete: (id: string) => send<unknown>('POST', `/v1/ops/workspaces/${id}/cancel-deletion`),
+  exportWorkspace: (id: string, reason: string) =>
+    send<{ download_link?: string; sent_to: string }>('POST', `/v1/ops/workspaces/${id}/export`, { reason }),
+  setLimits: (id: string, body: Partial<WorkspaceLimits>) => send<unknown>('PUT', `/v1/ops/workspaces/${id}/limits`, body),
   signIn: (body: { email: string; password: string }) => cast<{ token: string }>(api.POST('/v1/ops/auth/sign-in', { body })),
   verify: (code: string, token: string) =>
     cast<void>(api.POST('/v1/ops/auth/mfa/verify', { body: { code }, headers: { Authorization: `Bearer ${token}` }, parseAs: 'text' })),

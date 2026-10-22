@@ -15,6 +15,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tableui.audit.public import append_history, write_audit
+from tableui.commands.application.limits import check_record_limit, record_limit
 from tableui.commands.application.pipeline import (
     CommandContext,
     _check_references,
@@ -215,7 +216,9 @@ async def apply_batch(
     tenant_id = ctx.principal.tenant_id
     assert tenant_id is not None
     results: list[BatchResult] = []
+    cap = await record_limit(db, tenant_id)
     async with db.tenant(tenant_id) as s:
+        await check_record_limit(s, sorted(ctx.app.tables), cap, sum(1 for o in ops if o.kind == "create"))  # fmt: skip
         for op in ops:
             try:
                 async with s.begin_nested():

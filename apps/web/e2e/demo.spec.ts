@@ -170,6 +170,7 @@ test('M0 demo script', async ({ browser }) => {
     await o.page.getByRole('button', { name: 'Continue' }).click()
     await o.page.getByLabel(/Authenticator code/).fill(totp(process.env.OPS_TOTP_SECRET!))
     await o.page.getByRole('button', { name: 'Sign in' }).click()
+    await o.page.getByRole('navigation', { name: 'Operations' }).getByRole('link', { name: 'Tenants' }).click()
     const table = o.page.getByRole('table', { name: 'Tenants' })
     await expect(table).toContainText(northstar.agency)
     await expect(table).toContainText(crestline.agency)
