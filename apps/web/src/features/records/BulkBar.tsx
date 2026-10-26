@@ -121,7 +121,7 @@ export function BulkBar({
           </Button>
         )}
         {can('edit') && canUpdate && fields.length > 0 && (
-          <Button variant="secondary" onClick={() => { setField(fields[0]!.key); setRaw(''); setError(''); setDialog('edit') }}>
+          <Button variant="secondary" onClick={() => { setField(''); setRaw(''); setError(''); setDialog('edit') }}>
             <Pencil className="size-4" aria-hidden /> Change a value
           </Button>
         )}
@@ -146,6 +146,7 @@ export function BulkBar({
           >
             <Field label="Field">
               <Select aria-label="Field to change" value={field} onChange={(e) => { setField(e.target.value); setRaw('') }}>
+                <option value="">Choose a field</option>
                 {fields.map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}
               </Select>
             </Field>
@@ -157,7 +158,7 @@ export function BulkBar({
             {error && <p role="alert" className="text-sm text-bad">{error}</p>}
             <div className="flex justify-end gap-2">
               <Button type="button" variant="ghost" onClick={() => setDialog(null)}>Cancel</Button>
-              <Button type="submit" variant="primary" loading={run.isPending}>Change {n.toLocaleString('en-IN')}</Button>
+              <Button type="submit" variant="primary" disabled={!chosen} loading={run.isPending}>Change {n.toLocaleString('en-IN')}</Button>
             </div>
           </form>
         </DialogContent>
