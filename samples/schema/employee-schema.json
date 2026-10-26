@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Employee",
+  "type": "object",
+  "required": ["name", "email"],
+  "properties": {
+    "name": { "type": "string" },
+    "email": { "type": "string", "format": "email" },
+    "joined": { "type": "string", "format": "date" },
+    "grade": { "enum": ["A", "B", "C"] },
+    "salary": { "type": "number" },
+    "remote": { "type": "boolean" },
+    "skills": { "type": "array", "items": { "type": "string" } },
+    "team": { "$ref": "#/$defs/Team" }
+  },
+  "$defs": {
+    "Team": {
+      "type": "object",
+      "required": ["name"],
+      "properties": { "name": { "type": "string" }, "floor": { "type": "integer" } }
+    }
+  }
+}

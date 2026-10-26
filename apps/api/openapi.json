@@ -35,6 +35,23 @@
         "title": "ApplyBody",
         "type": "object"
       },
+      "ApplyIn": {
+        "properties": {
+          "tables": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Tables",
+            "type": "array"
+          }
+        },
+        "required": [
+          "tables"
+        ],
+        "title": "ApplyIn",
+        "type": "object"
+      },
       "AskBody": {
         "properties": {
           "question": {
@@ -51,6 +68,23 @@
           "question"
         ],
         "title": "AskBody",
+        "type": "object"
+      },
+      "Body_preview_v1_studio_schema_import_preview_post": {
+        "properties": {
+          "files": {
+            "items": {
+              "contentMediaType": "application/octet-stream",
+              "type": "string"
+            },
+            "title": "Files",
+            "type": "array"
+          }
+        },
+        "required": [
+          "files"
+        ],
+        "title": "Body_preview_v1_studio_schema_import_preview_post",
         "type": "object"
       },
       "Body_upload_v1_files_post": {
@@ -7225,6 +7259,94 @@
           }
         },
         "summary": "Set Check Severity",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
+    "/v1/studio/schema-import/apply": {
+      "post": {
+        "description": "Create the confirmed tables in the Draft, all or none.",
+        "operationId": "apply_v1_studio_schema_import_apply_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Apply V1 Studio Schema Import Apply Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Apply",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
+    "/v1/studio/schema-import/preview": {
+      "post": {
+        "description": "Read the files and say which tables they would make. Nothing is saved.",
+        "operationId": "preview_v1_studio_schema_import_preview_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_preview_v1_studio_schema_import_preview_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Preview V1 Studio Schema Import Preview Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview",
         "tags": [
           "studio"
         ]

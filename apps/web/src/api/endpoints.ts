@@ -161,7 +161,34 @@ export const automations = {
   preview: (body: unknown) => send<{ count: number; examples: string[]; complete: boolean }>('POST', '/v1/automations/preview', body),
 }
 
+export interface SchemaField {
+  key: string
+  label: string
+  type: FieldDef['type']
+  required: boolean
+  options: string[]
+  link: { to: string; reason: string } | null
+  ref_table?: string | null
+}
+export interface SchemaTable {
+  key: string
+  label: string
+  plural_label: string
+  title_key: string | null
+  source: string
+  rows: number
+  fields: SchemaField[]
+  warnings: string[]
+}
+export interface SchemaPreview { tables: SchemaTable[]; problems: { file: string; message: string }[] }
+
 export const studio = {
+  schemaPreview: (files: File[]) => {
+    const body = new FormData()
+    files.forEach((f) => body.append('files', f))
+    return cast<SchemaPreview>(api.POST('/v1/studio/schema-import/preview' as never, { body, bodySerializer: (b: FormData) => b } as never))
+  },
+  schemaApply: (tables: SchemaTable[]) => send<{ tables: string[]; fields: number }>('POST', '/v1/studio/schema-import/apply', { tables }),
   tables: () => cast<StudioTable[]>(api.GET('/v1/studio/tables')),
   createTable: (body: { label: string; plural_label?: string; title_label?: string; description?: string }) =>
     send<StudioTable>('POST', '/v1/studio/tables', body),

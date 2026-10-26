@@ -255,6 +255,7 @@ def create_app(
         files.router,
         files.documents_router,
         imports.router,
+        imports.schema_router,
         search.router,
         matching.router,
         workflow.router,

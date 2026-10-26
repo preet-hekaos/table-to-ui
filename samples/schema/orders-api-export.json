@@ -1,0 +1,11 @@
+{
+  "customers": [
+    {"customer_id": 1, "name": "Asha Rao", "email": "asha@example.in", "tier": "Gold", "tags": ["vip", "pune"], "address": {"city": "Pune"}},
+    {"customer_id": 2, "name": "Vikram Shah", "email": "vikram@example.in", "tier": "Silver", "tags": [], "address": {"city": "Surat"}}
+  ],
+  "orders": [
+    {"order_id": 101, "customer_id": 1, "total": 2499.5, "paid": true, "placed": "2026-10-01", "lines": [{"sku": "A1", "qty": 2}]},
+    {"order_id": 102, "customer_id": 2, "total": 799, "paid": false, "placed": "2026-10-03", "lines": []},
+    {"order_id": 103, "customer_id": 1, "total": 1200, "paid": true, "placed": "2026-10-05", "lines": []}
+  ]
+}

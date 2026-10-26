@@ -27,3 +27,4 @@
 | [23](0023-stage-colours.md) | Stage colours are computed on the server and never carried by colour alone |
 | [24](0024-canvas.md) | One canvas for tables and links: cards, ordered layout, details drawer, Cards/Graph switch |
 | [25](0025-screens-in-tables.md) | Screens are managed inside each table; the Screens tab is gone |
+| [26](0026-schema-import.md) | Schema import: readers for CSV, Excel, JSON and SQL; preview first, Draft tables after confirmation |

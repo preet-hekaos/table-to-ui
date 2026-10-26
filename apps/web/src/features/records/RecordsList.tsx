@@ -209,6 +209,7 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
 
   const actions = config.actions ?? ['create']
   const canCreate = actions.includes('create') && can(me.data?.permissions, `record.${tableKey}.create`)
+  const canImport = can(me.data?.permissions, 'import.run')
   const add = () => !preview && void navigate({ to: '/records/$table/new', params: { table: tableKey } })
   const exportCsv = () => {
     const blob = new Blob([toCsv(shownColumns(table, config), rows)], { type: 'text/csv' })
@@ -232,7 +233,14 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
 
   const body =
     rows.length === 0 && !searching ? (
-      <EmptyState title={`No ${table.plural_label.toLowerCase()} yet`} action={canCreate && <Button variant="primary" onClick={add}>Add {table.label.toLowerCase()}</Button>}>
+      <EmptyState title={`No ${table.plural_label.toLowerCase()} yet`} action={
+          (canCreate || (canImport && !preview)) && (
+            <span className="flex flex-wrap justify-center gap-2">
+              {canCreate && <Button variant="primary" onClick={add}>Add {table.label.toLowerCase()}</Button>}
+              {canImport && !preview && <Button variant={canCreate ? 'secondary' : 'primary'} onClick={() => void navigate({ to: '/import', search: {} })}>Import data</Button>}
+            </span>
+          )
+        }>
         {config.empty_text || 'Records you add here appear in this list, newest changes first.'}
       </EmptyState>
     ) : rows.length === 0 ? (
