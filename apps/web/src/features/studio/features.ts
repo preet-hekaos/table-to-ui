@@ -42,4 +42,4 @@ export const DEFAULT_FEATURES: TableFeatures = {
 export const featuresOf = (t?: Pick<TableDef, 'features'> | null): TableFeatures => ({ ...DEFAULT_FEATURES, ...(t?.features ?? {}) })
 
 /** Features whose behaviour is live on the real screens. Each part of step 5 adds its own. */
-export const ACTIVE_FEATURES = new Set<keyof TableFeatures>(['sort_filter', 'select_bulk', 'import_data', 'export_data', 'inline_edit', 'grouping', 'statistics'])
+export const ACTIVE_FEATURES = new Set<keyof TableFeatures>(['sort_filter', 'select_bulk', 'import_data', 'export_data', 'inline_edit', 'grouping', 'statistics', 'row_order'])

@@ -10,6 +10,7 @@ from tableui.commands.application.pipeline import (
     update_record,
 )
 from tableui.commands.application.relay import OutboxRelay
+from tableui.commands.application.reorder import move_record
 
 __all__ = [
     "BatchOp",
@@ -17,6 +18,7 @@ __all__ = [
     "apply_batch",
     "bulk_change",
     "bulk_undo",
+    "move_record",
     "CommandContext",
     "CommandResult",
     "Overrides",

@@ -176,6 +176,7 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
   const [sortChoice, setSort] = useState<SortState | null>(null)
   const [criteria, setCriteriaRaw] = useState<Criteria>({ q: initial?.q ?? '', filters: initial?.filters ?? {}, ranges: initial?.ranges ?? {}, contains: initial?.contains ?? {}, anyof: initial?.anyof ?? {} })
   const [showFacets, setShowFacets] = useState(false)
+  const [custom, setCustom] = useState(false)
   const [groupChoice, setGroupChoice] = useState<string | null>(null)
   const [picked, setPicked] = useState<Set<string>>(new Set())
   const [exporting, setExporting] = useState<{ ids: string[] | null } | null>(null)
@@ -190,16 +191,17 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
   const table = tableOverride ?? def.data?.table
   const feat = featuresOf(table)
   // The screen can start the list grouped; the person can change or clear it while it is open.
-  const groupBy = feat.grouping ? (groupChoice ?? config.group_by) || undefined : undefined
+  const groupBy = feat.grouping && !(custom && feat.row_order) ? (groupChoice ?? config.group_by) || undefined : undefined
   const sortState: SortState = sortChoice ?? (feat.sort_filter && feat.default_sort ? { key: feat.default_sort.field, direction: feat.default_sort.direction } : { key: 'updated_at', direction: 'desc' })
-  const sort: SortState = groupBy ? { key: groupBy, direction: sortState.key === groupBy ? sortState.direction : 'asc' } : sortState
+  const manual = custom && feat.row_order && !preview
+  const sort: SortState = manual ? { key: 'manual', direction: 'asc' } : groupBy ? { key: groupBy, direction: sortState.key === groupBy ? sortState.direction : 'asc' } : sortState
   const list = useInfiniteQuery({
     queryKey: ['records', tableKey, sort, debouncedQ, filters, ranges, contains, anyof],
     queryFn: ({ pageParam }) => {
       // In a Studio preview the Draft may name fields that are not live yet; leave those out.
       const live = new Set(def.data?.table.fields.map((f) => f.key))
       const keep = (o: Record<string, string>) => Object.fromEntries(Object.entries(o).filter(([k, v]) => v && live.has(k)))
-      const sortKey = sort.key === 'updated_at' || live.has(sort.key) ? sort.key : 'updated_at'
+      const sortKey = sort.key === 'updated_at' || sort.key === 'manual' || live.has(sort.key) ? sort.key : 'updated_at'
       return app.list(tableKey, { sort: sortKey, direction: sort.direction, cursor: pageParam, limit: PAGE, q: debouncedQ, filters: keep(filters), ranges: keep(ranges), contains: keep(contains), anyof: keep(anyof) })
     },
     initialPageParam: null as string | null,
@@ -209,6 +211,11 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
     placeholderData: (prev) => prev,
   })
   const configKey = JSON.stringify(config)
+  const qc = useQueryClient()
+  const move = useMutation({
+    mutationFn: ({ id, before }: { id: string; before: string | null }) => app.move(tableKey, id, before),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['records', tableKey] }),
+  })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const columns = useMemo(() => (table ? columnsFor(table, config, preview) : []), [table, configKey, preview])
   const rows = list.data?.pages.flatMap((p) => p.items) ?? []
@@ -221,13 +228,14 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
 
   const actions = config.actions ?? ['create']
   const canCreate = actions.includes('create') && can(me.data?.permissions, `record.${tableKey}.create`)
+  const canUpdate = can(me.data?.permissions, `record.${tableKey}.update`)
   const canImport = can(me.data?.permissions, 'import.run')
   const add = () => !preview && void navigate({ to: '/records/$table/new', params: { table: tableKey } })
   const keepSet = (o: Record<string, string>) => Object.fromEntries(Object.entries(o).filter(([, v]) => v))
   const selectable = feat.select_bulk && !preview && feat.bulk_actions.length > 0
   const onSort = (key: string) => setSort({ key, direction: sortState.key === key && sortState.direction === 'asc' ? 'desc' : 'asc' })
   const sortable = new Set(
-    feat.sort_filter
+    feat.sort_filter && !manual
       ? [...table.fields.filter((f) => f.type !== 'long_text' && !feat.unsortable.includes(f.key)).map((f) => f.key), ...(feat.unsortable.includes('updated_at') ? [] : ['updated_at'])]
       : [],
   )
@@ -266,7 +274,13 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
     ) : (
       <>
       <TableToolbar summary={`${rows.length.toLocaleString('en-IN')}${list.hasNextPage ? '+' : ''} ${(rows.length === 1 && !list.hasNextPage ? table.label : table.plural_label).toLowerCase()} shown`} >
-        {feat.grouping && !preview && groupable.length > 0 && (
+        {feat.row_order && !preview && canUpdate && (
+          <label className="flex items-center gap-2 text-xs text-body">
+            <input type="checkbox" role="switch" className="size-4" checked={custom} onChange={(e) => setCustom(e.target.checked)} />
+            Custom order
+          </label>
+        )}
+        {feat.grouping && !preview && !manual && groupable.length > 0 && (
           <label className="flex items-center gap-2 text-xs text-body">
             Group by
             <Select aria-label="Group by" className="h-8 w-44" value={groupBy ?? ''} onChange={(e) => setGroupChoice(e.target.value)}>
@@ -324,6 +338,11 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
                 onToggle: (id) => setPicked((cur) => { const n = new Set(cur); if (n.has(id)) n.delete(id); else n.add(id); return n }),
                 onPage: (on) => setPicked(on ? new Set(rows.map((r) => r.id)) : new Set()),
               }
+            : undefined
+        }
+        reorder={
+          manual && canUpdate
+            ? { rowId: (r) => r.id, rowLabel: (r) => String(r.data[table.title_field] ?? 'row'), onMove: (id, before) => move.mutate({ id, before }), hasMore: !!list.hasNextPage }
             : undefined
         }
         headerExtra={(id) => {
