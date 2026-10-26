@@ -135,6 +135,73 @@
         "title": "BrandBody",
         "type": "object"
       },
+      "BulkBody": {
+        "properties": {
+          "action": {
+            "enum": [
+              "update",
+              "delete",
+              "undo"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field"
+          },
+          "ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ids"
+          },
+          "matching": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Matching"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "undo": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Undo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "value": {
+            "title": "Value"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "title": "BulkBody",
+        "type": "object"
+      },
       "ChoosePack": {
         "properties": {
           "pack_id": {
@@ -481,6 +548,82 @@
           "mapping"
         ],
         "title": "MappingIn",
+        "type": "object"
+      },
+      "Matching": {
+        "description": "Every record that matches the list's current search, instead of a hand-picked set.",
+        "properties": {
+          "anyof": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "title": "Anyof",
+            "type": "object"
+          },
+          "contains": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "title": "Contains",
+            "type": "object"
+          },
+          "expected_count": {
+            "title": "Expected Count",
+            "type": "integer"
+          },
+          "filters": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "title": "Filters",
+            "type": "object"
+          },
+          "has": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "title": "Has",
+            "type": "object"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner"
+          },
+          "q": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q"
+          },
+          "ranges": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "title": "Ranges",
+            "type": "object"
+          }
+        },
+        "required": [
+          "expected_count"
+        ],
+        "title": "Matching",
         "type": "object"
       },
       "MeResponse": {
@@ -1266,6 +1409,32 @@
           "token"
         ],
         "title": "TokenBody",
+        "type": "object"
+      },
+      "Undo": {
+        "properties": {
+          "ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Ids",
+            "type": "array"
+          },
+          "kind": {
+            "enum": [
+              "update",
+              "delete"
+            ],
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "ids"
+        ],
+        "title": "Undo",
         "type": "object"
       },
       "UpdateBody": {
@@ -6063,6 +6232,61 @@
           }
         },
         "summary": "Create",
+        "tags": [
+          "records"
+        ]
+      }
+    },
+    "/v1/records/{table}/bulk": {
+      "post": {
+        "description": "Change one field on, or delete, many records at once; or undo the last such change.",
+        "operationId": "bulk_v1_records__table__bulk_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "table",
+            "required": true,
+            "schema": {
+              "title": "Table",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Bulk V1 Records  Table  Bulk Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Bulk",
         "tags": [
           "records"
         ]

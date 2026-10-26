@@ -1677,6 +1677,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/records/{table}/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bulk
+         * @description Change one field on, or delete, many records at once; or undo the last such change.
+         */
+        post: operations["bulk_v1_records__table__bulk_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/records/{table}/check": {
         parameters: {
             query?: never;
@@ -2644,6 +2664,22 @@ export interface components {
             /** Logo File Id */
             logo_file_id?: string | null;
         };
+        /** BulkBody */
+        BulkBody: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "update" | "delete" | "undo";
+            /** Field */
+            field?: string | null;
+            /** Ids */
+            ids?: string[] | null;
+            matching?: components["schemas"]["Matching"] | null;
+            undo?: components["schemas"]["Undo"] | null;
+            /** Value */
+            value?: unknown;
+        };
         /** ChoosePack */
         ChoosePack: {
             /** Pack Id */
@@ -2794,6 +2830,53 @@ export interface components {
             /** Mapping */
             mapping: {
                 [key: string]: string | null;
+            };
+        };
+        /**
+         * Matching
+         * @description Every record that matches the list's current search, instead of a hand-picked set.
+         */
+        Matching: {
+            /**
+             * Anyof
+             * @default {}
+             */
+            anyof: {
+                [key: string]: string;
+            };
+            /**
+             * Contains
+             * @default {}
+             */
+            contains: {
+                [key: string]: string;
+            };
+            /** Expected Count */
+            expected_count: number;
+            /**
+             * Filters
+             * @default {}
+             */
+            filters: {
+                [key: string]: string;
+            };
+            /**
+             * Has
+             * @default {}
+             */
+            has: {
+                [key: string]: string;
+            };
+            /** Owner */
+            owner?: string | null;
+            /** Q */
+            q?: string | null;
+            /**
+             * Ranges
+             * @default {}
+             */
+            ranges: {
+                [key: string]: string;
             };
         };
         /** MeResponse */
@@ -3117,6 +3200,16 @@ export interface components {
         TokenBody: {
             /** Token */
             token: string;
+        };
+        /** Undo */
+        Undo: {
+            /** Ids */
+            ids: string[];
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "update" | "delete";
         };
         /** UpdateBody */
         UpdateBody: {
@@ -6415,6 +6508,43 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bulk_v1_records__table__bulk_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                table: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

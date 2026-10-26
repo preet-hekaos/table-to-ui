@@ -94,7 +94,7 @@ async def _write_row(
             raise ValidationFailed(errors=errors)
         await _check_references(s, table, clean)
         warnings = await _blocks(s, ctx, table, "create", clean, None, op)
-        rid = new_id()
+        rid = op.record_id or new_id()  # an undo puts a deleted record back under its own id
         shadow = shadow_columns(table, clean)
         cols = "".join(f', "{k}"' for k in shadow)
         vals = "".join(f", :n_{i}" for i in range(len(shadow)))
