@@ -153,6 +153,24 @@ class TodoDef(_Strict):
     due_field: Key | None = None
 
 
+class TableFeatures(_Strict):
+    """The classic table features a workspace owner can keep or switch off, per table.
+    A table that has never been customised has every feature on (see `features_of`)."""
+
+    sort_filter: bool = True
+    select_bulk: bool = True
+    bulk_actions: list[Literal["export", "edit", "delete"]] = ["export", "edit", "delete"]
+    bulk_scope: Literal["view", "all"] = "view"  # what a bulk action includes: shown or every field
+    import_data: bool = True
+    export_data: bool = True
+    export_formats: list[Literal["csv", "json", "xlsx"]] = ["csv", "json", "xlsx"]
+    export_email: bool = True
+    inline_edit: bool = True
+    grouping: bool = True
+    statistics: bool = True
+    row_order: bool = True
+
+
 class TableDef(_Strict):
     key: Key
     label: str
@@ -168,6 +186,7 @@ class TableDef(_Strict):
     workflow: WorkflowDef | None = None
     effects: list[EffectDef] = []
     todo: TodoDef | None = None
+    features: TableFeatures | None = None  # None: never customised, every feature on
 
     @model_validator(mode="after")
     def _check(self) -> "TableDef":
@@ -468,3 +487,7 @@ class Pack(_Strict):
 
     def table(self, key: str) -> TableDef | None:
         return next((t for t in self.tables if t.key == key), None)
+
+
+def features_of(table: TableDef) -> TableFeatures:
+    return table.features or TableFeatures()

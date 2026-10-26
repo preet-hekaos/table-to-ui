@@ -183,6 +183,9 @@ export interface SchemaTable {
 export interface SchemaPreview { tables: SchemaTable[]; problems: { file: string; message: string }[] }
 
 export const studio = {
+  setFeatures: (table: string, features: unknown) =>
+    send<{ features: Record<string, unknown>; tables: string[] }>('PUT', `/v1/studio/tables/${table}/features`, features),
+  setAllFeatures: (features: unknown) => send<{ features: Record<string, unknown>; tables: string[] }>('PUT', '/v1/studio/features', features),
   schemaPreview: (files: File[]) => {
     const body = new FormData()
     files.forEach((f) => body.append('files', f))

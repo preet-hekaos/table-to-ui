@@ -11,6 +11,7 @@ import { Badge, Button, Dialog, DialogContent, EmptyState, ErrorState, Field, In
 import { AskInWords } from '@/features/ai/Ai'
 import { can, useMe } from '@/features/auth/useMe'
 import { SearchableTable, type SortState } from '@/patterns/SearchableTable'
+import { TableToolbar } from '@/patterns/TableToolbar'
 import { formatField } from '@/patterns/format'
 
 const PAGE = 50
@@ -246,6 +247,8 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
     ) : rows.length === 0 ? (
       <EmptyState title="Nothing matches">Try fewer filters or other words.</EmptyState>
     ) : (
+      <>
+      <TableToolbar summary={`${rows.length.toLocaleString('en-IN')}${list.hasNextPage ? '+' : ''} ${(rows.length === 1 && !list.hasNextPage ? table.label : table.plural_label).toLowerCase()} shown`} />
       <SearchableTable
         caption={title ?? table.plural_label}
         columns={columns}
@@ -258,6 +261,7 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
         loadingMore={list.isFetchingNextPage}
         groupOf={groupField ? (r) => (groupField.type === 'reference' ? (r.refs?.[groupField.key]?.label ?? '') : String(r.data[groupField.key] ?? '')) || `No ${groupField.label.toLowerCase()}` : undefined}
       />
+      </>
     )
 
   return (

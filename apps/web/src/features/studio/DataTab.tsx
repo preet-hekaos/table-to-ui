@@ -4,6 +4,7 @@ import type { ApiError } from '@/api/client'
 import type { FieldDef, StudioTable } from '@/api/types'
 import { Badge, Button, Card, ErrorState, LoadingState, StageBadge, StageDot, Table, Tabs, TabsContent, TabsList, TabsTrigger, Td, Th, cn, stageStripe } from '@/design-system'
 import { FieldDialog, NewTableDialog, TYPE_LABELS } from './FieldDialog'
+import { FeaturesPanel } from './FeaturesPanel'
 import { SchemaImportDialog } from './SchemaImportDialog'
 import { ScreensTab } from './ScreensTab'
 import { useDraftTables } from './useDraftTables'
@@ -13,7 +14,7 @@ const origin = (s?: string) => <Badge tone={s === 'agency' ? 'neutral' : 'accent
 
 
 /** Screen 2.4: tables on the left, the chosen table's fields on the right. */
-export type TablePart = 'fields' | 'screens'
+export type TablePart = 'fields' | 'screens' | 'features'
 
 export function DataTab({
   selected,
@@ -91,6 +92,7 @@ export function DataTab({
           <TabsList aria-label={`${current.label} parts`} className="px-3">
             <TabsTrigger value="fields">Fields</TabsTrigger>
             <TabsTrigger value="screens">Screens</TabsTrigger>
+            <TabsTrigger value="features">Features</TabsTrigger>
           </TabsList>
           <TabsContent value="fields">
           <div className="overflow-x-auto">
@@ -141,6 +143,9 @@ export function DataTab({
           </TabsContent>
           <TabsContent value="screens" className="p-3">
             <ScreensTab canEdit={canEdit} tableKey={current.key} />
+          </TabsContent>
+          <TabsContent value="features" className="p-3">
+            <FeaturesPanel key={`${current.key}-${current.version}-${JSON.stringify(current.features ?? null)}`} table={current as StudioTable} canEdit={canEdit} />
           </TabsContent>
           </Tabs>
         </Card>

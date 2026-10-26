@@ -28,6 +28,7 @@ export interface TableDef {
   fields: FieldDef[]
   counts?: { key: string; label: string; table: string; via: string; where: Record<string, unknown> }[]
   workflow?: { field: string; stages: { key: string; label: string | null; end: boolean; ask: string[] }[]; transitions: Record<string, string[]> } | null
+  features?: Partial<import('@/features/studio/features').TableFeatures> | null
 }
 export interface RecordRef {
   table: string
