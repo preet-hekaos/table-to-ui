@@ -20,14 +20,26 @@ import type { ApiError } from '@/api/client'
 import { studio, type Link } from '@/api/endpoints'
 import type { StudioTable } from '@/api/types'
 import { Button, ErrorState, Input, LoadingState } from '@/design-system'
+import { forceLayout } from './canvas/force'
 import { TableCard, type CardData } from './canvas/TableCard'
+import { TableDot } from './canvas/TableDot'
 import { TableDrawer } from './canvas/TableDrawer'
 import { layeredLayout } from './canvas/layout'
 import { useDraftTables } from './DataTab'
 import { NewTableDialog } from './FieldDialog'
 import { AddLink, AddMany, EditLink } from './RelationshipsTab'
 
-const nodeTypes = { table: TableCard }
+const nodeTypes = { table: TableCard, dot: TableDot }
+
+type View = 'cards' | 'graph'
+const VIEW_KEY = 'tableui.canvas.view'
+const readView = (): View => {
+  try {
+    return localStorage.getItem(VIEW_KEY) === 'graph' ? 'graph' : 'cards'
+  } catch {
+    return 'cards'
+  }
+}
 
 type Pos = Record<string, { x: number; y: number }>
 
@@ -37,14 +49,25 @@ export function MapTab({ canEdit, onOpen, onOpenLink }: { canEdit: boolean; onOp
   const links = useQuery({ queryKey: ['studio-relationships'], queryFn: studio.relationships, retry: false })
   const layout = useQuery({ queryKey: ['studio-layout'], queryFn: studio.layout, retry: false })
   const [reset, setReset] = useState(0)
+  const [view, setViewState] = useState<View>(readView)
+  const setView = (v: View) => {
+    setViewState(v)
+    try {
+      localStorage.setItem(VIEW_KEY, v)
+    } catch {
+      /* a remembered choice is a convenience only */
+    }
+  }
   if (tables.isError) return <ErrorState requestId={(tables.error as ApiError).requestId} onRetry={() => void tables.refetch()} />
   if (!tables.data || !links.data || layout.isLoading) return <LoadingState label="Drawing the canvas" />
   // The canvas keeps its own positions while you drag; it starts again whenever the saved data changes.
-  const signature = JSON.stringify([tables.data.map((t) => [t.key, t.fields.length]), links.data.map((l) => l.id), reset])
+  const signature = JSON.stringify([tables.data.map((t) => [t.key, t.fields.length]), links.data.map((l) => l.id), reset, view])
   return (
     <ReactFlowProvider>
       <Canvas
         key={signature}
+        view={view}
+        onView={setView}
         all={tables.data}
         list={links.data}
         saved={layout.data?.positions}
@@ -75,6 +98,8 @@ function mergeLinks(list: Link[]): { id: string; from: string; to: string; links
 }
 
 function Canvas({
+  view,
+  onView,
   all,
   list,
   saved,
@@ -83,6 +108,8 @@ function Canvas({
   onOpenLink,
   onTidy,
 }: {
+  view: View
+  onView: (v: View) => void
   all: StudioTable[]
   list: Link[]
   saved?: Pos
@@ -103,10 +130,12 @@ function Canvas({
   const [editing, setEditing] = useState<Link | null>(null)
 
   const merged = useMemo(() => mergeLinks(list), [list])
-  const auto = useMemo(
-    () => layeredLayout(all.map((t) => t.key), list.map((l) => ({ from: l.table, to: l.to }))),
-    [all, list],
-  )
+  const graph = view === 'graph'
+  const auto = useMemo(() => {
+    const keys = all.map((t) => t.key)
+    const edges = list.map((l) => ({ from: l.table, to: l.to }))
+    return graph ? forceLayout(keys, edges) : layeredLayout(keys, edges)
+  }, [all, list, graph])
   const degree = useCallback(
     (k: string) => ({
       links: new Set(list.filter((l) => l.table !== l.to && (l.table === k || l.to === k)).map((l) => `${l.table}${l.to}${l.id}`)).size,
@@ -139,8 +168,8 @@ function Canvas({
   const [base, setBase] = useState<Node<CardData>[]>(() =>
     all.map((t) => ({
       id: t.key,
-      type: 'table',
-      position: saved?.[t.key] ?? auto[t.key]!,
+      type: graph ? 'dot' : 'table',
+      position: (!graph && saved?.[t.key]) || auto[t.key]!,
       data: { table: t, links: 0, selfLinks: 0, related: false, onSelect: () => undefined },
     })),
   )
@@ -168,10 +197,10 @@ function Canvas({
         id: m.id,
         source: m.from,
         target: m.to,
-        type: 'smoothstep',
+        type: graph ? 'straight' : 'smoothstep',
         // Names only appear on the lines you are looking at, so a busy map stays quiet.
         label: many ? `${m.links.length} links` : active && touches ? `${first.label}${first.source === 'pack' ? '' : ' •'}` : undefined,
-        markerEnd: { type: MarkerType.ArrowClosed },
+        markerEnd: graph ? undefined : { type: MarkerType.ArrowClosed },
         style: {
           strokeWidth: many ? 3 : 1.5,
           strokeDasharray: !many && first.source === 'pack' ? '6 4' : undefined,
@@ -213,6 +242,20 @@ function Canvas({
         <p className="min-w-0 flex-1 text-sm text-muted">
           {all.length} tables and {list.length} links. {canEdit ? 'Click a card for its details. Drag a card to place it, or from its dot to another card to link them.' : 'Click a card for its details.'}
         </p>
+        <div role="radiogroup" aria-label="Canvas view" className="flex overflow-hidden rounded-md border border-line text-sm">
+          {(['cards', 'graph'] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              role="radio"
+              aria-checked={view === v}
+              onClick={() => onView(v)}
+              className={`px-3 py-1.5 font-semibold ${view === v ? 'bg-accent-soft text-accent-ink' : 'bg-surface text-body hover:bg-soft'}`}
+            >
+              {v === 'cards' ? 'Cards' : 'Graph'}
+            </button>
+          ))}
+        </div>
         <form onSubmit={onFind} role="search" className="flex items-center gap-1">
           <Input aria-label="Find a table" placeholder="Find a table" className="w-40" value={find} onChange={(e) => setFind(e.target.value)} list="canvas-tables" />
           <datalist id="canvas-tables">{all.map((t) => <option key={t.key} value={t.label} />)}</datalist>
@@ -230,7 +273,7 @@ function Canvas({
           size="sm"
           variant={canEdit ? 'secondary' : 'ghost'}
           onClick={() => {
-            if (canEdit) save.mutate({}, { onSuccess: onTidy })
+            if (canEdit && !graph) save.mutate({}, { onSuccess: onTidy })
             else void onTidy()
           }}
         >
@@ -245,7 +288,7 @@ function Canvas({
           nodeTypes={nodeTypes}
           onNodesChange={onNodesChange}
           onNodeDragStop={() => {
-            if (canEdit) save.mutate(positions)
+            if (canEdit && !graph) save.mutate(positions)
           }}
           onNodeMouseEnter={(_, n) => setHovered(n.id)}
           onNodeMouseLeave={() => setHovered(null)}
@@ -261,6 +304,8 @@ function Canvas({
           nodesConnectable={canEdit}
           nodesDraggable={canEdit}
           fitView
+          fitViewOptions={{ padding: 0.15 }}
+          onInit={() => window.setTimeout(() => void flow.fitView({ padding: 0.15 }), 80)}
           minZoom={0.15}
           proOptions={{ hideAttribution: true }}
         >

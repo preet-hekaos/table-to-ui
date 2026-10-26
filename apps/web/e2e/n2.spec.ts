@@ -65,6 +65,22 @@ test('Canvas: cards, details drawer, focus, find a table, merged lines', async (
     await expect(card('interaction')).toContainText('3 links')
   })
 
+  await test.step('The graph view shows the same tables as dots, sized by their links, and opens the same drawer', async () => {
+    await page.getByRole('radio', { name: 'Graph' }).click()
+    await expect(page.getByRole('radio', { name: 'Graph' })).toHaveAttribute('aria-checked', 'true')
+    await expect(canvas.locator('.react-flow__node')).toHaveCount(13)
+    const big = (await card('candidate').locator('button').boundingBox())!
+    const small = (await card('skill').locator('button').boundingBox())!
+    expect(big.width).toBeGreaterThan(small.width)
+    await page.screenshot({ path: process.env.SHOT_DIR ? `${process.env.SHOT_DIR}/n2-graph.png` : 'test-results/n2-graph.png' })
+    await card('client').getByRole('button').click()
+    await expect(page.getByTestId('table-drawer').getByRole('heading', { name: 'Client' })).toBeVisible()
+    await page.reload()
+    await expect(page.getByRole('radio', { name: 'Graph' })).toHaveAttribute('aria-checked', 'true') // the choice is remembered
+    await page.getByRole('radio', { name: 'Cards' }).click()
+    await expect(canvas.getByTestId('box-candidate')).toContainText('fields')
+  })
+
   await test.step('Auto-arrange keeps every table and the page passes the accessibility check', async () => {
     await page.getByRole('button', { name: 'Auto-arrange' }).click()
     await expect(canvas.locator('.react-flow__node')).toHaveCount(13)
