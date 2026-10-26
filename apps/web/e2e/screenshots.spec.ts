@@ -56,7 +56,7 @@ test('capture M1 screens', async ({ page }) => {
   await page.screenshot({ path: out('2.4-studio-data') })
   await page.goto('/studio?tab=map')
   await page.screenshot({ path: out('2.5-relationship-map'), fullPage: true })
-  await page.goto('/studio?tab=screens')
+  await page.goto('/studio?tab=data&table=candidate&part=screens')
   await page.getByRole('button', { name: 'New screen from a pattern' }).click()
   await page.screenshot({ path: out('2.7-pattern-gallery'), fullPage: true })
   await page.getByRole('button', { name: 'New screen from a pattern' }).click()

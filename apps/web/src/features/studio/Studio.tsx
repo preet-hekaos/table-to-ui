@@ -22,7 +22,7 @@ import {
   useToast,
 } from '@/design-system'
 import { can, useMe } from '@/features/auth/useMe'
-import { DataTab } from './DataTab'
+import { DataTab, type TablePart } from './DataTab'
 import { useStages } from './useStages'
 import { FlowTab } from './FlowTab'
 import { AutomationsTab } from './AutomationsTab'
@@ -32,9 +32,8 @@ import { MapTab } from './MapTab'
 import { NavTab } from './NavTab'
 import { PreviewTab } from './PreviewTab'
 import { SetupChat } from '@/features/ai/SetupChat'
-import { ScreensTab } from './ScreensTab'
 
-export type StudioTab = 'data' | 'map' | 'flow' | 'screens' | 'insights' | 'automations' | 'menu' | 'preview' | 'versions' | 'chat'
+export type StudioTab = 'data' | 'map' | 'flow' | 'insights' | 'automations' | 'menu' | 'preview' | 'versions' | 'chat'
 
 /** The three environments as a strip. Each step has its own colour, its version and how many items wait there. */
 function EnvironmentSwitch({ releases }: { releases: ReleaseRow[] }) {
@@ -330,7 +329,7 @@ function VersionsTab({ releases, canPublish, isOwner }: { releases: ReleaseRow[]
 }
 
 /** The Studio: screens 2.4 to 2.8, 2.15 and 2.16. Every change lands in the Draft first. */
-export function Studio({ tab = 'data', table }: { tab?: StudioTab; table?: string }) {
+export function Studio({ tab = 'data', table, part }: { tab?: StudioTab; table?: string; part?: TablePart }) {
   const me = useMe()
   const navigate = useNavigate()
   const releases = useQuery({ queryKey: ['releases'], queryFn: studio.releases, enabled: !!me.data, retry: false })
@@ -341,7 +340,7 @@ export function Studio({ tab = 'data', table }: { tab?: StudioTab; table?: strin
   if (!can(perms, 'metadata.read')) return <PermissionDenied what="The Studio is for workspace admins." />
   if (releases.isLoading) return <LoadingState label="Loading the Studio" />
   if (releases.isError) return <ErrorState requestId={(releases.error as ApiError).requestId} onRetry={() => void releases.refetch()} />
-  const go = (next: { tab?: StudioTab; table?: string }) => void navigate({ to: '/studio', search: { tab: next.tab ?? tab, table: next.table ?? table } })
+  const go = (next: { tab?: StudioTab; table?: string; part?: TablePart }) => void navigate({ to: '/studio', search: { tab: next.tab ?? tab, table: next.table ?? table, part: next.part ?? part } })
   const firstScreen = nav.data?.find((n) => n.section === 'main') ?? nav.data?.[0]
   const defaultTable = screens.data?.find((s) => s.key === firstScreen?.screen)?.table
   const canEdit = can(perms, 'metadata.write')
@@ -361,10 +360,9 @@ export function Studio({ tab = 'data', table }: { tab?: StudioTab; table?: strin
       <Tabs value={tab} onValueChange={(v) => go({ tab: v as StudioTab })}>
         <TabsList aria-label="Studio sections" className="overflow-x-auto">
           {can(perms, 'ai.setup') && <TabsTrigger value="chat">Set up by chat</TabsTrigger>}
-          <TabsTrigger value="data">Data</TabsTrigger>
+          <TabsTrigger value="data">Tables</TabsTrigger>
           <TabsTrigger value="map">Canvas</TabsTrigger>
           <TabsTrigger value="flow">Stages &amp; rules</TabsTrigger>
-          <TabsTrigger value="screens">Screens</TabsTrigger>
           <TabsTrigger value="insights">Insights</TabsTrigger>
           <TabsTrigger value="automations">Automations</TabsTrigger>
           <TabsTrigger value="menu">Menu</TabsTrigger>
@@ -375,16 +373,13 @@ export function Studio({ tab = 'data', table }: { tab?: StudioTab; table?: strin
           <SetupChat />
         </TabsContent>
         <TabsContent value="data" className="pt-4">
-          <DataTab selected={table} defaultTable={defaultTable} onSelect={(k) => go({ table: k })} canEdit={canEdit} />
+          <DataTab selected={table} defaultTable={defaultTable} onSelect={(k) => go({ table: k })} canEdit={canEdit} part={part} onPart={(p) => go({ part: p })} />
         </TabsContent>
         <TabsContent value="map" className="pt-4">
-          <MapTab canEdit={canEdit} onOpen={(k) => go({ tab: 'data', table: k })} />
+          <MapTab canEdit={canEdit} onOpen={(k, p) => go({ tab: 'data', table: k, part: p ?? 'fields' })} />
         </TabsContent>
         <TabsContent value="flow" className="pt-4">
           <FlowTab canEdit={canEdit} />
-        </TabsContent>
-        <TabsContent value="screens" className="pt-4">
-          <ScreensTab canEdit={canEdit} />
         </TabsContent>
         <TabsContent value="insights" className="pt-4">
           <InsightsTab canEdit={canEdit} />

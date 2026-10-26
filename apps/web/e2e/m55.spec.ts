@@ -36,7 +36,7 @@ test('M5.5 demo: set up a new workspace by chat, apply to Draft, undo', async ({
     await expect(page.getByTestId('setup-applied')).toBeVisible()
     await expect(page.getByTestId('draft-banner')).toBeVisible()
     await shot(page, 'applied')
-    await page.getByRole('tab', { name: 'Data' }).click()
+    await page.getByRole('tab', { name: 'Tables' }).click()
     await expect(page.getByText('Project', { exact: true }).first()).toBeVisible()
   })
 

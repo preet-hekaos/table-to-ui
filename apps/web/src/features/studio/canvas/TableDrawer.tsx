@@ -18,6 +18,7 @@ export function TableDrawer({
   onEditLink,
   onAddLink,
   onOpenFields,
+  onOpenScreens,
   onSelect,
 }: {
   table: StudioTable
@@ -30,6 +31,7 @@ export function TableDrawer({
   onEditLink: (l: Link) => void
   onAddLink: (table: string) => void
   onOpenFields: (table: string) => void
+  onOpenScreens: (table: string) => void
   onSelect: (table: string) => void
 }) {
   const stages = useStages()
@@ -92,6 +94,9 @@ export function TableDrawer({
         )}
         <Button size="sm" variant="secondary" onClick={() => onOpenFields(table.key)}>
           Open {table.label} fields
+        </Button>
+        <Button size="sm" variant="secondary" onClick={() => onOpenScreens(table.key)}>
+          Open screens
         </Button>
         <label className="ml-auto flex items-center gap-2 text-xs text-body">
           <input type="checkbox" checked={focus} onChange={(e) => onFocus(e.target.checked)} /> Focus on this table

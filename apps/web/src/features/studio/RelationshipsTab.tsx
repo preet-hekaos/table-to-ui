@@ -3,7 +3,7 @@ import { useState, type FormEvent } from 'react'
 import { ApiError } from '@/api/client'
 import { studio, type Link, type LinkIssue } from '@/api/endpoints'
 import { Button, Dialog, DialogContent, Field, Input, Select, useToast } from '@/design-system'
-import { useDraftTables } from './DataTab'
+import { useDraftTables } from './useDraftTables'
 
 const refresh = (qc: ReturnType<typeof useQueryClient>) =>
   Promise.all(['studio-relationships', 'studio-tables', 'studio-status'].map((k) => qc.invalidateQueries({ queryKey: [k] })))

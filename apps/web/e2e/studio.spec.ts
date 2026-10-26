@@ -55,12 +55,13 @@ test('Studio: fields, tables, map, screens, menu, preview and versions', async (
     await expect(canvas.locator('.react-flow__node')).toHaveCount(14) // 13 pack tables + the new one
     await canvas.getByTestId('box-client').getByRole('button').click()
     await canvas.getByRole('button', { name: 'Open Client fields' }).click()
-    await expect(page.getByRole('tab', { name: 'Data' })).toHaveAttribute('aria-selected', 'true')
+    await expect(page.getByRole('tab', { name: 'Tables' })).toHaveAttribute('aria-selected', 'true')
     await expect(page.getByRole('heading', { name: 'Client', exact: true })).toBeVisible()
   })
 
   await test.step('S15. Configure the candidates screen; the preview follows at once', async () => {
-    await page.getByRole('tab', { name: 'Screens' }).click()
+    await page.goto('/studio?tab=data&table=candidate&part=screens')
+    await expect(page.getByRole('tab', { name: 'Screens' })).toHaveAttribute('aria-selected', 'true')
     await page.getByLabel('Screen to configure').selectOption({ label: 'Candidates' })
     const preview = page.getByTestId('screen-preview')
     await page.getByLabel('Empty-state text').fill('Nobody here yet, add a candidate')
@@ -109,7 +110,7 @@ test('Studio: fields, tables, map, screens, menu, preview and versions', async (
   })
 
   await test.step('Studio screens pass axe', async () => {
-    for (const tab of ['data', 'map', 'screens', 'menu', 'versions']) {
+    for (const tab of ['data', 'map', 'menu', 'versions']) {
       await page.goto(`/studio?tab=${tab}`)
       await page.waitForLoadState('networkidle')
       const r = await new AxeBuilder({ page }).withTags(tags).exclude('iframe').analyze()

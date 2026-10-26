@@ -8,7 +8,7 @@ import { Badge, Button, Card, ErrorState, Field, Input, LoadingState, Select, St
 import { useStages } from './useStages'
 import { RecordsList } from '@/features/records/RecordsList'
 import { MasterDetail } from '@/patterns/MasterDetail'
-import { useDraftTables } from './DataTab'
+import { useDraftTables } from './useDraftTables'
 
 export const PATTERNS = [
   { key: 'searchable_table', name: 'Searchable table', use: 'Find, sort and filter many records.' },
@@ -205,7 +205,7 @@ function Configurator({ screen, table, canEdit }: { screen: DraftScreen; table: 
   )
 }
 
-export function ScreensTab({ canEdit }: { canEdit: boolean }) {
+export function ScreensTab({ canEdit, tableKey }: { canEdit: boolean; tableKey: string }) {
   const screens = useQuery({ queryKey: ['studio-screens'], queryFn: studio.screens, retry: false })
   const tables = useDraftTables()
   const [selected, setSelected] = useState<string | null>(null)
@@ -213,15 +213,19 @@ export function ScreensTab({ canEdit }: { canEdit: boolean }) {
   const stages = useStages()
   if (screens.isLoading || tables.isLoading) return <LoadingState label="Loading screens" />
   if (screens.isError) return <ErrorState requestId={(screens.error as ApiError).requestId} onRetry={() => void screens.refetch()} />
-  const all = screens.data ?? []
+  const all = (screens.data ?? []).filter((s) => s.table === tableKey)
   const current = all.find((s) => s.key === selected) ?? all[0]
   const table = tables.data?.find((t) => t.key === current?.table)
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
-        <Select aria-label="Screen to configure" className="w-64" value={current?.key ?? ''} onChange={(e) => setSelected(e.target.value)}>
-          {all.map((s) => <option key={s.key} value={s.key}>{s.title}</option>)}
-        </Select>
+        {all.length > 0 ? (
+          <Select aria-label="Screen to configure" className="w-64" value={current?.key ?? ''} onChange={(e) => setSelected(e.target.value)}>
+            {all.map((s) => <option key={s.key} value={s.key}>{s.title}</option>)}
+          </Select>
+        ) : (
+          <p className="text-sm text-muted">No screens show this table yet.</p>
+        )}
         {current && stages.of('screens', current.key) && <StageBadge stage={stages.of('screens', current.key)!} isNew={stages.isNew('screens', current.key)} />}
         {canEdit && (
           <Button onClick={() => setGallery((g) => !g)} aria-expanded={gallery}>
@@ -231,7 +235,7 @@ export function ScreensTab({ canEdit }: { canEdit: boolean }) {
       </div>
       {gallery && tables.data && (
         <Gallery
-          tables={tables.data}
+          tables={tables.data.filter((t) => t.key === tableKey)}
           onCreated={(k) => {
             setGallery(false)
             setSelected(k)

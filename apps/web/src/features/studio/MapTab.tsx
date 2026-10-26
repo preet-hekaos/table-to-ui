@@ -25,7 +25,7 @@ import { TableCard, type CardData } from './canvas/TableCard'
 import { TableDot } from './canvas/TableDot'
 import { TableDrawer } from './canvas/TableDrawer'
 import { layeredLayout } from './canvas/layout'
-import { useDraftTables } from './DataTab'
+import { useDraftTables } from './useDraftTables'
 import { NewTableDialog } from './FieldDialog'
 import { AddLink, AddMany, EditLink, LinkHealth } from './RelationshipsTab'
 
@@ -44,7 +44,7 @@ const readView = (): View => {
 type Pos = Record<string, { x: number; y: number }>
 
 /** Screen 2.5: the canvas. Small cards, parents on the left, lines that rarely cross; click a card for its details. */
-export function MapTab({ canEdit, onOpen }: { canEdit: boolean; onOpen: (table: string) => void }) {
+export function MapTab({ canEdit, onOpen }: { canEdit: boolean; onOpen: (table: string, part?: 'fields' | 'screens') => void }) {
   const tables = useDraftTables()
   const links = useQuery({ queryKey: ['studio-relationships'], queryFn: studio.relationships, retry: false })
   const layout = useQuery({ queryKey: ['studio-layout'], queryFn: studio.layout, retry: false })
@@ -112,7 +112,7 @@ function Canvas({
   list: Link[]
   saved?: Pos
   canEdit: boolean
-  onOpen: (table: string) => void
+  onOpen: (table: string, part?: 'fields' | 'screens') => void
   onTidy: () => Promise<void>
 }) {
   const qc = useQueryClient()
@@ -323,7 +323,8 @@ function Canvas({
             }}
             onEditLink={setEditing}
             onAddLink={(t) => setLinkDraft({ table: t, to: '' })}
-            onOpenFields={onOpen}
+            onOpenFields={(k) => onOpen(k, 'fields')}
+            onOpenScreens={(k) => onOpen(k, 'screens')}
             onSelect={selectAndShow}
           />
         )}
