@@ -27,6 +27,7 @@ import { RankedList } from '@/patterns/RankedList'
 import { PatternGallery } from '@/features/patterns/PatternGallery'
 import { Settings } from '@/features/settings/Settings'
 import { Studio, type StudioTab } from '@/features/studio/Studio'
+import type { TablePart } from '@/features/studio/DataTab'
 import { Team } from '@/features/studio/Team'
 import { NotFound } from '@/design-system'
 import { AppShell } from '@/shell/AppShell'
@@ -156,13 +157,14 @@ const insightDrill = createRoute({
 const studio = createRoute({
   getParentRoute: () => shell,
   path: '/studio',
-  validateSearch: (s: Record<string, unknown>): { tab?: StudioTab; table?: string } => ({
-    tab: typeof s.tab === 'string' ? ((s.tab === 'links' ? 'map' : s.tab) as StudioTab) : undefined,
+  validateSearch: (s: Record<string, unknown>): { tab?: StudioTab; table?: string; part?: TablePart } => ({
+    tab: typeof s.tab === 'string' ? ((s.tab === 'links' ? 'map' : s.tab === 'screens' ? 'data' : s.tab) as StudioTab) : undefined,
+    part: s.part === 'screens' || s.tab === 'screens' ? 'screens' : s.part === 'fields' ? 'fields' : undefined,
     table: typeof s.table === 'string' ? s.table : undefined,
   }),
   component: function StudioRoute() {
-    const { tab, table } = studio.useSearch()
-    return <Studio tab={tab} table={table}  />
+    const { tab, table, part } = studio.useSearch()
+    return <Studio tab={tab} table={table} part={part} />
   },
 })
 const importRoute = createRoute({

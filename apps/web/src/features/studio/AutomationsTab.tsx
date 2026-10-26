@@ -4,7 +4,7 @@ import { ApiError } from '@/api/client'
 import { admin, automations, studio, type AutomationAction, type AutomationDraft } from '@/api/endpoints'
 import { Badge, Button, Card, Dialog, DialogContent, EmptyState, ErrorState, Field, Input, LoadingState, Select, StageBadge, cn, stageStripe, useToast } from '@/design-system'
 import { useStages } from './useStages'
-import { useDraftTables } from './DataTab'
+import { useDraftTables } from './useDraftTables'
 
 type Trigger = AutomationDraft['trigger']
 const fieldErrors = (e: unknown) => (e instanceof ApiError ? Object.fromEntries(e.errors.map((x) => [x.field, x.message])) : {})

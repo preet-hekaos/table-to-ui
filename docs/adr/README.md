@@ -26,3 +26,4 @@
 | [22](0022-operator-console.md) | The operator sees counts, never contents; suspend, export, limit and two-step delete |
 | [23](0023-stage-colours.md) | Stage colours are computed on the server and never carried by colour alone |
 | [24](0024-canvas.md) | One canvas for tables and links: cards, ordered layout, details drawer, Cards/Graph switch |
+| [25](0025-screens-in-tables.md) | Screens are managed inside each table; the Screens tab is gone |

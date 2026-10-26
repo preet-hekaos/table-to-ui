@@ -1,21 +1,34 @@
-import { useQuery } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import type { ApiError } from '@/api/client'
-import { studio } from '@/api/endpoints'
 import type { FieldDef, StudioTable } from '@/api/types'
-import { Badge, Button, Card, ErrorState, LoadingState, StageBadge, StageDot, Table, Td, Th, cn, stageStripe } from '@/design-system'
+import { Badge, Button, Card, ErrorState, LoadingState, StageBadge, StageDot, Table, Tabs, TabsContent, TabsList, TabsTrigger, Td, Th, cn, stageStripe } from '@/design-system'
 import { FieldDialog, NewTableDialog, TYPE_LABELS } from './FieldDialog'
+import { ScreensTab } from './ScreensTab'
+import { useDraftTables } from './useDraftTables'
 import { useStages } from './useStages'
 
 const origin = (s?: string) => <Badge tone={s === 'agency' ? 'neutral' : 'accent'}>{s === 'agency' ? 'Workspace' : 'Pack'}</Badge>
 
-export function useDraftTables() {
-  return useQuery({ queryKey: ['studio-tables'], queryFn: studio.tables, retry: false })
-}
 
 /** Screen 2.4: tables on the left, the chosen table's fields on the right. */
-export function DataTab({ selected, onSelect, canEdit, defaultTable }: { selected?: string; onSelect: (k: string) => void; canEdit: boolean; defaultTable?: string }) {
+export type TablePart = 'fields' | 'screens'
+
+export function DataTab({
+  selected,
+  onSelect,
+  canEdit,
+  defaultTable,
+  part = 'fields',
+  onPart,
+}: {
+  selected?: string
+  onSelect: (k: string) => void
+  canEdit: boolean
+  defaultTable?: string
+  part?: TablePart
+  onPart: (p: TablePart) => void
+}) {
   const tables = useDraftTables()
   const [editing, setEditing] = useState<FieldDef | 'new' | null>(null)
   const [newTable, setNewTable] = useState(false)
@@ -56,17 +69,23 @@ export function DataTab({ selected, onSelect, canEdit, defaultTable }: { selecte
       </nav>
       {current && (
         <Card className="p-0">
+          <Tabs value={part} onValueChange={(v) => onPart(v as TablePart)}>
           <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
             <h2 className="text-sm font-bold text-ink">{current.label}</h2>
             {origin(current.source)}
             {stages.of('tables', current.key) && <StageBadge stage={stages.of('tables', current.key)!} isNew={stages.isNew('tables', current.key)} />}
             <Badge>{current.fields.length} fields</Badge>
-            {canEdit && (
+            {canEdit && part === 'fields' && (
               <Button size="sm" variant="primary" className="ml-auto" onClick={() => setEditing('new')}>
                 <Plus className="size-4" aria-hidden /> Add field
               </Button>
             )}
           </div>
+          <TabsList aria-label={`${current.label} parts`} className="px-3">
+            <TabsTrigger value="fields">Fields</TabsTrigger>
+            <TabsTrigger value="screens">Screens</TabsTrigger>
+          </TabsList>
+          <TabsContent value="fields">
           <div className="overflow-x-auto">
             <Table aria-label={`${current.label} fields`}>
               <thead>
@@ -112,6 +131,11 @@ export function DataTab({ selected, onSelect, canEdit, defaultTable }: { selecte
               </tbody>
             </Table>
           </div>
+          </TabsContent>
+          <TabsContent value="screens" className="p-3">
+            <ScreensTab canEdit={canEdit} tableKey={current.key} />
+          </TabsContent>
+          </Tabs>
         </Card>
       )}
       {current && editing && (

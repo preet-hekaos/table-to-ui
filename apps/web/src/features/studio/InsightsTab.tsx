@@ -4,7 +4,7 @@ import { ApiError } from '@/api/client'
 import { app, studio } from '@/api/endpoints'
 import type { MeasureDraft } from '@/api/types'
 import { Badge, Button, Card, Dialog, DialogContent, EmptyState, ErrorState, Field, Input, LoadingState, Select, useToast } from '@/design-system'
-import { useDraftTables } from './DataTab'
+import { useDraftTables } from './useDraftTables'
 
 const NUMERIC = ['integer', 'decimal', 'money', 'months']
 const OPS: [string, string][] = [
