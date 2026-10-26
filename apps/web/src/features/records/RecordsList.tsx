@@ -173,9 +173,9 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
   const me = useMe()
   const navigate = useNavigate()
   const [sortChoice, setSort] = useState<SortState | null>(null)
-  const groupBy = config.group_by
   const [criteria, setCriteriaRaw] = useState<Criteria>({ q: initial?.q ?? '', filters: initial?.filters ?? {}, ranges: initial?.ranges ?? {}, contains: initial?.contains ?? {}, anyof: initial?.anyof ?? {} })
   const [showFacets, setShowFacets] = useState(false)
+  const [groupChoice, setGroupChoice] = useState<string | null>(null)
   const [picked, setPicked] = useState<Set<string>>(new Set())
   const [exporting, setExporting] = useState<{ ids: string[] | null } | null>(null)
   // A different search is a different set of rows, so what was ticked no longer applies.
@@ -188,6 +188,8 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
   const def = useQuery({ queryKey: ['table', tableKey], queryFn: () => app.table(tableKey), retry: false })
   const table = tableOverride ?? def.data?.table
   const feat = featuresOf(table)
+  // The screen can start the list grouped; the person can change or clear it while it is open.
+  const groupBy = feat.grouping ? (groupChoice ?? config.group_by) || undefined : undefined
   const sortState: SortState = sortChoice ?? (feat.sort_filter && feat.default_sort ? { key: feat.default_sort.field, direction: feat.default_sort.direction } : { key: 'updated_at', direction: 'desc' })
   const sort: SortState = groupBy ? { key: groupBy, direction: sortState.key === groupBy ? sortState.direction : 'asc' } : sortState
   const list = useInfiniteQuery({
@@ -231,6 +233,7 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
   const filterable = new Map<string, FieldDef>(
     feat.sort_filter ? table.fields.filter((f) => !f.hidden && !feat.unfilterable.includes(f.key) && filterKind(f)).map((f) => [f.key, f] as [string, FieldDef]) : [],
   )
+  const groupable = table.fields.filter((f) => !f.hidden && ['select', 'boolean', 'reference', 'text'].includes(f.type))
   const groupField = groupBy ? table.fields.find((f) => f.key === groupBy) : undefined
   const filters_ = filterFields(table, config)
   const facetFields = (config.facets ?? []).filter((k) => table.fields.some((f) => f.key === k && !f.hidden))
@@ -261,7 +264,17 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
       <EmptyState title="Nothing matches">Try fewer filters or other words.</EmptyState>
     ) : (
       <>
-      <TableToolbar summary={`${rows.length.toLocaleString('en-IN')}${list.hasNextPage ? '+' : ''} ${(rows.length === 1 && !list.hasNextPage ? table.label : table.plural_label).toLowerCase()} shown`} />
+      <TableToolbar summary={`${rows.length.toLocaleString('en-IN')}${list.hasNextPage ? '+' : ''} ${(rows.length === 1 && !list.hasNextPage ? table.label : table.plural_label).toLowerCase()} shown`} >
+        {feat.grouping && !preview && groupable.length > 0 && (
+          <label className="flex items-center gap-2 text-xs text-body">
+            Group by
+            <Select aria-label="Group by" className="h-8 w-44" value={groupBy ?? ''} onChange={(e) => setGroupChoice(e.target.value)}>
+              <option value="">No grouping</option>
+              {groupable.map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}
+            </Select>
+          </label>
+        )}
+      </TableToolbar>
       {selectable && (
         <BulkBar
           key={JSON.stringify(criteria)}
