@@ -20,7 +20,8 @@ import { useCallback, useMemo, useState } from 'react'
 import type { ApiError } from '@/api/client'
 import { studio, type Link } from '@/api/endpoints'
 import type { StudioTable } from '@/api/types'
-import { Button, ErrorState, LoadingState } from '@/design-system'
+import { Button, ErrorState, LoadingState, StageBadge, stageStripe } from '@/design-system'
+import { useStages } from './useStages'
 import { useDraftTables } from './DataTab'
 import { NewTableDialog } from './FieldDialog'
 import { AddLink, AddMany, EditLink } from './RelationshipsTab'
@@ -34,18 +35,21 @@ type Box = { table: StudioTable; links: number; open: (table: string) => void }
 /** One table as a box: its name, its first fields (links marked), and a dot to drag a link from or to. */
 function TableBox({ data, selected }: NodeProps<Node<Box>>) {
   const t = data.table
+  const stages = useStages()
+  const stage = stages.of('tables', t.key)
   const shown = t.fields.filter((f) => !f.hidden).slice(0, 6)
   const more = t.fields.filter((f) => !f.hidden).length - shown.length
   return (
     <div
-      className={`rounded-lg border bg-surface text-left shadow-sm ${selected ? 'border-accent ring-2 ring-accent' : 'border-line'}`}
+      className={`rounded-lg border bg-surface text-left shadow-sm ${stageStripe(stage)} ${selected ? 'border-accent ring-2 ring-accent' : 'border-line'}`}
+      data-stage={stage}
       style={{ width: W }}
       data-testid={`box-${t.key}`}
     >
       <Handle type="target" position={Position.Left} className="!size-3 !border-2 !border-accent !bg-surface" />
       <div className="flex items-center justify-between gap-2 border-b border-line px-3 py-2">
         <span className="truncate text-sm font-bold text-ink">{t.label}</span>
-        <span className="shrink-0 text-[10px] font-semibold text-muted uppercase">{t.source === 'pack' ? 'Pack' : 'Yours'}</span>
+        {stage && stage !== 'live' ? <StageBadge stage={stage} /> : <span className="shrink-0 text-[10px] font-semibold text-muted uppercase">{t.source === 'pack' ? 'Pack' : 'Yours'}</span>}
       </div>
       <button type="button" className="nodrag mx-3 mt-2 text-left text-xs font-semibold text-accent-ink hover:underline" onClick={() => data.open(t.key)}>
         Open {t.label} fields

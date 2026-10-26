@@ -24,3 +24,4 @@
 | [20](0020-ai-assist.md) | AI proposes, rules and people decide; every call is gated, capped, checked and logged |
 | [21](0021-chat-setup.md) | The AI plans from a fixed list of Studio operations; dry run, apply to Draft in one step, one-click undo |
 | [22](0022-operator-console.md) | The operator sees counts, never contents; suspend, export, limit and two-step delete |
+| [23](0023-stage-colours.md) | Stage colours are computed on the server and never carried by colour alone |

@@ -13,6 +13,8 @@ import {
   LoadingState,
   PermissionDenied,
   Select,
+  StageBadge,
+  STAGES,
   Tabs,
   TabsContent,
   TabsList,
@@ -21,6 +23,7 @@ import {
 } from '@/design-system'
 import { can, useMe } from '@/features/auth/useMe'
 import { DataTab } from './DataTab'
+import { useStages } from './useStages'
 import { FlowTab } from './FlowTab'
 import { AutomationsTab } from './AutomationsTab'
 import { InsightsTab } from './InsightsTab'
@@ -33,19 +36,43 @@ import { ScreensTab } from './ScreensTab'
 
 export type StudioTab = 'data' | 'map' | 'links' | 'flow' | 'screens' | 'insights' | 'automations' | 'menu' | 'preview' | 'versions' | 'chat'
 
+/** The three environments as a strip. Each step has its own colour, its version and how many items wait there. */
 function EnvironmentSwitch({ releases }: { releases: ReleaseRow[] }) {
   const test = releases.find((r) => r.is_test)
   const live = releases.find((r) => r.is_live)
-  const chip = (label: string, value: string, active: boolean) => (
-    <span className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm ${active ? 'border-accent bg-accent-soft text-accent-ink' : 'border-line bg-surface text-muted'}`}>
-      <b className="text-ink">{label}</b> {value}
-    </span>
-  )
+  const { report } = useStages()
+  const c = report?.counts
+  const steps = [
+    { stage: 'draft' as const, value: 'editing', note: c ? `${c.draft + c.removed} waiting` : '' },
+    { stage: 'test' as const, value: test ? `v${test.version}` : 'empty', note: c && c.test ? `${c.test} not yet Live` : '' },
+    { stage: 'live' as const, value: live ? `v${live.version}` : 'not published', note: '' },
+  ]
   return (
-    <div className="flex flex-wrap gap-2" role="group" aria-label="Environments">
-      {chip('Draft', 'editing', true)}
-      {chip('Test', test ? `v${test.version}` : 'empty', !!test)}
-      {chip('Live', live ? `v${live.version}` : 'not published', !!live)}
+    <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Environments">
+      {steps.map((s, i) => {
+        const def = STAGES[s.stage]
+        return (
+          <span key={s.stage} className="flex items-center gap-2">
+            {i > 0 && <span className="text-muted" aria-hidden>→</span>}
+            <span className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm ${def.badge}`} data-stage={s.stage} data-testid={`env-${s.stage}`}>
+              <def.Icon className="size-4" aria-hidden />
+              <b>{def.label}</b> {s.value}
+              {s.note && <span className="text-xs">· {s.note}</span>}
+            </span>
+          </span>
+        )
+      })}
+      <details className="relative">
+        <summary className="cursor-pointer rounded-md px-2 py-1.5 text-xs font-semibold text-accent-ink hover:bg-soft">Colour key</summary>
+        <ul className="absolute z-10 mt-1 flex w-72 flex-col gap-2 rounded-lg border border-line bg-surface p-3 text-xs shadow-md" aria-label="What the colours mean">
+          {(['draft', 'test', 'live', 'removed'] as const).map((k) => (
+            <li key={k} className="flex flex-col gap-1">
+              <StageBadge stage={k} className="self-start" />
+              <span className="text-muted">{STAGES[k].meaning}</span>
+            </li>
+          ))}
+        </ul>
+      </details>
     </div>
   )
 }
