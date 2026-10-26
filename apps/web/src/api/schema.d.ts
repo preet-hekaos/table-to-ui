@@ -1794,6 +1794,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/records/{table}/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Stats
+         * @description Count, totals and averages over everything the current search matches.
+         */
+        get: operations["stats_v1_records__table__stats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/records/{table}/{record_id}": {
         parameters: {
             query?: never;
@@ -6824,6 +6844,42 @@ export interface operations {
         };
     };
     facets_v1_records__table__facets_get: {
+        parameters: {
+            query?: {
+                q?: string | null;
+                fields?: string | null;
+            };
+            header?: never;
+            path: {
+                table: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stats_v1_records__table__stats_get: {
         parameters: {
             query?: {
                 q?: string | null;

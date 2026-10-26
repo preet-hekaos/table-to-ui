@@ -687,6 +687,8 @@ def _fit_features(f: TableFeatures, table: TableDef, *, strict: bool) -> TableFe
     refused; when the same settings go to every table, names a table lacks are left out."""
     have = {x.key for x in table.fields}
     bad = [k for k in [*f.unsortable, *f.unfilterable] if k not in have]
+    numeric = {x.key for x in table.fields if x.type in ("integer", "decimal", "money", "months")}
+    bad += [k for k in (f.stat_fields or []) if k not in numeric]
     if (
         f.default_sort
         and f.default_sort.field not in have
@@ -705,6 +707,9 @@ def _fit_features(f: TableFeatures, table: TableDef, *, strict: bool) -> TableFe
         update={
             "unsortable": [k for k in f.unsortable if k in have],
             "unfilterable": [k for k in f.unfilterable if k in have],
+            "stat_fields": [k for k in f.stat_fields if k not in bad]
+            if f.stat_fields is not None
+            else None,
             "default_sort": f.default_sort
             if f.default_sort and f.default_sort.field not in bad
             else None,

@@ -274,6 +274,7 @@ export interface ExportBody {
   sort?: string
   direction?: string
 }
+export interface TableStats { total: number; fields: { key: string; label: string; type: string; count: number; sum: number | null; avg: number | null; min: number | null; max: number | null }[] }
 export interface BulkMatching { q?: string; filters: Record<string, string>; ranges: Record<string, string>; contains: Record<string, string>; anyof: Record<string, string>; expected_count: number }
 export interface BulkUndo { kind: 'update' | 'delete'; ids: string[] }
 export interface BulkBody { action: 'update' | 'delete' | 'undo'; ids?: string[]; matching?: BulkMatching; field?: string; value?: unknown; undo?: BulkUndo }
@@ -322,6 +323,20 @@ export const app = {
         q,
         owner,
         fields: fields?.join(','),
+        ...Object.fromEntries(Object.entries(filters ?? {}).map(([k, v]) => [`f.${k}`, v])),
+        ...Object.fromEntries(Object.entries(ranges ?? {}).map(([k, v]) => [`r.${k}`, v])),
+        ...Object.fromEntries(Object.entries(contains ?? {}).map(([k, v]) => [`c.${k}`, v])),
+        ...Object.fromEntries(Object.entries(anyof ?? {}).map(([k, v]) => [`in.${k}`, v])),
+        ...Object.fromEntries(Object.entries(has ?? {}).map(([k, v]) => [`has.${k}`, v])),
+      })}`,
+    )
+  },
+  stats: (table: string, query: ListQuery) => {
+    const { filters, ranges, contains, anyof, has, q, owner } = query
+    return g<TableStats>(
+      `/v1/records/${table}/stats${qs({
+        q,
+        owner,
         ...Object.fromEntries(Object.entries(filters ?? {}).map(([k, v]) => [`f.${k}`, v])),
         ...Object.fromEntries(Object.entries(ranges ?? {}).map(([k, v]) => [`r.${k}`, v])),
         ...Object.fromEntries(Object.entries(contains ?? {}).map(([k, v]) => [`c.${k}`, v])),

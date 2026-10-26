@@ -15,6 +15,7 @@ import { TableToolbar } from '@/patterns/TableToolbar'
 import { featuresOf } from '@/features/studio/features'
 import { BulkBar } from './BulkBar'
 import { ExportDialog } from './ExportDialog'
+import { StatsStrip } from './StatsStrip'
 import { InlineCell, InlineEditContext, inlineEditable } from './InlineCell'
 import { HeaderFilter, describe, filterKind } from './HeaderFilter'
 import { formatField } from '@/patterns/format'
@@ -275,6 +276,9 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
           </label>
         )}
       </TableToolbar>
+      {feat.statistics && !preview && rows.length > 0 && (
+        <StatsStrip table={table} query={{ q: debouncedQ, filters: keepSet(filters), ranges: keepSet(ranges), contains: keepSet(contains), anyof: keepSet(anyof) }} />
+      )}
       {selectable && (
         <BulkBar
           key={JSON.stringify(criteria)}

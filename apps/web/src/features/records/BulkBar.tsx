@@ -77,7 +77,7 @@ export function BulkBar({
       ? { ...b, matching: { q: query.q || undefined, filters: query.filters ?? {}, ranges: query.ranges ?? {}, contains: query.contains ?? {}, anyof: query.anyof ?? {}, expected_count: total } }
       : { ...b, ids: [...picked] }
   const refresh = async () => {
-    await Promise.all(['records', 'count', 'facets', 'measures'].map((k) => qc.invalidateQueries({ queryKey: [k] })))
+    await Promise.all(['records', 'count', 'stats', 'facets', 'measures'].map((k) => qc.invalidateQueries({ queryKey: [k] })))
   }
   const undo = useMutation({
     mutationFn: (u: NonNullable<BulkResult['undo']>) => app.bulk(table.key, { action: 'undo', undo: u }),

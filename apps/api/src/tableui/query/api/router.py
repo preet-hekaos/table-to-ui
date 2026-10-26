@@ -15,6 +15,7 @@ from tableui.platform.mail import Mailer
 from tableui.platform.web import get_db, get_mailer, get_request_id, get_settings_dep
 from tableui.query.application import export as exports
 from tableui.query.application import records
+from tableui.query.application.stats import table_stats
 
 router = APIRouter(prefix="/v1/records", tags=["records"])
 DbDep = Annotated[Database, Depends(get_db)]
@@ -52,6 +53,23 @@ async def facets(
         q=q,
         **_query_parts(request),
     )
+
+
+@router.get("/{table}/stats")
+async def stats(
+    table: str,
+    p: PrincipalDep,
+    app: LiveAppDep,
+    db: DbDep,
+    request: Request,
+    q: str | None = None,
+    fields: str | None = None,
+) -> dict[str, Any]:
+    """Count, totals and averages over everything the current search matches."""
+    return await table_stats(
+        db, p, app, table, fields=[x for x in (fields or "").split(",") if x] or None,
+        q=q, **_query_parts(request),
+    )  # fmt: skip
 
 
 @router.get("/{table}")

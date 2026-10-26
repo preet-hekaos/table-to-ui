@@ -7,6 +7,7 @@ from tableui.query.application.records import (
     matching_ids,
     quick_search,
 )
+from tableui.query.application.stats import table_stats
 
 __all__ = [
     "ExportFile",
@@ -19,4 +20,5 @@ __all__ = [
     "list_records",
     "matching_ids",
     "quick_search",
+    "table_stats",
 ]
