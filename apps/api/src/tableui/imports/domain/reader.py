@@ -33,7 +33,47 @@ def _cell(v: object) -> str:
     return str(v).strip()
 
 
+def _json_cell(v: object) -> str:
+    if isinstance(v, list):
+        return ", ".join(_json_cell(x) for x in v)
+    if isinstance(v, bool):
+        return "true" if v else "false"
+    if isinstance(v, dict):
+        raise FileUnreadable("Nested objects are not supported; flatten them into columns first.")
+    return _cell(v)
+
+
+def _read_json(data: bytes) -> tuple[list[str], list[list[str]]]:
+    """A list of flat objects: one column per key (in first-seen order), one row per object."""
+    import json
+
+    try:
+        doc = json.loads(_decode(data))
+    except json.JSONDecodeError as e:
+        raise FileUnreadable(f"The JSON file could not be read: {e.msg}.") from e
+    if isinstance(doc, dict):
+        doc = next((v for v in doc.values() if isinstance(v, list)), None)
+    if not isinstance(doc, list) or not all(isinstance(x, dict) for x in doc):
+        raise FileUnreadable("The JSON must be a list of objects, one per record.")
+    if len(doc) > MAX_ROWS:
+        raise FileUnreadable(
+            f"The file has more than {MAX_ROWS:,} rows. Split it and import each part."
+        )
+    header: list[str] = []
+    for obj in doc:
+        for k in obj:
+            if k not in header:
+                header.append(str(k))
+    rows = [[_json_cell(obj.get(h)) for h in header] for obj in doc]
+    return header, [r for r in rows if any(r)]
+
+
 def read_table(content_type: str, data: bytes) -> tuple[list[str], list[list[str]]]:
+    if content_type == "application/json":
+        header, rows = _read_json(data)
+        if not header:
+            raise FileUnreadable("The JSON has no records.")
+        return header, rows
     if content_type == XLSX:
         from openpyxl import load_workbook  # type: ignore[import-untyped]
 

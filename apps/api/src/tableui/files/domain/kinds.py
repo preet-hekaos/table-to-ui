@@ -31,7 +31,11 @@ KINDS = {
     "import": Kind(
         "import",
         frozenset(
-            {"text/csv", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}
+            {
+                "text/csv",
+                "application/json",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            }
         ),
         100 * MB,
     ),
@@ -68,4 +72,6 @@ def sniff(data: bytes, name: str) -> str | None:
             head.decode("cp1252")
         except UnicodeDecodeError:
             return None
+    if name.lower().endswith(".json"):
+        return "application/json"
     return "text/csv" if name.lower().endswith((".csv", ".txt", ".tsv")) else "text/plain"

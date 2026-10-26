@@ -27,12 +27,13 @@ from tableui.metadata.public import (
     TableDef,
     add_field,
     build_manifest,
+    features_of,
     promote_to_live,
     publish_to_test,
     validate_record,
 )
 from tableui.platform.db import Database
-from tableui.platform.errors import NotFound, ProblemError, ValidationFailed
+from tableui.platform.errors import NotFound, PermissionDenied, ProblemError, ValidationFailed
 from tableui.rules.public import bulk_outcomes
 
 BATCH = 500
@@ -114,6 +115,8 @@ async def create(
 ) -> dict[str, Any]:
     """S08: profile every column and suggest a field for it (or reuse the saved mapping)."""
     table = app.table(table_key)
+    if not features_of(table).import_data:
+        raise PermissionDenied("Importing is switched off for this table.")
     header, rows = await _read(s, tenant_id, file_id, store)
     profiles = profile_columns(header, rows)
     suggestions = suggest(profiles, table)

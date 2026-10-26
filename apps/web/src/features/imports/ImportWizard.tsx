@@ -33,10 +33,10 @@ function Stepper({ step }: { step: number }) {
   )
 }
 
-function Upload({ onJob }: { onJob: (j: ImportJob) => void }) {
+function Upload({ onJob, initialTable }: { onJob: (j: ImportJob) => void; initialTable?: string }) {
   const me = useMe()
   const tables = useQuery({ queryKey: ['live-tables'], queryFn: app.tables })
-  const [table, setTable] = useState('')
+  const [table, setTable] = useState(initialTable ?? '')
   const [problem, setProblem] = useState<string | null>(null)
   const choices = (tables.data?.tables ?? []).filter((t) => can(me.data?.permissions, `record.${t.key}.create`))
   const current = table || choices[0]?.key || ''
@@ -56,8 +56,8 @@ function Upload({ onJob }: { onJob: (j: ImportJob) => void }) {
           {choices.map((t) => <option key={t.key} value={t.key}>{t.plural_label}</option>)}
         </Select>
       </Field>
-      <Field label="Spreadsheet" hint="CSV or Excel (.xlsx), up to 200,000 rows. The first row names the columns.">
-        <Input type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="pt-1.5" onChange={(e) => { const f = e.target.files?.[0]; setProblem(null); if (f) go.mutate(f) }} />
+      <Field label="Spreadsheet" hint="CSV, Excel (.xlsx) or JSON (a list of objects), up to 200,000 rows. In CSV and Excel the first row names the columns.">
+        <Input type="file" accept=".csv,.xlsx,.json,application/json,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="pt-1.5" onChange={(e) => { const f = e.target.files?.[0]; setProblem(null); if (f) go.mutate(f) }} />
       </Field>
       {go.isPending && <LoadingState label="Reading the file" />}
       {problem && <p role="alert" className="text-sm text-bad-ink">{problem}</p>}
@@ -317,7 +317,7 @@ function History({ onOpen }: { onOpen: (id: string) => void }) {
 }
 
 /** Screens 2.2 and 2.3: upload, match columns, check, load in the background, reconcile, undo. */
-export function ImportWizard({ jobId }: { jobId?: string }) {
+export function ImportWizard({ jobId, table }: { jobId?: string; table?: string }) {
   const me = useMe()
   const navigate = useNavigate()
   const qc = useQueryClient()
@@ -340,7 +340,7 @@ export function ImportWizard({ jobId }: { jobId?: string }) {
       </div>
       <Stepper step={step} />
       {jobId && job.isLoading ? <LoadingState /> : job.error ? <ErrorState requestId={(job.error as ApiError).requestId} /> : null}
-      {!jobId && <Upload onJob={open} />}
+      {!jobId && <Upload onJob={open} initialTable={table} />}
       {j && step === 1 && def.data && <Mapping key={j.id + JSON.stringify(j.mapping)} job={j} table={def.data.table} onJob={open} />}
       {j && step === 2 && <Check key={j.id} job={j} onJob={open} />}
       {j && step === 3 && <Progress jobId={j.id} />}

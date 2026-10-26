@@ -6,7 +6,7 @@ import { useMemo, useState } from 'react'
 import { useDebounced } from '@/lib/useDebounced'
 import { ApiError } from '@/api/client'
 import { app, search, type SavedSearch } from '@/api/endpoints'
-import type { FieldDef, RecordPage, RecordRow, ScreenConfig, TableDef } from '@/api/types'
+import type { FieldDef, RecordRow, ScreenConfig, TableDef } from '@/api/types'
 import { Badge, Button, Dialog, DialogContent, EmptyState, ErrorState, Field, Input, LoadingState, NotFound, PermissionDenied, Select, cn, useToast } from '@/design-system'
 import { AskInWords } from '@/features/ai/Ai'
 import { can, useMe } from '@/features/auth/useMe'
@@ -14,6 +14,7 @@ import { SearchableTable, type SortState } from '@/patterns/SearchableTable'
 import { TableToolbar } from '@/patterns/TableToolbar'
 import { featuresOf } from '@/features/studio/features'
 import { BulkBar } from './BulkBar'
+import { ExportDialog } from './ExportDialog'
 import { HeaderFilter, describe, filterKind } from './HeaderFilter'
 import { formatField } from '@/patterns/format'
 
@@ -31,16 +32,6 @@ function filterFields(table: TableDef, config: ScreenConfig): FieldDef[] {
   if (config.filters) return config.filters.map((k) => usable.find((f) => f.key === k)).filter((f): f is FieldDef => !!f)
   if (config.facets?.length) return []
   return usable.filter((f) => f.filterable && f.type === 'select')
-}
-
-function toCsv(fields: FieldDef[], rows: RecordRow[]): string {
-  const esc = (v: unknown) => {
-    const s = v == null ? '' : Array.isArray(v) ? v.join('; ') : String(v)
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
-  }
-  const head = fields.map((f) => esc(f.label)).join(',')
-  const body = rows.map((r) => fields.map((f) => esc(r.refs?.[f.key]?.label ?? r.data[f.key])).join(','))
-  return [head, ...body].join('\n')
 }
 
 function columnsFor(table: TableDef, config: ScreenConfig, preview: boolean): ColumnDef<RecordRow, unknown>[] {
@@ -181,6 +172,7 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
   const [criteria, setCriteriaRaw] = useState<Criteria>({ q: initial?.q ?? '', filters: initial?.filters ?? {}, ranges: initial?.ranges ?? {}, contains: initial?.contains ?? {}, anyof: initial?.anyof ?? {} })
   const [showFacets, setShowFacets] = useState(false)
   const [picked, setPicked] = useState<Set<string>>(new Set())
+  const [exporting, setExporting] = useState<{ ids: string[] | null } | null>(null)
   // A different search is a different set of rows, so what was ticked no longer applies.
   const setCriteria = (c: Criteria) => {
     setCriteriaRaw(c)
@@ -223,37 +215,8 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
   const canCreate = actions.includes('create') && can(me.data?.permissions, `record.${tableKey}.create`)
   const canImport = can(me.data?.permissions, 'import.run')
   const add = () => !preview && void navigate({ to: '/records/$table/new', params: { table: tableKey } })
-  const exportCsv = () => {
-    const blob = new Blob([toCsv(shownColumns(table, config), rows)], { type: 'text/csv' })
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(blob)
-    a.download = `${table.plural_label.toLowerCase().replace(/\s+/g, '-')}.csv`
-    a.click()
-    URL.revokeObjectURL(a.href)
-  }
   const keepSet = (o: Record<string, string>) => Object.fromEntries(Object.entries(o).filter(([, v]) => v))
   const selectable = feat.select_bulk && !preview && feat.bulk_actions.length > 0
-  const download = (fields: FieldDef[], list: RecordRow[]) => {
-    const blob = new Blob([toCsv(fields, list)], { type: 'text/csv' })
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(blob)
-    a.download = `${table.plural_label.toLowerCase().replace(/\s+/g, '-')}.csv`
-    a.click()
-    URL.revokeObjectURL(a.href)
-  }
-  /** Ticked rows are all loaded; "every match" is fetched page by page, as the list would show it. */
-  const exportPicked = async (ids: Set<string> | null) => {
-    const fields = feat.bulk_scope === 'all' ? table.fields.filter((f) => !f.hidden) : shownColumns(table, config)
-    if (ids) return download(fields, rows.filter((r) => ids.has(r.id)))
-    const all: RecordRow[] = []
-    let cursor: string | null = null
-    do {
-      const page: RecordPage = await app.list(tableKey, { sort: sort.key, direction: sort.direction, cursor, limit: 200, q: debouncedQ, filters: keepSet(filters), ranges: keepSet(ranges), contains: keepSet(contains), anyof: keepSet(anyof) })
-      all.push(...page.items)
-      cursor = page.next_cursor
-    } while (cursor && all.length < 10_000)
-    download(fields, all)
-  }
   const onSort = (key: string) => setSort({ key, direction: sortState.key === key && sortState.direction === 'asc' ? 'desc' : 'asc' })
   const sortable = new Set(
     feat.sort_filter
@@ -305,7 +268,22 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
           canUpdate={can(me.data?.permissions, `record.${tableKey}.update`)}
           canDelete={can(me.data?.permissions, `record.${tableKey}.delete`)}
           onClear={() => setPicked(new Set())}
-          onExport={exportPicked}
+          onExport={(ids) => setExporting({ ids: ids ? [...ids] : null })}
+        />
+      )}
+      {exporting && (
+        <ExportDialog
+          open
+          onOpenChange={(o) => !o && setExporting(null)}
+          table={table}
+          feat={feat}
+          shown={shownColumns(table, config)}
+          count={exporting.ids ? `${exporting.ids.length.toLocaleString('en-IN')} selected` : searching ? 'Everything in the current search' : `All ${table.plural_label.toLowerCase()}`}
+          request={
+            exporting.ids
+              ? { ids: exporting.ids, sort: sort.key, direction: sort.direction }
+              : { q: debouncedQ || undefined, filters: keepSet(filters), ranges: keepSet(ranges), contains: keepSet(contains), anyof: keepSet(anyof), sort: sort.key, direction: sort.direction }
+          }
         />
       )}
       <SearchableTable
@@ -344,10 +322,12 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
         <h1 className="text-xl font-bold text-ink">{title ?? table.plural_label}</h1>
         <span className="ml-auto flex flex-wrap gap-2">
           {searching && !preview && <SaveSearch table={table} screenKey={screenKey} criteria={criteria} />}
-          {actions.includes('import') && can(me.data?.permissions, 'import.run') && !preview && (
-            <Button variant="secondary" onClick={() => void navigate({ to: '/import', search: {} })}>Import</Button>
+          {feat.import_data && canImport && !preview && (rows.length > 0 || searching) && (
+            <Button variant="secondary" onClick={() => void navigate({ to: '/import', search: { table: tableKey } })}>Import data</Button>
           )}
-          {actions.includes('export') && rows.length > 0 && <Button variant="secondary" onClick={exportCsv}>Export CSV</Button>}
+          {feat.export_data && rows.length > 0 && !preview && (
+            <Button variant="secondary" onClick={() => setExporting({ ids: null })}>Export</Button>
+          )}
           {canCreate && (
             <Button variant="primary" onClick={add}>
               <Plus className="size-4" aria-hidden /> Add {table.label.toLowerCase()}

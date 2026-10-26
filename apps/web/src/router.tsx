@@ -23,6 +23,7 @@ import { Onboarding, onboardingKey } from '@/features/onboarding/Onboarding'
 import { OpsShell, OpsSignIn, PackCatalog, TenantDirectory, WorkspaceConsole } from '@/features/ops/Ops'
 import { Activity } from '@/features/studio/Activity'
 import { ImportWizard } from '@/features/imports/ImportWizard'
+import { ExportLink } from '@/features/records/ExportDialog'
 import { RankedList } from '@/patterns/RankedList'
 import { PatternGallery } from '@/features/patterns/PatternGallery'
 import { Settings } from '@/features/settings/Settings'
@@ -170,9 +171,17 @@ const studio = createRoute({
 const importRoute = createRoute({
   getParentRoute: () => shell,
   path: '/import',
-  validateSearch: (s: Record<string, unknown>): { job?: string } => ({ job: typeof s.job === 'string' ? s.job : undefined }),
+  validateSearch: (s: Record<string, unknown>): { job?: string; table?: string } => ({ job: typeof s.job === 'string' ? s.job : undefined, table: typeof s.table === 'string' ? s.table : undefined }),
   component: function ImportRoute() {
-    return <ImportWizard jobId={importRoute.useSearch().job} />
+    const { job, table } = importRoute.useSearch()
+    return <ImportWizard jobId={job} table={table} />
+  },
+})
+const exportLinkRoute = createRoute({
+  getParentRoute: () => shell,
+  path: '/export/$token',
+  component: function ExportLinkRoute() {
+    return <ExportLink token={exportLinkRoute.useParams().token} />
   },
 })
 const matchRoute = createRoute({
@@ -209,7 +218,7 @@ const tree = root.addChildren([
   signIn,
   mfa,
   accept,
-  shell.addChildren([onboarding, home, screenRoute, list, create, detail, edit, studio, insightsRoute, insightDrill, importRoute, matchRoute, patterns, approvalsRoute, activity, security, team, settings]),
+  shell.addChildren([onboarding, home, screenRoute, list, create, detail, edit, studio, insightsRoute, insightDrill, importRoute, exportLinkRoute, matchRoute, patterns, approvalsRoute, activity, security, team, settings]),
   opsSignIn,
   opsShell.addChildren([opsWorkspaces, opsTenants, opsPacks]),
 ])
