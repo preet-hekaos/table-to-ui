@@ -1,0 +1,41 @@
+id,Candidate name,Email,Mobile,Joined on,Joined on,Experience,Expected CTC,Active,Client id,Notes
+1,Café Person 1,person1@example.in,+91 98450 10001,2026-06-14,2026-06-14,7 yrs,9 LPA,yes,1,
+2,Café Person 2,person2@example.in,+91 98450 10002,2026-09-13,2026-09-13,6 yrs,9 LPA,yes,3,
+3,Café Person 3,person3@example.in,+91 98450 10003,2026-04-11,2026-04-11,2 yrs,33 LPA,no,2,
+4,Café Person 4,person4@example.in,+91 98450 10004,2026-02-17,2026-02-17,2 yrs,33 LPA,yes,1,Referred, urgent
+5,Café Person 5,person5@example.in,+91 98450 10005,2026-02-17,2026-02-17,11 yrs,9 LPA,yes,3,
+6,Café Person 6,person6@example.in,+91 98450 10006,2026-07-11,2026-07-11,4 yrs,8 LPA,no,3,
+7,Café Person 7,person7@example.in,+91 98450 10007,2026-03-19,2026-03-19,7 yrs,15 LPA,yes,3,
+8,Café Person 8,person8@example.in,+91 98450 10008,2026-02-28,2026-02-28,5 yrs,17 LPA,yes,1,Referred, urgent
+9,Café Person 9,person9@example.in,+91 98450 10009,next week,next week,10 yrs,18 LPA,no,2,
+10,Café Person 10,person10@example.in,+91 98450 10010,2026-02-27,2026-02-27,12 yrs,10 LPA,yes,3,
+11,Café Person 11,person11@example.in,+91 98450 10011,2026-01-16,2026-01-16,8 yrs,40 LPA,yes,2,
+12,Café Person 12,person12@example.in,+91 98450 10012,2026-06-24,2026-06-24,10 yrs,35 LPA,no,2,Referred, urgent
+13,Café Person 13,person13@example.in,+91 98450 10013,2026-05-17,2026-05-17,13 yrs,17 LPA,yes,3,
+14,Café Person 14,person14@example.in,+91 98450 10014,2026-04-12,2026-04-12,10 yrs,25 LPA,yes,3,
+15,Café Person 15,person15@example.in,+91 98450 10015,2026-08-20,2026-08-20,12 yrs,34 LPA,no,2,
+16,Café Person 16,person16@example.in,+91 98450 10016,2026-02-13,2026-02-13,9 yrs,32 LPA,yes,1,Referred, urgent
+17,Café Person 17,person17@example.in,+91 98450 10017,2026-06-14,2026-06-14,15 yrs,37 LPA,yes,2,
+18,Café Person 18,person18@example.in,+91 98450 10018,next week,next week,1 yrs,10 LPA,no,3,
+19,Café Person 19,person19@example.in,+91 98450 10019,2026-06-20,2026-06-20,12 yrs,28 LPA,yes,3,
+20,Café Person 20,person20@example.in,+91 98450 10020,2026-08-28,2026-08-28,13 yrs,35 LPA,yes,1,Referred, urgent
+21,Café Person 21,person21@example.in,+91 98450 10021,2026-02-18,2026-02-18,8 yrs,10 LPA,no,1,
+22,Café Person 22,person22@example.in,+91 98450 10022,2026-05-28,2026-05-28,11 yrs,34 LPA,yes,2,
+23,Café Person 23,person23@example.in,+91 98450 10023,2026-07-21,2026-07-21,1 yrs,35 LPA,yes,2,
+24,Café Person 24,person24@example.in,+91 98450 10024,2026-03-13,2026-03-13,8 yrs,9 LPA,no,1,Referred, urgent
+25,Café Person 25,person25@example.in,+91 98450 10025,2026-05-14,2026-05-14,12 yrs,21 LPA,yes,2,
+26,Café Person 26,person26@example.in,+91 98450 10026,2026-07-25,2026-07-25,2 yrs,16 LPA,yes,2,
+27,Café Person 27,person27@example.in,+91 98450 10027,next week,next week,7 yrs,23 LPA,no,1,
+28,Café Person 28,person28@example.in,+91 98450 10028,2026-07-27,2026-07-27,5 yrs,32 LPA,yes,2,Referred, urgent
+29,Café Person 29,person29@example.in,+91 98450 10029,2026-07-17,2026-07-17,3 yrs,11 LPA,yes,1,
+30,Café Person 30,person30@example.in,+91 98450 10030,2026-03-17,2026-03-17,11 yrs,20 LPA,no,1,
+31,Café Person 31,person31@example.in,+91 98450 10031,2026-08-28,2026-08-28,3 yrs,22 LPA,yes,2,
+32,Café Person 32,person32@example.in,+91 98450 10032,2026-01-14,2026-01-14,7 yrs,40 LPA,yes,2,Referred, urgent
+33,Café Person 33,person33@example.in,+91 98450 10033,2026-06-14,2026-06-14,12 yrs,38 LPA,no,3,
+34,Café Person 34,person34@example.in,+91 98450 10034,2026-01-24,2026-01-24,15 yrs,31 LPA,yes,2,
+35,Café Person 35,person35@example.in,+91 98450 10035,2026-07-22,2026-07-22,2 yrs,36 LPA,yes,3,
+36,Café Person 36,person36@example.in,+91 98450 10036,next week,next week,7 yrs,9 LPA,no,1,Referred, urgent
+37,Café Person 37,person37@example.in,+91 98450 10037,2026-02-16,2026-02-16,8 yrs,16 LPA,yes,1,
+38,Café Person 38,person38@example.in,+91 98450 10038,2026-06-11,2026-06-11,2 yrs,6 LPA,yes,3,
+39,Café Person 39,person39@example.in,+91 98450 10039,2026-03-27,2026-03-27,2 yrs,29 LPA,no,3,
+40,Café Person 40,person40@example.in,+91 98450 10040,2026-01-12,2026-01-12,14 yrs,19 LPA,yes,3,Referred, urgent

@@ -63,6 +63,13 @@ def test_csv_with_rows_detects_types_and_counts_rows() -> None:
     )
 
 
+def test_a_name_with_rs_inside_is_not_an_amount_of_money() -> None:
+    body = "Name,Pay\n" + "\n".join(f"Person {i},{i} LPA" for i in range(10))
+    (t,) = _read("pay.csv", body.encode())
+    f = _fields(t)
+    assert f["name"]["type"] == "text" and f["pay"]["type"] == "money"
+
+
 def test_csv_messy_headers_encodings_and_the_id_column() -> None:
     raw = "id,Name,Name,Café\n1,a,b,c\n".encode("cp1252")
     (t,) = _read("messy.csv", raw)
@@ -291,3 +298,23 @@ async def test_imported_tables_stay_inside_their_own_workspace(
         t["key"] for t in (await client.get("/v1/studio/tables", headers=other_agency.h())).json()
     }
     assert "clients" not in theirs and "jobs" not in theirs
+
+
+async def test_the_awkward_samples_read_and_rename_clashes(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    r = await client.post(
+        "/v1/studio/schema-import/preview",
+        headers=agency.h(),
+        files=_files(
+            "messy-candidates-with-data.csv", "orders-api-export.json", "clashes-and-odd-types.sql"
+        ),
+    )
+    assert r.status_code == 200, r.text
+    tables = {t["key"]: t for t in r.json()["tables"]}
+    assert {"candidate_2", "client_2", "customers", "orders"} <= set(tables)
+    assert tables["messy_candidates_with_data"]["rows"] == 40
+    assert any("already exists" in w for w in tables["candidate_2"]["warnings"])
+    assert any("nested" in w for w in tables["orders"]["warnings"])
+    link = next(f for f in tables["orders"]["fields"] if f["key"] == "customer_id")["link"]
+    assert link["to"] == "customers"

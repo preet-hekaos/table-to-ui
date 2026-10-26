@@ -15,7 +15,9 @@ _DATE = re.compile(
 )
 _INT = re.compile(r"^-?\d{1,12}$")
 _DEC = re.compile(r"^-?\d+[.,]\d+$")
-_MONEY = re.compile(r"(lpa|lakh|lac|\bcr\b|crore|₹|rs\.?|inr|\d+\s*k$)", re.I)
+_MONEY = re.compile(
+    r"(\blpa\b|\blakh|\blac\b|\bcr\b|\bcrore|₹|\brs\.?(?=\s*\d)|\binr\b|\d+\s*k$)", re.I
+)
 _MONTHS = re.compile(r"\d\s*(years?|yrs?|months?|mos?)\b", re.I)
 _BOOL = {"yes", "no", "y", "n", "true", "false", "1", "0"}
 
