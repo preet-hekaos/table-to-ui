@@ -153,11 +153,19 @@ class TodoDef(_Strict):
     due_field: Key | None = None
 
 
+class DefaultSort(_Strict):
+    field: Key
+    direction: Literal["asc", "desc"] = "asc"
+
+
 class TableFeatures(_Strict):
     """The classic table features a workspace owner can keep or switch off, per table.
     A table that has never been customised has every feature on (see `features_of`)."""
 
     sort_filter: bool = True
+    unsortable: list[Key] = []  # fields whose header does not sort
+    unfilterable: list[Key] = []  # fields whose header offers no filter
+    default_sort: "DefaultSort | None" = None
     select_bulk: bool = True
     bulk_actions: list[Literal["export", "edit", "delete"]] = ["export", "edit", "delete"]
     bulk_scope: Literal["view", "all"] = "view"  # what a bulk action includes: shown or every field

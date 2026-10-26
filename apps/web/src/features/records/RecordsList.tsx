@@ -12,6 +12,8 @@ import { AskInWords } from '@/features/ai/Ai'
 import { can, useMe } from '@/features/auth/useMe'
 import { SearchableTable, type SortState } from '@/patterns/SearchableTable'
 import { TableToolbar } from '@/patterns/TableToolbar'
+import { featuresOf } from '@/features/studio/features'
+import { HeaderFilter, describe, filterKind } from './HeaderFilter'
 import { formatField } from '@/patterns/format'
 
 const PAGE = 50
@@ -76,14 +78,14 @@ function ReferenceFilter({ f, value, onChange }: { f: FieldDef; value: string; o
   )
 }
 
-type Criteria = { q: string; filters: Record<string, string>; ranges: Record<string, string> }
+type Criteria = { q: string; filters: Record<string, string>; ranges: Record<string, string>; contains: Record<string, string>; anyof: Record<string, string> }
 
 /** Facets with counts (S23): pick a value to narrow the list; counts follow the other choices. */
 function Facets({ tableKey, fields, criteria, set }: { tableKey: string; fields: string[]; criteria: Criteria; set: (c: Criteria) => void }) {
   const q = useDebounced(criteria.q, 250)
   const facets = useQuery({
-    queryKey: ['facets', tableKey, fields, q, criteria.filters, criteria.ranges],
-    queryFn: () => app.facets(tableKey, { fields, q, filters: criteria.filters, ranges: criteria.ranges }),
+    queryKey: ['facets', tableKey, fields, q, criteria.filters, criteria.ranges, criteria.contains, criteria.anyof],
+    queryFn: () => app.facets(tableKey, { fields, q, filters: criteria.filters, ranges: criteria.ranges, contains: criteria.contains, anyof: criteria.anyof }),
     placeholderData: (prev) => prev,
   })
   if (!facets.data) return <LoadingState label="Counting" />
@@ -127,7 +129,7 @@ function SaveSearch({ table, screenKey, criteria }: { table: TableDef; screenKey
   const qc = useQueryClient()
   const toast = useToast()
   const save = useMutation({
-    mutationFn: () => search.save({ table: table.key, screen: screenKey, name, query: { q: criteria.q, filters: criteria.filters, ranges: criteria.ranges } }),
+    mutationFn: () => search.save({ table: table.key, screen: screenKey, name, query: { q: criteria.q, filters: criteria.filters, ranges: criteria.ranges, contains: criteria.contains, anyof: criteria.anyof } }),
     onSuccess: async () => {
       toast({ title: `Saved “${name}”`, description: 'Reopen it from the menu.', tone: 'ok' })
       await qc.invalidateQueries({ queryKey: ['saved-searches'] })
@@ -173,22 +175,25 @@ interface ListProps {
 export function RecordsList({ tableKey, config = {}, title, screenKey, initial, tableOverride, preview = false }: ListProps) {
   const me = useMe()
   const navigate = useNavigate()
-  const [sortState, setSort] = useState<SortState>({ key: 'updated_at', direction: 'desc' })
+  const [sortChoice, setSort] = useState<SortState | null>(null)
   const groupBy = config.group_by
-  const sort: SortState = groupBy ? { key: groupBy, direction: sortState.key === groupBy ? sortState.direction : 'asc' } : sortState
-  const [criteria, setCriteria] = useState<Criteria>({ q: initial?.q ?? '', filters: initial?.filters ?? {}, ranges: initial?.ranges ?? {} })
+  const [criteria, setCriteria] = useState<Criteria>({ q: initial?.q ?? '', filters: initial?.filters ?? {}, ranges: initial?.ranges ?? {}, contains: initial?.contains ?? {}, anyof: initial?.anyof ?? {} })
   const [showFacets, setShowFacets] = useState(false)
-  const { q, filters, ranges } = criteria
+  const { q, filters, ranges, contains, anyof } = criteria
   const debouncedQ = useDebounced(q, 250)
   const def = useQuery({ queryKey: ['table', tableKey], queryFn: () => app.table(tableKey), retry: false })
+  const table = tableOverride ?? def.data?.table
+  const feat = featuresOf(table)
+  const sortState: SortState = sortChoice ?? (feat.sort_filter && feat.default_sort ? { key: feat.default_sort.field, direction: feat.default_sort.direction } : { key: 'updated_at', direction: 'desc' })
+  const sort: SortState = groupBy ? { key: groupBy, direction: sortState.key === groupBy ? sortState.direction : 'asc' } : sortState
   const list = useInfiniteQuery({
-    queryKey: ['records', tableKey, sort, debouncedQ, filters, ranges],
+    queryKey: ['records', tableKey, sort, debouncedQ, filters, ranges, contains, anyof],
     queryFn: ({ pageParam }) => {
       // In a Studio preview the Draft may name fields that are not live yet; leave those out.
       const live = new Set(def.data?.table.fields.map((f) => f.key))
       const keep = (o: Record<string, string>) => Object.fromEntries(Object.entries(o).filter(([k, v]) => v && live.has(k)))
       const sortKey = sort.key === 'updated_at' || live.has(sort.key) ? sort.key : 'updated_at'
-      return app.list(tableKey, { sort: sortKey, direction: sort.direction, cursor: pageParam, limit: PAGE, q: debouncedQ, filters: keep(filters), ranges: keep(ranges) })
+      return app.list(tableKey, { sort: sortKey, direction: sort.direction, cursor: pageParam, limit: PAGE, q: debouncedQ, filters: keep(filters), ranges: keep(ranges), contains: keep(contains), anyof: keep(anyof) })
     },
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.next_cursor,
@@ -196,7 +201,6 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
     retry: false,
     placeholderData: (prev) => prev,
   })
-  const table = tableOverride ?? def.data?.table
   const configKey = JSON.stringify(config)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const columns = useMemo(() => (table ? columnsFor(table, config, preview) : []), [table, configKey, preview])
@@ -220,17 +224,28 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
     a.click()
     URL.revokeObjectURL(a.href)
   }
-  const onSort = (key: string) => setSort((s) => ({ key, direction: s.key === key && s.direction === 'asc' ? 'desc' : 'asc' }))
-  const sortable = new Set([...table.fields.filter((f) => f.type !== 'long_text').map((f) => f.key), 'updated_at'])
+  const onSort = (key: string) => setSort({ key, direction: sortState.key === key && sortState.direction === 'asc' ? 'desc' : 'asc' })
+  const sortable = new Set(
+    feat.sort_filter
+      ? [...table.fields.filter((f) => f.type !== 'long_text' && !feat.unsortable.includes(f.key)).map((f) => f.key), ...(feat.unsortable.includes('updated_at') ? [] : ['updated_at'])]
+      : [],
+  )
+  const filterable = new Map<string, FieldDef>(
+    feat.sort_filter ? table.fields.filter((f) => !f.hidden && !feat.unfilterable.includes(f.key) && filterKind(f)).map((f) => [f.key, f] as [string, FieldDef]) : [],
+  )
   const groupField = groupBy ? table.fields.find((f) => f.key === groupBy) : undefined
   const filters_ = filterFields(table, config)
   const facetFields = (config.facets ?? []).filter((k) => table.fields.some((f) => f.key === k && !f.hidden))
-  const searching = !!q || Object.values(filters).some(Boolean) || Object.values(ranges).some(Boolean)
+  const searching = !!q || [filters, ranges, contains, anyof].some((m) => Object.values(m).some(Boolean))
   const setFilter = (k: string, v: string) => setCriteria({ ...criteria, filters: { ...filters, [k]: v } })
-  const chips = [
-    ...Object.entries(filters).filter(([, v]) => v).map(([k, v]) => ({ k, kind: 'f' as const, label: `${table.fields.find((f) => f.key === k)?.label}: ${v}` })),
-    ...Object.entries(ranges).filter(([, v]) => v).map(([k, v]) => ({ k, kind: 'r' as const, label: `${table.fields.find((f) => f.key === k)?.label}: ${v}` })),
-  ]
+  type Slot = 'filters' | 'ranges' | 'contains' | 'anyof'
+  const chipFor = (slot: Slot, k: string, v: string) => {
+    const f = table.fields.find((x) => x.key === k)
+    return { k, slot, label: (f && describe(f, criteria)) || `${f?.label ?? k}: ${v}` }
+  }
+  const chips = (['filters', 'ranges', 'contains', 'anyof'] as Slot[]).flatMap((slot) =>
+    Object.entries(criteria[slot]).filter(([, v]) => v).map(([k, v]) => chipFor(slot, k, v)),
+  )
 
   const body =
     rows.length === 0 && !searching ? (
@@ -256,6 +271,10 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
         sort={sort}
         onSort={onSort}
         sortableKeys={sortable}
+        headerExtra={(id) => {
+          const f = filterable.get(id)
+          return f && !preview ? <HeaderFilter f={f} tableKey={tableKey} criteria={criteria} onApply={(n) => setCriteria({ ...criteria, ...n })} /> : null
+        }}
         hasMore={!!list.hasNextPage}
         onLoadMore={() => void list.fetchNextPage()}
         loadingMore={list.isFetchingNextPage}
@@ -287,7 +306,7 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
           <Input id="list-q" type="search" placeholder={`Search ${table.plural_label.toLowerCase()}`} value={q} onChange={(e) => setCriteria({ ...criteria, q: e.target.value })} />
         </div>
         {!preview && (
-          <AskInWords table={tableKey} onApply={(f, words) => setCriteria({ q: words, filters: f, ranges: {} })} />
+          <AskInWords table={tableKey} onApply={(f, words) => setCriteria({ q: words, filters: f, ranges: {}, contains: {}, anyof: {} })} />
         )}
         {filters_.map((f) => (
           <div key={f.key}>
@@ -316,10 +335,10 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
         <div className="flex flex-wrap gap-2" aria-label="Active filters">
           {chips.map((c) => (
             <button
-              key={c.kind + c.k}
+              key={c.slot + c.k}
               type="button"
               className="inline-flex items-center gap-1 rounded-full bg-accent-soft px-3 py-1 text-xs font-semibold text-accent-ink"
-              onClick={() => setCriteria(c.kind === 'f' ? { ...criteria, filters: { ...filters, [c.k]: '' } } : { ...criteria, ranges: { ...ranges, [c.k]: '' } })}
+              onClick={() => setCriteria({ ...criteria, [c.slot]: { ...criteria[c.slot], [c.k]: '' } })}
               aria-label={`Remove ${c.label}`}
             >
               {c.label} <X className="size-3" aria-hidden />

@@ -1,6 +1,7 @@
 """Read side: lists with server-side sorting and cursor paging, single records, history."""
 
 import base64
+import datetime as dt
 import json
 import uuid
 from typing import Any
@@ -9,7 +10,7 @@ from sqlalchemy import text
 
 from tableui.audit.public import read_history
 from tableui.identity.public import Principal, scope_predicate, strip_hidden
-from tableui.metadata.public import RuntimeApp, TableDef
+from tableui.metadata.public import RuntimeApp, TableDef, features_of
 from tableui.platform.db import Database
 from tableui.platform.errors import NotFound, ValidationFailed
 
@@ -17,12 +18,13 @@ MAX_PAGE = 200
 _NUMERIC = {"integer", "decimal"}
 
 
-def _sort_spec(table: TableDef, key: str) -> tuple[str, str]:
-    """(SQL expression, SQL type of the cursor value). Only metadata-known keys reach SQL."""
+def _sort_spec(table: TableDef, key: str, hidden: set[str] | None = None) -> tuple[str, str]:
+    """(SQL expression, SQL type of the cursor value). Only metadata-known keys reach SQL.
+    A field the person may not see cannot be sorted on: the order would reveal its values."""
     if key in ("updated_at", "created_at"):
         return f'"{key}"', "timestamptz"
     f = table.field(key)
-    if f is None:
+    if f is None or key in (hidden or set()):
         raise ValidationFailed(
             errors=[{"field": "sort", "code": "unknown", "message": f"'{key}' is not a field"}]
         )
@@ -32,6 +34,8 @@ def _sort_spec(table: TableDef, key: str) -> tuple[str, str]:
 
 
 _RANGED = {"integer", "decimal", "money", "months"}
+_TEXTY = {"text", "long_text", "email", "phone", "url"}
+_CHOICES = {"select", "reference", "tags"}
 
 
 def _bad(field: str, message: str) -> ValidationFailed:
@@ -46,8 +50,10 @@ def _filter_conditions(
     ranges: dict[str, str] | None = None,
     owner: str | None = None,
     has: dict[str, str] | None = None,
+    contains: dict[str, str] | None = None,
+    anyof: dict[str, str] | None = None,
 ) -> tuple[list[str], dict[str, Any]]:
-    """Filters on fields, number ranges, owner, counts and a keyword search. Only known keys reach SQL."""
+    """Filters on fields, ranges, owner, counts and a keyword search. Only known keys reach SQL."""
     conds: list[str] = []
     params: dict[str, Any] = {}
     hidden = {f for (t, f) in principal.field_denies if t == table.key}
@@ -66,11 +72,43 @@ def _filter_conditions(
         else:
             conds.append(f"data->>'{key}' = :flt{i}")
             params[f"flt{i}"] = value
+    sort_filter = features_of(table).sort_filter
+    for i, (key, value) in enumerate((contains or {}).items()):
+        f = table.field(key)
+        if f is None or key in hidden or f.type not in _TEXTY or not sort_filter:
+            raise _bad(f"c.{key}", "cannot be searched this way")
+        conds.append(f"position(lower(:ct{i}) in lower(COALESCE(data->>'{key}', ''))) > 0")
+        params[f"ct{i}"] = value.strip()
+    for i, (key, value) in enumerate((anyof or {}).items()):
+        f = table.field(key)
+        if f is None or key in hidden or f.type not in _CHOICES or not sort_filter:
+            raise _bad(f"in.{key}", "cannot be filtered by a list of choices")
+        picks = [x for x in value.split(",") if x][:50]
+        if f.type == "tags":
+            conds.append(f"jsonb_exists_any(data->'{key}', CAST(:an{i} AS text[]))")
+        else:
+            conds.append(f"data->>'{key}' = ANY(CAST(:an{i} AS text[]))")
+        params[f"an{i}"] = picks
     for i, (key, value) in enumerate((ranges or {}).items()):
         f = table.field(key)
-        if f is None or key in hidden or f.type not in _RANGED:
+        if f is None or key in hidden or f.type not in _RANGED | {"date"}:
             raise _bad(f"r.{key}", "cannot be used as a range")
         lo, _, hi = value.partition("..")
+        if f.type == "date":
+            if not sort_filter:
+                raise _bad(f"r.{key}", "cannot be used as a range")
+            try:
+                lo_d = dt.date.fromisoformat(lo) if lo else None
+                hi_d = dt.date.fromisoformat(hi) if hi else None
+            except ValueError:
+                raise _bad(f"r.{key}", "must look like 2026-01-01..2026-03-31") from None
+            if lo_d:
+                conds.append(f"data->>'{key}' >= :dlo{i}")
+                params[f"dlo{i}"] = lo_d.isoformat()
+            if hi_d:
+                conds.append(f"data->>'{key}' <= :dhi{i}")
+                params[f"dhi{i}"] = hi_d.isoformat()
+            continue
         try:
             lo_v = float(lo) if lo else None
             hi_v = float(hi) if hi else None
@@ -229,6 +267,8 @@ async def list_records(
     ranges: dict[str, str] | None = None,
     owner: str | None = None,
     has: dict[str, str] | None = None,
+    contains: dict[str, str] | None = None,
+    anyof: dict[str, str] | None = None,
     ids: list[uuid.UUID] | None = None,
 ) -> dict[str, Any]:
     principal.require(f"record.{table_key}.read")
@@ -238,7 +278,8 @@ async def list_records(
             errors=[{"field": "direction", "code": "invalid", "message": "must be asc or desc"}]
         )
     limit = max(1, min(limit, MAX_PAGE))
-    expr, sql_type = _sort_spec(table, sort)
+    hidden = {f for (t, f) in principal.field_denies if t == table.key}
+    expr, sql_type = _sort_spec(table, sort, hidden)
     op = ">" if direction == "asc" else "<"
     conds: list[str] = []
     params: dict[str, Any] = {"lim": limit + 1}
@@ -246,7 +287,9 @@ async def list_records(
     if scope_sql:
         conds.append(scope_sql)
         params |= scope_params
-    conds_f, params_f = _filter_conditions(principal, table, filters or {}, q, ranges, owner, has)
+    conds_f, params_f = _filter_conditions(
+        principal, table, filters or {}, q, ranges, owner, has, contains, anyof
+    )
     conds += conds_f
     params |= params_f
     if ids is not None:
@@ -392,13 +435,17 @@ async def facet_counts(
     ranges: dict[str, str] | None = None,
     owner: str | None = None,
     has: dict[str, str] | None = None,
+    contains: dict[str, str] | None = None,
+    anyof: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """Counts for each facet under the current search: values for choices and labels, buckets for numbers."""
     principal.require(f"record.{table_key}.read")
     table = app.table(table_key)
     hidden = {f for (t, f) in principal.field_denies if t == table.key}
     wanted = fields or [f.key for f in table.fields if f.filterable]
-    conds, params = _filter_conditions(principal, table, filters or {}, q, ranges, owner, has)
+    conds, params = _filter_conditions(
+        principal, table, filters or {}, q, ranges, owner, has, contains, anyof
+    )
     scope_sql, scope_params = await scope_predicate(db, principal, table_key)
     if scope_sql:
         conds.append(scope_sql)

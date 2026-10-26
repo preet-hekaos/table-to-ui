@@ -78,6 +78,45 @@ export function FeaturesPanel({ table, canEdit }: { table: StudioTable; canEdit:
               {!ACTIVE_FEATURES.has(it.key) && <Badge>Takes effect in an upcoming update</Badge>}
             </label>
             <p className="pl-7 text-xs text-muted">{it.help}</p>
+            {it.key === 'sort_filter' && f.sort_filter && (
+              <div className="flex flex-col gap-2 pl-7">
+                <label className="flex items-center gap-2 text-xs text-body">
+                  Default order
+                  <Select
+                    aria-label="Default order"
+                    className="w-64"
+                    disabled={!canEdit}
+                    value={f.default_sort ? `${f.default_sort.field}:${f.default_sort.direction}` : ''}
+                    onChange={(e) => {
+                      const [field, direction] = e.target.value.split(':')
+                      set('default_sort', e.target.value ? { field: field!, direction: direction as 'asc' | 'desc' } : null)
+                    }}
+                  >
+                    <option value="">Recently changed first</option>
+                    {table.fields.filter((x) => x.type !== 'long_text').flatMap((x) => [
+                      <option key={`${x.key}:asc`} value={`${x.key}:asc`}>{x.label}, A to Z / low to high</option>,
+                      <option key={`${x.key}:desc`} value={`${x.key}:desc`}>{x.label}, Z to A / high to low</option>,
+                    ])}
+                  </Select>
+                </label>
+                <table className="text-xs text-body" aria-label="Fields that can be sorted or filtered">
+                  <thead><tr><th className="pr-4 text-left font-semibold">Field</th><th className="pr-4 text-left font-semibold">Sort</th><th className="text-left font-semibold">Filter</th></tr></thead>
+                  <tbody>
+                    {table.fields.map((x) => (
+                      <tr key={x.key}>
+                        <td className="pr-4">{x.label}</td>
+                        <td className="pr-4">
+                          <input type="checkbox" className="size-6" aria-label={`Sort by ${x.label}`} disabled={!canEdit || x.type === 'long_text'} checked={x.type !== 'long_text' && !f.unsortable.includes(x.key)} onChange={(e) => set('unsortable', toggle(f.unsortable, x.key, !e.target.checked))} />
+                        </td>
+                        <td>
+                          <input type="checkbox" className="size-6" aria-label={`Filter by ${x.label}`} disabled={!canEdit} checked={!f.unfilterable.includes(x.key)} onChange={(e) => set('unfilterable', toggle(f.unfilterable, x.key, !e.target.checked))} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
             {it.key === 'select_bulk' && f.select_bulk && (
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pl-7">
                 <fieldset className="flex flex-wrap gap-x-3" disabled={!canEdit}>

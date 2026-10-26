@@ -2,6 +2,9 @@ import type { TableDef } from '@/api/types'
 
 export interface TableFeatures {
   sort_filter: boolean
+  unsortable: string[]
+  unfilterable: string[]
+  default_sort: { field: string; direction: 'asc' | 'desc' } | null
   select_bulk: boolean
   bulk_actions: ('export' | 'edit' | 'delete')[]
   bulk_scope: 'view' | 'all'
@@ -18,6 +21,9 @@ export interface TableFeatures {
 /** Every feature is on until the owner switches it off. Mirrors `TableFeatures` on the server. */
 export const DEFAULT_FEATURES: TableFeatures = {
   sort_filter: true,
+  unsortable: [],
+  unfilterable: [],
+  default_sort: null,
   select_bulk: true,
   bulk_actions: ['export', 'edit', 'delete'],
   bulk_scope: 'view',
@@ -34,4 +40,4 @@ export const DEFAULT_FEATURES: TableFeatures = {
 export const featuresOf = (t?: Pick<TableDef, 'features'> | null): TableFeatures => ({ ...DEFAULT_FEATURES, ...(t?.features ?? {}) })
 
 /** Features whose behaviour is live on the real screens. Each part of step 5 adds its own. */
-export const ACTIVE_FEATURES = new Set<keyof TableFeatures>([])
+export const ACTIVE_FEATURES = new Set<keyof TableFeatures>(['sort_filter'])

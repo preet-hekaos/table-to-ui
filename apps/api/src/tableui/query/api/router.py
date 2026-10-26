@@ -18,6 +18,8 @@ def _query_parts(request: Request) -> dict[str, Any]:
     return {
         "filters": {k[2:]: v for k, v in qp.items() if k.startswith("f.") and v != ""},
         "ranges": {k[2:]: v for k, v in qp.items() if k.startswith("r.") and v != ""},
+        "contains": {k[2:]: v for k, v in qp.items() if k.startswith("c.") and v != ""},
+        "anyof": {k[3:]: v for k, v in qp.items() if k.startswith("in.") and v != ""},
         "has": {k[4:]: v for k, v in qp.items() if k.startswith("has.") and v != ""},
         "owner": qp.get("owner") or None,
     }
