@@ -208,18 +208,21 @@ async def create_table(
     if key in RESERVED_TABLES or key in tables:
         raise _bad("key", f"a table called '{key}' already exists", "duplicate")
     title_label = str(body.get("title_label") or "Name").strip()
+    title_key = str(body.get("title_key") or "name")
+    if title_key in RESERVED_FIELDS or title_key.endswith("_norm"):
+        raise _bad("title_key", f"'{title_key}' is reserved; choose another name")
     try:
         table = TableDef.model_validate(
             {
                 "key": key,
                 "label": label,
                 "plural_label": plural,
-                "title_field": "name",
+                "title_field": title_key,
                 "description": str(body.get("description") or ""),
                 "source": "agency",
                 "fields": [
                     {
-                        "key": "name",
+                        "key": title_key,
                         "label": title_label,
                         "type": "text",
                         "required": True,

@@ -2018,6 +2018,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/studio/schema-import/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply
+         * @description Create the confirmed tables in the Draft, all or none.
+         */
+        post: operations["apply_v1_studio_schema_import_apply_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/studio/schema-import/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview
+         * @description Read the files and say which tables they would make. Nothing is saved.
+         */
+        post: operations["preview_v1_studio_schema_import_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/studio/screens": {
         parameters: {
             query?: never;
@@ -2532,12 +2572,24 @@ export interface components {
             /** Steps */
             steps: number[];
         };
+        /** ApplyIn */
+        ApplyIn: {
+            /** Tables */
+            tables: {
+                [key: string]: unknown;
+            }[];
+        };
         /** AskBody */
         AskBody: {
             /** Question */
             question: string;
             /** Table */
             table: string;
+        };
+        /** Body_preview_v1_studio_schema_import_preview_post */
+        Body_preview_v1_studio_schema_import_preview_post: {
+            /** Files */
+            files: string[];
         };
         /** Body_upload_v1_files_post */
         Body_upload_v1_files_post: {
@@ -7201,6 +7253,76 @@ export interface operations {
                 "application/json": {
                     [key: string]: unknown;
                 };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    apply_v1_studio_schema_import_apply_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplyIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_v1_studio_schema_import_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_preview_v1_studio_schema_import_preview_post"];
             };
         };
         responses: {

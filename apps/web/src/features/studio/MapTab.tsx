@@ -14,7 +14,7 @@ import {
   type NodeChange,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { Plus, Search } from 'lucide-react'
+import { FileUp, Plus, Search } from 'lucide-react'
 import { useCallback, useMemo, useState, type FormEvent } from 'react'
 import type { ApiError } from '@/api/client'
 import { studio, type Link } from '@/api/endpoints'
@@ -27,6 +27,7 @@ import { TableDrawer } from './canvas/TableDrawer'
 import { layeredLayout } from './canvas/layout'
 import { useDraftTables } from './useDraftTables'
 import { NewTableDialog } from './FieldDialog'
+import { SchemaImportDialog } from './SchemaImportDialog'
 import { AddLink, AddMany, EditLink, LinkHealth } from './RelationshipsTab'
 
 const nodeTypes = { table: TableCard, dot: TableDot }
@@ -123,7 +124,7 @@ function Canvas({
   const [find, setFind] = useState('')
   const [findMessage, setFindMessage] = useState('')
   const [linkDraft, setLinkDraft] = useState<{ table: string; to: string } | null>(null)
-  const [adding, setAdding] = useState<'link' | 'many' | 'table' | null>(null)
+  const [adding, setAdding] = useState<'link' | 'many' | 'table' | 'schema' | null>(null)
   const [editing, setEditing] = useState<Link | null>(null)
 
   const merged = useMemo(() => mergeLinks(list), [list])
@@ -262,6 +263,9 @@ function Canvas({
             <Button size="sm" variant="secondary" onClick={() => setAdding('table')}>
               <Plus className="size-4" aria-hidden /> New table
             </Button>
+            <Button size="sm" variant="secondary" className="border-dashed" onClick={() => setAdding('schema')}>
+              <FileUp className="size-4" aria-hidden /> Import schema
+            </Button>
             <Button size="sm" variant="secondary" onClick={() => setAdding('link')}>Add a link</Button>
             <Button size="sm" variant="secondary" onClick={() => setAdding('many')}>Add a many-to-many link</Button>
           </>
@@ -372,6 +376,7 @@ function Canvas({
           }}
         />
       )}
+      {adding === 'schema' && <SchemaImportDialog open onOpenChange={(o) => !o && setAdding(null)} />}
       {editing && <EditLink link={editing} onClose={() => setEditing(null)} />}
     </div>
   )
