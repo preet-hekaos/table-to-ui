@@ -7312,6 +7312,30 @@
         ]
       }
     },
+    "/v1/studio/stages": {
+      "get": {
+        "description": "The stage (Draft, Test, Live or removed) of every table, field, screen, menu item, rule, measure and automation.",
+        "operationId": "studio_stages_v1_studio_stages_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Studio Stages V1 Studio Stages Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Studio Stages",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
     "/v1/studio/status": {
       "get": {
         "description": "Whether the Draft differs from Live, and how.",
