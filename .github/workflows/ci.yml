@@ -43,12 +43,7 @@ jobs:
       - name: Module boundaries (import-linter)
         run: uv run lint-imports
       - name: Tests, including the tenant isolation suite
-        run: |
-          set +e
-          uv run pytest -q --tb=short -p no:cacheprovider > /tmp/pt.log 2>&1
-          rc=$?
-          grep -E '^(FAILED|ERROR)|^E  ' /tmp/pt.log | head -15 | while IFS= read -r l; do echo "::error::${l:0:400}"; done
-          exit $rc
+        run: uv run pytest -v
       - name: OpenAPI document is up to date
         run: uv run python scripts/export_openapi.py --check
 
