@@ -351,6 +351,7 @@ export const app = {
     unwrap<Blob>(api.POST(`/v1/records/${table}/export` as never, { body, parseAs: 'blob' } as never) as never),
   exportEmail: (table: string, body: ExportBody) => send<{ sent_to: string }>('POST', `/v1/records/${table}/export/email`, body),
   exportLink: (token: string) => unwrap<Blob>(api.GET(`/v1/exports/${token}` as never, { parseAs: 'blob' } as never) as never),
+  move: (table: string, id: string, before: string | null) => send<{ id: string; position: number }>('POST', `/v1/records/${table}/order`, { id, before }),
   bulk: (table: string, body: BulkBody) => send<BulkResult>('POST', `/v1/records/${table}/bulk`, body),
   screens: (query: { table?: string; pattern?: string; source_table?: string }) => g<ScreenDef[]>(`/v1/app/screens${qs(query)}`),
   table: (table: string) => cast<{ release_version: number; table: TableDef }>(api.GET('/v1/app/tables/{table}', { params: { path: { table } } })),

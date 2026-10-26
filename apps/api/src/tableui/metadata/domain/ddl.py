@@ -70,6 +70,7 @@ def _table_ddl(s: str, t: TableDef) -> str:
     cols.append("data jsonb NOT NULL")
     cols.append("owner_id uuid NOT NULL")
     cols.append("search_doc text NOT NULL DEFAULT ''")
+    cols.append("sort_order double precision")  # the shared hand-made order; null sorts last
     cols += [f'"{f.key}_norm" text' for f in t.fields if f.normalize]
     cols += [
         "created_at timestamptz NOT NULL DEFAULT now()",

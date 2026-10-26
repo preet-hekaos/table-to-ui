@@ -755,6 +755,32 @@
         "title": "MfaEnrolment",
         "type": "object"
       },
+      "MoveBody": {
+        "properties": {
+          "before": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "title": "MoveBody",
+        "type": "object"
+      },
       "NavIn": {
         "properties": {
           "items": {
@@ -6680,6 +6706,61 @@
           }
         },
         "summary": "Facets",
+        "tags": [
+          "records"
+        ]
+      }
+    },
+    "/v1/records/{table}/order": {
+      "post": {
+        "description": "Drag to reorder: move one record in the table's shared order.",
+        "operationId": "reorder_v1_records__table__order_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "table",
+            "required": true,
+            "schema": {
+              "title": "Table",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoveBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Reorder V1 Records  Table  Order Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reorder",
         "tags": [
           "records"
         ]

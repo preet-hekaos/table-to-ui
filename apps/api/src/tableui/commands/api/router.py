@@ -12,6 +12,7 @@ from tableui.commands.application.pipeline import (
     create_record,
     update_record,
 )
+from tableui.commands.application.reorder import move_record
 from tableui.identity.api.deps import PrincipalDep
 from tableui.metadata.api.deps import LiveAppDep
 from tableui.platform.config import Settings
@@ -208,3 +209,22 @@ async def bulk(
     return await bulk_change(
         db, ctx, table, action=body.action, ids=ids, field=body.field, value=body.value
     )
+
+
+class MoveBody(BaseModel):
+    id: uuid.UUID
+    before: uuid.UUID | None = None  # put it just before this record; None puts it last
+
+
+@router.post("/{table}/order")
+async def reorder(
+    table: str,
+    body: MoveBody,
+    request: Request,
+    p: PrincipalDep,
+    app: LiveAppDep,
+    db: DbDep,
+    settings: SettingsDep,
+) -> dict[str, Any]:
+    """Drag to reorder: move one record in the table's shared order."""
+    return await move_record(db, _ctx(p, app, settings, request, None), table, body.id, body.before)
