@@ -176,6 +176,7 @@ class TableFeatures(_Strict):
     inline_edit: bool = True
     grouping: bool = True
     statistics: bool = True
+    stat_fields: list[Key] | None = None  # number fields to summarise; None picks the first few
     row_order: bool = True
 
 

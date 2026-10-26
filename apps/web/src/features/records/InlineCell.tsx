@@ -37,7 +37,7 @@ export function InlineCell({ row, f, children }: { row: RecordRow; f: FieldDef; 
     },
     onSuccess: async () => {
       setEditing(false)
-      await Promise.all(['records', 'count', 'facets', 'measures'].map((k) => qc.invalidateQueries({ queryKey: [k] })))
+      await Promise.all(['records', 'count', 'stats', 'facets', 'measures'].map((k) => qc.invalidateQueries({ queryKey: [k] })))
     },
     onError: async (e) => {
       if (e instanceof ApiError && e.status === 409) {

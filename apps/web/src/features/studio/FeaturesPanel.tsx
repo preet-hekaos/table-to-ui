@@ -78,6 +78,20 @@ export function FeaturesPanel({ table, canEdit }: { table: StudioTable; canEdit:
               {!ACTIVE_FEATURES.has(it.key) && <Badge>Takes effect in an upcoming update</Badge>}
             </label>
             <p className="pl-7 text-xs text-muted">{it.help}</p>
+            {it.key === 'statistics' && f.statistics && (
+              <fieldset className="flex flex-col gap-1 pl-7" disabled={!canEdit}>
+                <legend className="text-xs text-body">Number fields to summarise</legend>
+                <label className="flex items-center gap-1 text-xs text-body">
+                  <input type="checkbox" checked={f.stat_fields === null} onChange={(e) => set('stat_fields', e.target.checked ? null : [])} /> Choose for me (the first three)
+                </label>
+                {f.stat_fields !== null &&
+                  table.fields.filter((x) => ['integer', 'decimal', 'money', 'months'].includes(x.type)).map((x) => (
+                    <label key={x.key} className="flex items-center gap-1 text-xs text-body">
+                      <input type="checkbox" checked={f.stat_fields!.includes(x.key)} onChange={(e) => set('stat_fields', toggle(f.stat_fields!, x.key, e.target.checked))} /> {x.label}
+                    </label>
+                  ))}
+              </fieldset>
+            )}
             {it.key === 'sort_filter' && f.sort_filter && (
               <div className="flex flex-col gap-2 pl-7">
                 <label className="flex items-center gap-2 text-xs text-body">

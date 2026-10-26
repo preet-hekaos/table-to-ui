@@ -15,6 +15,7 @@ export interface TableFeatures {
   inline_edit: boolean
   grouping: boolean
   statistics: boolean
+  stat_fields: string[] | null
   row_order: boolean
 }
 
@@ -34,10 +35,11 @@ export const DEFAULT_FEATURES: TableFeatures = {
   inline_edit: true,
   grouping: true,
   statistics: true,
+  stat_fields: null,
   row_order: true,
 }
 
 export const featuresOf = (t?: Pick<TableDef, 'features'> | null): TableFeatures => ({ ...DEFAULT_FEATURES, ...(t?.features ?? {}) })
 
 /** Features whose behaviour is live on the real screens. Each part of step 5 adds its own. */
-export const ACTIVE_FEATURES = new Set<keyof TableFeatures>(['sort_filter', 'select_bulk', 'import_data', 'export_data', 'inline_edit', 'grouping'])
+export const ACTIVE_FEATURES = new Set<keyof TableFeatures>(['sort_filter', 'select_bulk', 'import_data', 'export_data', 'inline_edit', 'grouping', 'statistics'])
