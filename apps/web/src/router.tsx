@@ -156,14 +156,13 @@ const insightDrill = createRoute({
 const studio = createRoute({
   getParentRoute: () => shell,
   path: '/studio',
-  validateSearch: (s: Record<string, unknown>): { tab?: StudioTab; table?: string; link?: string } => ({
-    tab: typeof s.tab === 'string' ? (s.tab as StudioTab) : undefined,
+  validateSearch: (s: Record<string, unknown>): { tab?: StudioTab; table?: string } => ({
+    tab: typeof s.tab === 'string' ? ((s.tab === 'links' ? 'map' : s.tab) as StudioTab) : undefined,
     table: typeof s.table === 'string' ? s.table : undefined,
-    link: typeof s.link === 'string' ? s.link : undefined,
   }),
   component: function StudioRoute() {
-    const { tab, table, link } = studio.useSearch()
-    return <Studio tab={tab} table={table} link={link} />
+    const { tab, table } = studio.useSearch()
+    return <Studio tab={tab} table={table}  />
   },
 })
 const importRoute = createRoute({

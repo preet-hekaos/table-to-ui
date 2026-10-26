@@ -19,7 +19,7 @@ import { useCallback, useMemo, useState, type FormEvent } from 'react'
 import type { ApiError } from '@/api/client'
 import { studio, type Link } from '@/api/endpoints'
 import type { StudioTable } from '@/api/types'
-import { Button, ErrorState, Input, LoadingState } from '@/design-system'
+import { Badge, Button, ErrorState, Input, LoadingState } from '@/design-system'
 import { forceLayout } from './canvas/force'
 import { TableCard, type CardData } from './canvas/TableCard'
 import { TableDot } from './canvas/TableDot'
@@ -27,7 +27,7 @@ import { TableDrawer } from './canvas/TableDrawer'
 import { layeredLayout } from './canvas/layout'
 import { useDraftTables } from './DataTab'
 import { NewTableDialog } from './FieldDialog'
-import { AddLink, AddMany, EditLink } from './RelationshipsTab'
+import { AddLink, AddMany, EditLink, LinkHealth } from './RelationshipsTab'
 
 const nodeTypes = { table: TableCard, dot: TableDot }
 
@@ -44,7 +44,7 @@ const readView = (): View => {
 type Pos = Record<string, { x: number; y: number }>
 
 /** Screen 2.5: the canvas. Small cards, parents on the left, lines that rarely cross; click a card for its details. */
-export function MapTab({ canEdit, onOpen, onOpenLink }: { canEdit: boolean; onOpen: (table: string) => void; onOpenLink?: (id: string) => void }) {
+export function MapTab({ canEdit, onOpen }: { canEdit: boolean; onOpen: (table: string) => void }) {
   const tables = useDraftTables()
   const links = useQuery({ queryKey: ['studio-relationships'], queryFn: studio.relationships, retry: false })
   const layout = useQuery({ queryKey: ['studio-layout'], queryFn: studio.layout, retry: false })
@@ -73,7 +73,6 @@ export function MapTab({ canEdit, onOpen, onOpenLink }: { canEdit: boolean; onOp
         saved={layout.data?.positions}
         canEdit={canEdit}
         onOpen={onOpen}
-        onOpenLink={onOpenLink}
         onTidy={async () => {
           await layout.refetch()
           setReset((r) => r + 1)
@@ -105,7 +104,6 @@ function Canvas({
   saved,
   canEdit,
   onOpen,
-  onOpenLink,
   onTidy,
 }: {
   view: View
@@ -115,7 +113,6 @@ function Canvas({
   saved?: Pos
   canEdit: boolean
   onOpen: (table: string) => void
-  onOpenLink?: (id: string) => void
   onTidy: () => Promise<void>
 }) {
   const qc = useQueryClient()
@@ -234,12 +231,11 @@ function Canvas({
   }
 
   const current = all.find((t) => t.key === selected)
-  const label = (k: string) => all.find((t) => t.key === k)?.label
 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
-        <p className="min-w-0 flex-1 text-sm text-muted">
+        <p className="w-full text-sm text-muted">
           {all.length} tables and {list.length} links. {canEdit ? 'Click a card for its details. Drag a card to place it, or from its dot to another card to link them.' : 'Click a card for its details.'}
         </p>
         <div role="radiogroup" aria-label="Canvas view" className="flex overflow-hidden rounded-md border border-line text-sm">
@@ -267,6 +263,7 @@ function Canvas({
               <Plus className="size-4" aria-hidden /> New table
             </Button>
             <Button size="sm" variant="secondary" onClick={() => setAdding('link')}>Add a link</Button>
+            <Button size="sm" variant="secondary" onClick={() => setAdding('many')}>Add a many-to-many link</Button>
           </>
         )}
         <Button
@@ -298,7 +295,6 @@ function Canvas({
             const m = merged.find((x) => x.id === e.id)
             if (!m) return
             if (m.links.length === 1 && canEdit) setEditing(m.links[0]!)
-            else if (m.links.length === 1) onOpenLink?.(m.links[0]!.id)
             else setSelected(m.from)
           }}
           nodesConnectable={canEdit}
@@ -333,14 +329,31 @@ function Canvas({
         )}
       </div>
       <p className="text-xs text-muted">Arrows point to the table being linked to. A thick line carries several links. Dashed lines come with the pack. Hover a card to light up its links.</p>
-      <details className="rounded-lg border border-line bg-surface p-3 text-sm">
-        <summary className="cursor-pointer font-semibold text-accent-ink">Links as a list</summary>
-        <ul className="mt-2 flex flex-col gap-1 text-body">
+      <LinkHealth />
+      <details className="rounded-lg border border-line bg-surface p-3 text-sm" data-testid="all-links">
+        <summary className="cursor-pointer font-semibold text-accent-ink">All links ({list.length})</summary>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <p className="min-w-0 flex-1 text-xs text-muted">Changes stay in Draft until you publish.</p>
+        </div>
+        <ul className="mt-2 divide-y divide-line" aria-label="Links">
           {list.map((l) => (
-            <li key={l.id}>
-              <button type="button" className="text-left hover:underline" onClick={() => (canEdit ? setEditing(l) : onOpenLink?.(l.id))}>
-                {label(l.table)} → {label(l.to)} <span className="text-muted">({l.label})</span>
-              </button>
+            <li key={l.id} className="flex flex-wrap items-center gap-2 py-2" data-testid={`link-${l.id}`}>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-ink">
+                  {l.table_label} <span className="font-normal text-muted">→</span> {l.to_label}
+                </p>
+                <p className="text-xs text-muted">
+                  {l.label}
+                  {l.required ? ', required' : ''}
+                  {l.hidden ? ', hidden' : ''} · {l.used} {l.used === 1 ? 'record uses' : 'records use'} it
+                </p>
+              </div>
+              <Badge>{l.source === 'pack' ? 'Comes with the pack' : 'Yours'}</Badge>
+              {canEdit && (
+                <Button size="sm" variant="secondary" onClick={() => setEditing(l)} aria-label={`Edit link ${l.label} on ${l.table_label}`}>
+                  Edit
+                </Button>
+              )}
             </li>
           ))}
         </ul>

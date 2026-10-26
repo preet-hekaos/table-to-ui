@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { ApiError } from '@/api/client'
 import { studio, type Link, type LinkIssue } from '@/api/endpoints'
-import { Badge, Button, Card, Dialog, DialogContent, EmptyState, ErrorState, Field, Input, LoadingState, Select, useToast } from '@/design-system'
+import { Button, Dialog, DialogContent, Field, Input, Select, useToast } from '@/design-system'
 import { useDraftTables } from './DataTab'
 
 const refresh = (qc: ReturnType<typeof useQueryClient>) =>
@@ -32,61 +32,6 @@ export function LinkHealth({ compact = false }: { compact?: boolean }) {
 }
 
 /** Every link between tables in one place: add, rename, make required, remove. Saved to Draft. */
-export function RelationshipsTab({ canEdit, selected, onSelect }: { canEdit: boolean; selected?: string; onSelect: (id: string | undefined) => void }) {
-  const links = useQuery({ queryKey: ['studio-relationships'], queryFn: studio.relationships, retry: false })
-  const tables = useDraftTables()
-  const [adding, setAdding] = useState<'one' | 'many' | null>(null)
-  const [editing, setEditing] = useState<Link | null>(null)
-  if (links.isError) return <ErrorState requestId={(links.error as ApiError).requestId} onRetry={() => void links.refetch()} />
-  if (!links.data || !tables.data) return <LoadingState label="Loading links" />
-  const list = links.data
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <p className="min-w-0 flex-1 text-sm text-muted">{list.length} links between tables. Changes stay in Draft until you publish.</p>
-        {canEdit && (
-          <>
-            <Button onClick={() => setAdding('one')}>Add a link</Button>
-            <Button variant="secondary" onClick={() => setAdding('many')}>Add a many-to-many link</Button>
-          </>
-        )}
-      </div>
-      <LinkHealth />
-      {list.length === 0 ? (
-        <EmptyState title="No links yet" />
-      ) : (
-        <Card className="p-0">
-          <ul className="divide-y divide-line" aria-label="Links">
-            {list.map((l) => (
-              <li key={l.id} className={`flex flex-wrap items-center gap-2 p-3 ${selected === l.id ? 'bg-accent-soft' : ''}`} data-testid={`link-${l.id}`}>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-ink">
-                    {l.table_label} <span className="font-normal text-muted">→</span> {l.to_label}
-                  </p>
-                  <p className="text-xs text-muted">
-                    {l.label}
-                    {l.required ? ', required' : ''}
-                    {l.hidden ? ', hidden' : ''} · {l.used} {l.used === 1 ? 'record uses' : 'records use'} it
-                  </p>
-                </div>
-                <Badge>{l.source === 'pack' ? 'Comes with the pack' : 'Yours'}</Badge>
-                {canEdit && (
-                  <Button size="sm" variant="secondary" onClick={() => { onSelect(l.id); setEditing(l) }} aria-label={`Edit link ${l.label} on ${l.table_label}`}>
-                    Edit
-                  </Button>
-                )}
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
-      {adding === 'one' && <AddLink onClose={() => setAdding(null)} />}
-      {adding === 'many' && <AddMany onClose={() => setAdding(null)} />}
-      {editing && <EditLink link={editing} onClose={() => setEditing(null)} />}
-    </div>
-  )
-}
-
 function useTables() {
   return (useDraftTables().data ?? []).map((t) => ({ key: t.key, label: t.label }))
 }
