@@ -24,13 +24,21 @@ async function api<T = Record<string, any>>(page: Page, method: string, path: st
   ) as Promise<T>
 }
 
+/** The links panel under the canvas starts closed on a big model. */
+const openLinks = async (page: Page, visit = true) => {
+  if (visit) await page.goto('/studio?tab=map')
+  const panel = page.getByTestId('all-links')
+  await expect(panel).toBeVisible()
+  if (!(await panel.evaluate((el) => (el as HTMLDetailsElement).open))) await panel.getByText(/^All links/).click()
+}
+
 /** The M2.5 demo script: an admin links tables from the Studio, publishes, and the parent page shows the link. */
 test('M2.5 demo: relationship builder', async ({ page }) => {
   await signUpWithPack(page, `Northstar M25 ${run}`, `m25-${run}@northstar.test`)
   await api(page, 'POST', '/v1/studio/tables', { label: 'Tag' })
 
-  await test.step('1. The Relationships tab lists every link with its source and use', async () => {
-    await page.goto('/studio?tab=links')
+  await test.step('1. The canvas lists every link with its source and use', async () => {
+    await openLinks(page)
     await expect(page.getByTestId('link-submission.candidate')).toContainText('Comes with the pack')
     await expect(page.getByTestId('link-submission.candidate')).toContainText('0 records use it')
   })
@@ -43,6 +51,7 @@ test('M2.5 demo: relationship builder', async ({ page }) => {
     await expect(page.getByText('Each Candidate belongs to one Tag.')).toBeVisible()
     await shot(page, '01-add-a-link')
     await page.getByRole('button', { name: 'Add link' }).click()
+    await openLinks(page, false)
     await expect(page.getByTestId('link-candidate.favourite_tag')).toContainText('Yours')
   })
 
@@ -66,6 +75,7 @@ test('M2.5 demo: relationship builder', async ({ page }) => {
   })
 
   await test.step('5. Rename a link; a pack link cannot be removed', async () => {
+    await openLinks(page, false)
     await page.getByRole('button', { name: 'Edit link Favourite tag on Candidate' }).click()
     await page.getByRole('textbox', { name: 'Label' }).fill('Main tag')
     await page.getByRole('button', { name: 'Save', exact: true }).click()
@@ -104,8 +114,8 @@ test('M2.5 demo: relationship builder', async ({ page }) => {
 
   await test.step('6b. A line on the canvas opens its link', async () => {
     await page.goto('/studio?tab=map')
-    await page.getByText('Links as a list').click()
-    await page.getByRole('button', { name: /Candidate → Tag/ }).first().click()
+    await page.getByTestId('all-links').getByText(/^All links/).click()
+    await page.getByRole('button', { name: 'Edit link Main tag on Candidate' }).click()
     await expect(page.getByRole('heading', { name: /Edit Main tag/ })).toBeVisible()
     await page.getByRole('button', { name: 'Cancel' }).click()
   })
@@ -121,7 +131,7 @@ test('M2.5 demo: relationship builder', async ({ page }) => {
     await page.getByRole('tab', { name: 'Candidates' }).click()
     await expect(page.getByText('Tagged Person')).toBeVisible()
     await shot(page, '03-parent-page')
-    await page.goto('/studio?tab=links')
+    await openLinks(page)
     await expect(page.getByTestId('link-candidate.favourite_tag')).toContainText('1 record uses it')
     await page.getByRole('button', { name: 'Edit link Main tag on Candidate' }).click()
     await page.getByRole('button', { name: 'Remove link' }).click()
@@ -132,25 +142,21 @@ test('M2.5 demo: relationship builder', async ({ page }) => {
     await api(page, 'POST', '/v1/studio/relationships', { table: 'candidate', to: 'candidate', label: 'Referred by' })
     await api(page, 'POST', '/v1/studio/relationships', { table: 'tag', to: 'candidate', label: 'Main person', required: true })
     await expect(api(page, 'POST', '/v1/studio/relationships', { table: 'candidate', to: 'tag', label: 'Lead tag', required: true })).rejects.toThrow(/circular_required/)
-    await page.goto('/studio?tab=links')
+    await openLinks(page)
     const panel = page.getByTestId('link-health')
     await expect(panel).toContainText('Good to know')
     await expect(panel).toContainText('Referred by')
     await shot(page, 'link-health')
   })
 
-  await test.step('8. The tab passes WCAG 2.2 AA and fits a 360 px phone', async () => {
-    await page.goto('/studio?tab=map')
+  await test.step('8. The canvas passes WCAG 2.2 AA and fits a 360 px phone', async () => {
+    await openLinks(page)
     await expect(page.getByTestId('canvas')).toBeVisible()
-    const canvasAxe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze()
-    expect(canvasAxe.violations, canvasAxe.violations.map((v) => `${v.id} (${v.nodes[0]?.html})`).join(', ')).toEqual([])
-    await page.goto('/studio?tab=links')
-    await expect(page.getByRole('list', { name: 'Links' })).toBeVisible()
     const tags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
     const r = await new AxeBuilder({ page }).withTags(tags).analyze()
     expect(r.violations, r.violations.map((v) => `${v.id} (${v.nodes[0]?.html})`).join(', ')).toEqual([])
     await page.setViewportSize({ width: 360, height: 740 })
-    await page.goto('/studio?tab=links')
+    await openLinks(page)
     await expect(page.getByRole('list', { name: 'Links' })).toBeVisible()
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
     expect(overflow, 'scrolls sideways at 360px').toBeLessThanOrEqual(0)

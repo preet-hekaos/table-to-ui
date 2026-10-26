@@ -25,3 +25,4 @@
 | [21](0021-chat-setup.md) | The AI plans from a fixed list of Studio operations; dry run, apply to Draft in one step, one-click undo |
 | [22](0022-operator-console.md) | The operator sees counts, never contents; suspend, export, limit and two-step delete |
 | [23](0023-stage-colours.md) | Stage colours are computed on the server and never carried by colour alone |
+| [24](0024-canvas.md) | One canvas for tables and links: cards, ordered layout, details drawer, Cards/Graph switch |

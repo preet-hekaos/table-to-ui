@@ -53,6 +53,7 @@ test('Studio: fields, tables, map, screens, menu, preview and versions', async (
     await page.getByRole('tab', { name: 'Canvas' }).click()
     const canvas = page.getByTestId('canvas')
     await expect(canvas.locator('.react-flow__node')).toHaveCount(14) // 13 pack tables + the new one
+    await canvas.getByTestId('box-client').getByRole('button').click()
     await canvas.getByRole('button', { name: 'Open Client fields' }).click()
     await expect(page.getByRole('tab', { name: 'Data' })).toHaveAttribute('aria-selected', 'true')
     await expect(page.getByRole('heading', { name: 'Client', exact: true })).toBeVisible()

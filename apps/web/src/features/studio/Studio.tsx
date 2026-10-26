@@ -27,14 +27,14 @@ import { useStages } from './useStages'
 import { FlowTab } from './FlowTab'
 import { AutomationsTab } from './AutomationsTab'
 import { InsightsTab } from './InsightsTab'
-import { LinkHealth, RelationshipsTab } from './RelationshipsTab'
+import { LinkHealth } from './RelationshipsTab'
 import { MapTab } from './MapTab'
 import { NavTab } from './NavTab'
 import { PreviewTab } from './PreviewTab'
 import { SetupChat } from '@/features/ai/SetupChat'
 import { ScreensTab } from './ScreensTab'
 
-export type StudioTab = 'data' | 'map' | 'links' | 'flow' | 'screens' | 'insights' | 'automations' | 'menu' | 'preview' | 'versions' | 'chat'
+export type StudioTab = 'data' | 'map' | 'flow' | 'screens' | 'insights' | 'automations' | 'menu' | 'preview' | 'versions' | 'chat'
 
 /** The three environments as a strip. Each step has its own colour, its version and how many items wait there. */
 function EnvironmentSwitch({ releases }: { releases: ReleaseRow[] }) {
@@ -330,7 +330,7 @@ function VersionsTab({ releases, canPublish, isOwner }: { releases: ReleaseRow[]
 }
 
 /** The Studio: screens 2.4 to 2.8, 2.15 and 2.16. Every change lands in the Draft first. */
-export function Studio({ tab = 'data', table, link }: { tab?: StudioTab; table?: string; link?: string }) {
+export function Studio({ tab = 'data', table }: { tab?: StudioTab; table?: string }) {
   const me = useMe()
   const navigate = useNavigate()
   const releases = useQuery({ queryKey: ['releases'], queryFn: studio.releases, enabled: !!me.data, retry: false })
@@ -341,7 +341,7 @@ export function Studio({ tab = 'data', table, link }: { tab?: StudioTab; table?:
   if (!can(perms, 'metadata.read')) return <PermissionDenied what="The Studio is for workspace admins." />
   if (releases.isLoading) return <LoadingState label="Loading the Studio" />
   if (releases.isError) return <ErrorState requestId={(releases.error as ApiError).requestId} onRetry={() => void releases.refetch()} />
-  const go = (next: { tab?: StudioTab; table?: string; link?: string }) => void navigate({ to: '/studio', search: { tab: next.tab ?? tab, table: next.table ?? table, link: next.link ?? link } })
+  const go = (next: { tab?: StudioTab; table?: string }) => void navigate({ to: '/studio', search: { tab: next.tab ?? tab, table: next.table ?? table } })
   const firstScreen = nav.data?.find((n) => n.section === 'main') ?? nav.data?.[0]
   const defaultTable = screens.data?.find((s) => s.key === firstScreen?.screen)?.table
   const canEdit = can(perms, 'metadata.write')
@@ -363,7 +363,6 @@ export function Studio({ tab = 'data', table, link }: { tab?: StudioTab; table?:
           {can(perms, 'ai.setup') && <TabsTrigger value="chat">Set up by chat</TabsTrigger>}
           <TabsTrigger value="data">Data</TabsTrigger>
           <TabsTrigger value="map">Canvas</TabsTrigger>
-          <TabsTrigger value="links">Relationships</TabsTrigger>
           <TabsTrigger value="flow">Stages &amp; rules</TabsTrigger>
           <TabsTrigger value="screens">Screens</TabsTrigger>
           <TabsTrigger value="insights">Insights</TabsTrigger>
@@ -379,10 +378,7 @@ export function Studio({ tab = 'data', table, link }: { tab?: StudioTab; table?:
           <DataTab selected={table} defaultTable={defaultTable} onSelect={(k) => go({ table: k })} canEdit={canEdit} />
         </TabsContent>
         <TabsContent value="map" className="pt-4">
-          <MapTab canEdit={canEdit} onOpen={(k) => go({ tab: 'data', table: k })} onOpenLink={(id) => go({ tab: 'links', link: id })} />
-        </TabsContent>
-        <TabsContent value="links" className="pt-4">
-          <RelationshipsTab canEdit={canEdit} selected={link} onSelect={(id) => go({ tab: 'links', link: id })} />
+          <MapTab canEdit={canEdit} onOpen={(k) => go({ tab: 'data', table: k })} />
         </TabsContent>
         <TabsContent value="flow" className="pt-4">
           <FlowTab canEdit={canEdit} />

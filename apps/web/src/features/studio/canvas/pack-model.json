@@ -1,0 +1,91 @@
+{
+ "tables": [
+  "candidate",
+  "candidate_document",
+  "client",
+  "consent_record",
+  "contact",
+  "interaction",
+  "interview",
+  "offer",
+  "placement",
+  "requirement",
+  "skill",
+  "submission",
+  "task"
+ ],
+ "links": [
+  {
+   "from": "candidate_document",
+   "to": "candidate"
+  },
+  {
+   "from": "consent_record",
+   "to": "candidate"
+  },
+  {
+   "from": "contact",
+   "to": "client"
+  },
+  {
+   "from": "interaction",
+   "to": "candidate"
+  },
+  {
+   "from": "interaction",
+   "to": "client"
+  },
+  {
+   "from": "interview",
+   "to": "submission"
+  },
+  {
+   "from": "offer",
+   "to": "submission"
+  },
+  {
+   "from": "placement",
+   "to": "candidate"
+  },
+  {
+   "from": "placement",
+   "to": "client"
+  },
+  {
+   "from": "placement",
+   "to": "requirement"
+  },
+  {
+   "from": "placement",
+   "to": "submission"
+  },
+  {
+   "from": "requirement",
+   "to": "client"
+  },
+  {
+   "from": "requirement",
+   "to": "contact"
+  },
+  {
+   "from": "submission",
+   "to": "candidate"
+  },
+  {
+   "from": "submission",
+   "to": "requirement"
+  },
+  {
+   "from": "submission",
+   "to": "contact"
+  },
+  {
+   "from": "task",
+   "to": "candidate"
+  },
+  {
+   "from": "task",
+   "to": "requirement"
+  }
+ ]
+}
