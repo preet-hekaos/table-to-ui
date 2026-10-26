@@ -2,83 +2,36 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Background,
   Controls,
-  Handle,
   MarkerType,
   MiniMap,
-  Position,
   ReactFlow,
+  ReactFlowProvider,
   applyNodeChanges,
+  useReactFlow,
   type Connection,
   type Edge,
   type Node,
   type NodeChange,
-  type NodeProps,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { Plus } from 'lucide-react'
-import { useCallback, useMemo, useState } from 'react'
+import { Plus, Search } from 'lucide-react'
+import { useCallback, useMemo, useState, type FormEvent } from 'react'
 import type { ApiError } from '@/api/client'
 import { studio, type Link } from '@/api/endpoints'
 import type { StudioTable } from '@/api/types'
-import { Button, ErrorState, LoadingState, StageBadge, stageStripe } from '@/design-system'
-import { useStages } from './useStages'
+import { Button, ErrorState, Input, LoadingState } from '@/design-system'
+import { TableCard, type CardData } from './canvas/TableCard'
+import { TableDrawer } from './canvas/TableDrawer'
+import { layeredLayout } from './canvas/layout'
 import { useDraftTables } from './DataTab'
 import { NewTableDialog } from './FieldDialog'
 import { AddLink, AddMany, EditLink } from './RelationshipsTab'
 
-const W = 220
-const GX = 80
-const GY = 60
+const nodeTypes = { table: TableCard }
 
-type Box = { table: StudioTable; links: number; open: (table: string) => void }
+type Pos = Record<string, { x: number; y: number }>
 
-/** One table as a box: its name, its first fields (links marked), and a dot to drag a link from or to. */
-function TableBox({ data, selected }: NodeProps<Node<Box>>) {
-  const t = data.table
-  const stages = useStages()
-  const stage = stages.of('tables', t.key)
-  const shown = t.fields.filter((f) => !f.hidden).slice(0, 6)
-  const more = t.fields.filter((f) => !f.hidden).length - shown.length
-  return (
-    <div
-      className={`rounded-lg border bg-surface text-left shadow-sm ${stageStripe(stage)} ${selected ? 'border-accent ring-2 ring-accent' : 'border-line'}`}
-      data-stage={stage}
-      style={{ width: W }}
-      data-testid={`box-${t.key}`}
-    >
-      <Handle type="target" position={Position.Left} className="!size-3 !border-2 !border-accent !bg-surface" />
-      <div className="flex items-center justify-between gap-2 border-b border-line px-3 py-2">
-        <span className="truncate text-sm font-bold text-ink">{t.label}</span>
-        {stage && stage !== 'live' ? <StageBadge stage={stage} /> : <span className="shrink-0 text-[10px] font-semibold text-muted uppercase">{t.source === 'pack' ? 'Pack' : 'Yours'}</span>}
-      </div>
-      <button type="button" className="nodrag mx-3 mt-2 text-left text-xs font-semibold text-accent-ink hover:underline" onClick={() => data.open(t.key)}>
-        Open {t.label} fields
-      </button>
-      <ul className="flex flex-col gap-0.5 px-3 py-2 text-xs text-body">
-        {shown.map((f) => (
-          <li key={f.key} className="flex items-center justify-between gap-2">
-            <span className="truncate">{f.label}</span>
-            {f.type === 'reference' && <span className="shrink-0 text-accent-ink">→ link</span>}
-          </li>
-        ))}
-        {more > 0 && <li className="text-muted">+ {more} more</li>}
-      </ul>
-      <Handle type="source" position={Position.Right} className="!size-3 !border-2 !border-accent !bg-accent" />
-    </div>
-  )
-}
-
-const nodeTypes = { table: TableBox }
-
-/** Default place for a box: most-linked first, row by row. Deterministic, so a fresh canvas does not jump around. */
-function defaultPositions(all: StudioTable[], edges: { from: string; to: string }[]): Record<string, { x: number; y: number }> {
-  const degree = (k: string) => edges.filter((e) => e.from === k || e.to === k).length
-  const ordered = [...all].sort((a, b) => degree(b.key) - degree(a.key) || a.label.localeCompare(b.label))
-  const cols = Math.max(1, Math.ceil(Math.sqrt(ordered.length * 1.3)))
-  return Object.fromEntries(ordered.map((t, i) => [t.key, { x: (i % cols) * (W + GX), y: Math.floor(i / cols) * (230 + GY) }]))
-}
-
-/** Screen 2.5: a canvas of table boxes. Drag a box to place it; drag from one box's dot to another to link them. */
+/** Screen 2.5: the canvas. Small cards, parents on the left, lines that rarely cross; click a card for its details. */
 export function MapTab({ canEdit, onOpen, onOpenLink }: { canEdit: boolean; onOpen: (table: string) => void; onOpenLink?: (id: string) => void }) {
   const tables = useDraftTables()
   const links = useQuery({ queryKey: ['studio-relationships'], queryFn: studio.relationships, retry: false })
@@ -88,116 +41,259 @@ export function MapTab({ canEdit, onOpen, onOpenLink }: { canEdit: boolean; onOp
   if (!tables.data || !links.data || layout.isLoading) return <LoadingState label="Drawing the canvas" />
   // The canvas keeps its own positions while you drag; it starts again whenever the saved data changes.
   const signature = JSON.stringify([tables.data.map((t) => [t.key, t.fields.length]), links.data.map((l) => l.id), reset])
-  return <Canvas key={signature} onOpen={onOpen} onTidy={async () => {
-    await layout.refetch()
-    setReset((r) => r + 1)
-  }} all={tables.data} list={links.data} saved={layout.data?.positions} canEdit={canEdit} onOpenLink={onOpenLink} />
+  return (
+    <ReactFlowProvider>
+      <Canvas
+        key={signature}
+        all={tables.data}
+        list={links.data}
+        saved={layout.data?.positions}
+        canEdit={canEdit}
+        onOpen={onOpen}
+        onOpenLink={onOpenLink}
+        onTidy={async () => {
+          await layout.refetch()
+          setReset((r) => r + 1)
+        }}
+      />
+    </ReactFlowProvider>
+  )
 }
 
-function Canvas({ all, list, saved, canEdit, onOpen, onOpenLink, onTidy }: { onOpen: (table: string) => void; all: StudioTable[]; list: Link[]; saved?: Record<string, { x: number; y: number }>; canEdit: boolean; onOpenLink?: (id: string) => void; onTidy: () => Promise<void> }) {
-  const qc = useQueryClient()
-  const [nodes, setNodes] = useState<Node<Box>[]>(() => {
-    const base = defaultPositions(all, list.map((l) => ({ from: l.table, to: l.to })))
-    return all.map((t) => ({
-      id: t.key,
-      type: 'table',
-      position: saved?.[t.key] ?? base[t.key]!,
-      data: { table: t, links: list.filter((l) => l.table === t.key || l.to === t.key).length, open: onOpen },
-      draggable: canEdit,
-    }))
+/** Lines between the same two tables become one line that says how many links it carries. */
+function mergeLinks(list: Link[]): { id: string; from: string; to: string; links: Link[] }[] {
+  const groups = new Map<string, Link[]>()
+  for (const l of list) {
+    if (l.table === l.to) continue
+    const k = `${l.table}\u0000${l.to}`
+    groups.set(k, [...(groups.get(k) ?? []), l])
+  }
+  return [...groups.entries()].map(([k, links]) => {
+    const [from, to] = k.split('\u0000') as [string, string]
+    return { id: links.length === 1 ? links[0]!.id : `group:${from}:${to}`, from, to, links }
   })
+}
+
+function Canvas({
+  all,
+  list,
+  saved,
+  canEdit,
+  onOpen,
+  onOpenLink,
+  onTidy,
+}: {
+  all: StudioTable[]
+  list: Link[]
+  saved?: Pos
+  canEdit: boolean
+  onOpen: (table: string) => void
+  onOpenLink?: (id: string) => void
+  onTidy: () => Promise<void>
+}) {
+  const qc = useQueryClient()
+  const flow = useReactFlow()
+  const [selected, setSelected] = useState<string | null>(null)
+  const [hovered, setHovered] = useState<string | null>(null)
+  const [focus, setFocus] = useState(false)
+  const [find, setFind] = useState('')
+  const [findMessage, setFindMessage] = useState('')
   const [linkDraft, setLinkDraft] = useState<{ table: string; to: string } | null>(null)
   const [adding, setAdding] = useState<'link' | 'many' | 'table' | null>(null)
   const [editing, setEditing] = useState<Link | null>(null)
-  const edges: Edge[] = useMemo(
-    () =>
-      (list ?? []).map((l) => ({
-        id: l.id,
-        source: l.table,
-        target: l.to,
-        label: `${l.label}${l.source === 'pack' ? '' : ' •'}`,
-        markerEnd: { type: MarkerType.ArrowClosed },
-        style: { strokeWidth: 1.5, strokeDasharray: l.source === 'pack' ? '6 4' : undefined },
-        labelBgPadding: [6, 3] as [number, number],
-        labelStyle: { fontSize: 11 },
-        ariaLabel: `${l.table_label} to ${l.to_label}: ${l.label}`,
-      })),
+
+  const merged = useMemo(() => mergeLinks(list), [list])
+  const auto = useMemo(
+    () => layeredLayout(all.map((t) => t.key), list.map((l) => ({ from: l.table, to: l.to }))),
+    [all, list],
+  )
+  const degree = useCallback(
+    (k: string) => ({
+      links: new Set(list.filter((l) => l.table !== l.to && (l.table === k || l.to === k)).map((l) => `${l.table}${l.to}${l.id}`)).size,
+      self: list.filter((l) => l.table === k && l.to === k).length,
+    }),
     [list],
   )
+  const neighbours = useMemo(() => {
+    const m = new Map<string, Set<string>>(all.map((t) => [t.key, new Set([t.key])]))
+    for (const l of list) {
+      m.get(l.table)?.add(l.to)
+      m.get(l.to)?.add(l.table)
+    }
+    return m
+  }, [all, list])
+
+  const active = hovered ?? selected
+  const near = active ? neighbours.get(active) : undefined
+  /** Choose a table; the picture only moves when the table was asked for by name or from a list. */
+  const select = useCallback(
+    (k: string, move = false) => {
+      setSelected(k)
+      if (move) flow.fitView({ nodes: [{ id: k }], duration: 300, maxZoom: 1, padding: 1.5 })
+    },
+    [flow],
+  )
+  const selectAndShow = useCallback((k: string) => select(k, true), [select])
+
+  // The canvas state keeps what React Flow measured (size), so only position changes come from here.
+  const [base, setBase] = useState<Node<CardData>[]>(() =>
+    all.map((t) => ({
+      id: t.key,
+      type: 'table',
+      position: saved?.[t.key] ?? auto[t.key]!,
+      data: { table: t, links: 0, selfLinks: 0, related: false, onSelect: () => undefined },
+    })),
+  )
+  const positions: Pos = Object.fromEntries(base.map((n) => [n.id, n.position]))
+  const nodes: Node<CardData>[] = base
+    .filter((n) => !focus || !selected || neighbours.get(selected)?.has(n.id))
+    .map((n) => {
+      const t = all.find((x) => x.key === n.id)!
+      const d = degree(n.id)
+      return {
+        ...n,
+        selected: n.id === selected,
+        draggable: canEdit,
+        data: { table: t, links: d.links, selfLinks: d.self, related: !!near && near.has(n.id) && n.id !== active, onSelect: select },
+      }
+    })
+  const visible = new Set(nodes.map((n) => n.id))
+  const edges: Edge[] = merged
+    .filter((m) => visible.has(m.from) && visible.has(m.to))
+    .map((m) => {
+      const touches = !active || m.from === active || m.to === active
+      const many = m.links.length > 1
+      const first = m.links[0]!
+      return {
+        id: m.id,
+        source: m.from,
+        target: m.to,
+        type: 'smoothstep',
+        // Names only appear on the lines you are looking at, so a busy map stays quiet.
+        label: many ? `${m.links.length} links` : active && touches ? `${first.label}${first.source === 'pack' ? '' : ' •'}` : undefined,
+        markerEnd: { type: MarkerType.ArrowClosed },
+        style: {
+          strokeWidth: many ? 3 : 1.5,
+          strokeDasharray: !many && first.source === 'pack' ? '6 4' : undefined,
+          opacity: touches ? 1 : 0.12,
+          stroke: active && touches ? 'var(--color-accent)' : undefined,
+        },
+        labelBgPadding: [6, 3] as [number, number],
+        labelStyle: { fontSize: 11 },
+        ariaLabel: many ? `${first.table_label} to ${first.to_label}: ${m.links.length} links` : `${first.table_label} to ${first.to_label}: ${first.label}`,
+      }
+    })
 
   const save = useMutation({
-    mutationFn: (positions: Record<string, { x: number; y: number }>) => studio.saveLayout(positions),
+    mutationFn: (p: Pos) => studio.saveLayout(p),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['studio-layout'] }),
   })
-  const onNodesChange = useCallback((c: NodeChange[]) => setNodes((n) => applyNodeChanges(c, n) as Node<Box>[]), [])
-  const onDragStop = useCallback(() => {
-    setNodes((n) => {
-      save.mutate(Object.fromEntries(n.map((x) => [x.id, { x: x.position.x, y: x.position.y }])))
-      return n
-    })
-  }, [save])
+  const onNodesChange = (changes: NodeChange[]) => setBase((n) => applyNodeChanges(changes, n) as Node<CardData>[])
   const onConnect = (c: Connection) => {
     if (canEdit && c.source && c.target) setLinkDraft({ table: c.source, to: c.target })
   }
 
+  const onFind = (e: FormEvent) => {
+    e.preventDefault()
+    const q = find.trim().toLowerCase()
+    if (!q) return
+    const hit = all.find((t) => t.label.toLowerCase() === q) ?? all.find((t) => t.label.toLowerCase().includes(q))
+    if (hit) {
+      setFindMessage('')
+      select(hit.key, true)
+    } else setFindMessage(`No table called "${find}".`)
+  }
+
+  const current = all.find((t) => t.key === selected)
   const label = (k: string) => all.find((t) => t.key === k)?.label
 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
         <p className="min-w-0 flex-1 text-sm text-muted">
-          {all.length} tables and {list.length} links. {canEdit ? 'Drag a box to place it. Drag from the dot on one box to another to link them. Choose a line to edit it.' : 'Choose a line to see the link.'}
+          {all.length} tables and {list.length} links. {canEdit ? 'Click a card for its details. Drag a card to place it, or from its dot to another card to link them.' : 'Click a card for its details.'}
         </p>
+        <form onSubmit={onFind} role="search" className="flex items-center gap-1">
+          <Input aria-label="Find a table" placeholder="Find a table" className="w-40" value={find} onChange={(e) => setFind(e.target.value)} list="canvas-tables" />
+          <datalist id="canvas-tables">{all.map((t) => <option key={t.key} value={t.label} />)}</datalist>
+          <Button size="sm" variant="secondary" type="submit" aria-label="Go to table"><Search className="size-4" aria-hidden /></Button>
+        </form>
         {canEdit && (
           <>
             <Button size="sm" variant="secondary" onClick={() => setAdding('table')}>
               <Plus className="size-4" aria-hidden /> New table
             </Button>
             <Button size="sm" variant="secondary" onClick={() => setAdding('link')}>Add a link</Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => save.mutate({}, { onSuccess: onTidy })}
-            >
-              Tidy up
-            </Button>
           </>
         )}
+        <Button
+          size="sm"
+          variant={canEdit ? 'secondary' : 'ghost'}
+          onClick={() => {
+            if (canEdit) save.mutate({}, { onSuccess: onTidy })
+            else void onTidy()
+          }}
+        >
+          Auto-arrange
+        </Button>
       </div>
-      <div className="h-[560px] overflow-hidden rounded-lg border border-line bg-canvas" role="region" aria-label="Table canvas" data-testid="canvas">
+      {findMessage && <p role="status" className="text-sm text-bad">{findMessage}</p>}
+      <div className="relative h-[620px] overflow-hidden rounded-lg border border-line bg-canvas" role="region" aria-label="Table canvas" data-testid="canvas">
         <ReactFlow
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
           onNodesChange={onNodesChange}
-          onNodeDragStop={onDragStop}
+          onNodeDragStop={() => {
+            if (canEdit) save.mutate(positions)
+          }}
+          onNodeMouseEnter={(_, n) => setHovered(n.id)}
+          onNodeMouseLeave={() => setHovered(null)}
+          onPaneClick={() => setSelected(null)}
           onConnect={onConnect}
           onEdgeClick={(_, e) => {
-            const l = list.find((x) => x.id === e.id)
-            if (l && canEdit) setEditing(l)
-            else if (l) onOpenLink?.(l.id)
+            const m = merged.find((x) => x.id === e.id)
+            if (!m) return
+            if (m.links.length === 1 && canEdit) setEditing(m.links[0]!)
+            else if (m.links.length === 1) onOpenLink?.(m.links[0]!.id)
+            else setSelected(m.from)
           }}
           nodesConnectable={canEdit}
           nodesDraggable={canEdit}
           fitView
-          minZoom={0.2}
+          minZoom={0.15}
           proOptions={{ hideAttribution: true }}
         >
           <Background />
           <Controls showInteractive={false} />
           <MiniMap pannable zoomable ariaLabel="Overview of the canvas" />
         </ReactFlow>
+        {current && (
+          <TableDrawer
+            table={current}
+            all={all}
+            links={list}
+            canEdit={canEdit}
+            focus={focus}
+            onFocus={setFocus}
+            onClose={() => {
+              setSelected(null)
+              setFocus(false)
+            }}
+            onEditLink={setEditing}
+            onAddLink={(t) => setLinkDraft({ table: t, to: '' })}
+            onOpenFields={onOpen}
+            onSelect={selectAndShow}
+          />
+        )}
       </div>
-      <p className="text-xs text-muted">Solid lines with a dot are links you added. Dashed lines come with the pack.</p>
+      <p className="text-xs text-muted">Arrows point to the table being linked to. A thick line carries several links. Dashed lines come with the pack. Hover a card to light up its links.</p>
       <details className="rounded-lg border border-line bg-surface p-3 text-sm">
         <summary className="cursor-pointer font-semibold text-accent-ink">Links as a list</summary>
         <ul className="mt-2 flex flex-col gap-1 text-body">
           {list.map((l) => (
             <li key={l.id}>
-              <button type="button" className="text-left hover:underline" onClick={() => {
-                  if (canEdit) setEditing(l)
-                  else onOpenLink?.(l.id)
-                }}>
+              <button type="button" className="text-left hover:underline" onClick={() => (canEdit ? setEditing(l) : onOpenLink?.(l.id))}>
                 {label(l.table)} → {label(l.to)} <span className="text-muted">({l.label})</span>
               </button>
             </li>
