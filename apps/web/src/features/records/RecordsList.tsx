@@ -15,6 +15,7 @@ import { TableToolbar } from '@/patterns/TableToolbar'
 import { featuresOf } from '@/features/studio/features'
 import { BulkBar } from './BulkBar'
 import { ExportDialog } from './ExportDialog'
+import { InlineCell, InlineEditContext, inlineEditable } from './InlineCell'
 import { HeaderFilter, describe, filterKind } from './HeaderFilter'
 import { formatField } from '@/patterns/format'
 
@@ -48,8 +49,12 @@ function columnsFor(table: TableDef, config: ScreenConfig, preview: boolean): Co
           </Link>
         )
       }
-      if (f.type === 'select' && v) return <Badge tone={v === 'Active' || v === 'Open' ? 'ok' : 'neutral'}>{String(v)}</Badge>
-      return formatField(f, v, row.original.refs?.[f.key])
+      if (f.type === 'select' && v) {
+        const badge = <Badge tone={v === 'Active' || v === 'Open' ? 'ok' : 'neutral'}>{String(v)}</Badge>
+        return inlineEditable(table, f) ? <InlineCell row={row.original} f={f}>{badge}</InlineCell> : badge
+      }
+      const shown = formatField(f, v, row.original.refs?.[f.key])
+      return inlineEditable(table, f) ? <InlineCell row={row.original} f={f}>{shown}</InlineCell> : shown
     },
   }))
   for (const c of table.counts ?? []) cols.push({ id: `count.${c.key}`, header: c.label, cell: ({ row }) => row.original.counts?.[c.key] ?? 0 })
@@ -317,6 +322,7 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
     )
 
   return (
+    <InlineEditContext.Provider value={feat.inline_edit && !preview && can(me.data?.permissions, `record.${tableKey}.update`) ? { table } : null}>
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-xl font-bold text-ink">{title ?? table.plural_label}</h1>
@@ -392,5 +398,6 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
         body
       )}
     </div>
+    </InlineEditContext.Provider>
   )
 }
