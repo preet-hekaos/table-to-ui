@@ -41,6 +41,7 @@ from tableui.platform.mail import LogMailer, Mailer, SmtpMailer
 from tableui.platform.messaging import LocalBus, Publisher
 from tableui.platform.messaging_sqs import SqsConsumer, SqsPublisher, make_client
 from tableui.platform.web import new_request_id
+from tableui.query.api.router import link_router as exports_router
 from tableui.query.api.router import router as query_router
 from tableui.rules.api.router import router as fixtures_router
 from tableui.tenancy.public import Tenant, provision_tenant
@@ -245,6 +246,7 @@ def create_app(
         studio_router,
         commands_router,
         query_router,
+        exports_router,
         insights_router,
         automation.router,
         ai.router,

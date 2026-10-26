@@ -56,7 +56,7 @@ export function BulkBar({
   canUpdate: boolean
   canDelete: boolean
   onClear: () => void
-  onExport: (ids: Set<string> | null) => Promise<void>
+  onExport: (ids: Set<string> | null) => void
 }) {
   const qc = useQueryClient()
   const toast = useToast()
@@ -116,7 +116,7 @@ export function BulkBar({
       {allShown && total > MAX_BULK && <span className="text-xs text-muted">More than {MAX_BULK.toLocaleString('en-IN')} match. Narrow the search to act on all of them.</span>}
       <span className="ml-auto flex flex-wrap gap-2">
         {can('export') && (
-          <Button variant="secondary" onClick={() => void onExport(everyMatch ? null : picked)}>
+          <Button variant="secondary" onClick={() => onExport(everyMatch ? null : picked)}>
             <Download className="size-4" aria-hidden /> Export
           </Button>
         )}

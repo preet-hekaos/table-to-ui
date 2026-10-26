@@ -880,6 +880,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/exports/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Open Export */
+        get: operations["open_export_v1_exports__token__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/files": {
         parameters: {
             query?: never;
@@ -1711,6 +1728,46 @@ export interface paths {
          * @description Instant duplicate check for forms: runs the rules, writes nothing.
          */
         post: operations["check_v1_records__table__check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/records/{table}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Export
+         * @description Download the list, or the ticked rows, as CSV, JSON or Excel.
+         */
+        post: operations["export_v1_records__table__export_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/records/{table}/export/email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Export Email
+         * @description Email the signed-in person a link to this export. It goes only to their own address.
+         */
+        post: operations["export_email_v1_records__table__export_email_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2784,14 +2841,6 @@ export interface components {
              */
             target_id: string;
         };
-        /** ExportBody */
-        ExportBody: {
-            /**
-             * Reason
-             * @default
-             */
-            reason: string;
-        };
         /** ExtractBody */
         ExtractBody: {
             /**
@@ -3248,6 +3297,75 @@ export interface components {
              * @default
              */
             reason: string;
+        };
+        /** ExportBody */
+        tableui__ops__api__router__ExportBody: {
+            /**
+             * Reason
+             * @default
+             */
+            reason: string;
+        };
+        /**
+         * ExportBody
+         * @description What to export: a format, the columns, and either ticked ids or the list's own search.
+         */
+        tableui__query__api__router__ExportBody: {
+            /**
+             * Anyof
+             * @default {}
+             */
+            anyof: {
+                [key: string]: string;
+            };
+            /**
+             * Contains
+             * @default {}
+             */
+            contains: {
+                [key: string]: string;
+            };
+            /**
+             * Direction
+             * @default desc
+             */
+            direction: string;
+            /** Fields */
+            fields?: string[] | null;
+            /**
+             * Filters
+             * @default {}
+             */
+            filters: {
+                [key: string]: string;
+            };
+            /** Format */
+            format: string;
+            /**
+             * Has
+             * @default {}
+             */
+            has: {
+                [key: string]: string;
+            };
+            /** Ids */
+            ids?: string[] | null;
+            /** Owner */
+            owner?: string | null;
+            /** Q */
+            q?: string | null;
+            /**
+             * Ranges
+             * @default {}
+             */
+            ranges: {
+                [key: string]: string;
+            };
+            /**
+             * Sort
+             * @default updated_at
+             */
+            sort: string;
         };
     };
     responses: never;
@@ -4913,6 +5031,37 @@ export interface operations {
             };
         };
     };
+    open_export_v1_exports__token__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     upload_v1_files_post: {
         parameters: {
             query?: never;
@@ -6315,7 +6464,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ExportBody"];
+                "application/json": components["schemas"]["tableui__ops__api__router__ExportBody"];
             };
         };
         responses: {
@@ -6577,6 +6726,78 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["CreateBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_v1_records__table__export_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                table: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["tableui__query__api__router__ExportBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_email_v1_records__table__export_email_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                table: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["tableui__query__api__router__ExportBody"];
             };
         };
         responses: {

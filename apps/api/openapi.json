@@ -420,17 +420,6 @@
         "title": "ExplainBody",
         "type": "object"
       },
-      "ExportBody": {
-        "properties": {
-          "reason": {
-            "default": "",
-            "title": "Reason",
-            "type": "string"
-          }
-        },
-        "title": "ExportBody",
-        "type": "object"
-      },
       "ExtractBody": {
         "properties": {
           "file_id": {
@@ -1531,6 +1520,132 @@
           }
         },
         "title": "Why",
+        "type": "object"
+      },
+      "tableui__ops__api__router__ExportBody": {
+        "properties": {
+          "reason": {
+            "default": "",
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "title": "ExportBody",
+        "type": "object"
+      },
+      "tableui__query__api__router__ExportBody": {
+        "description": "What to export: a format, the columns, and either ticked ids or the list's own search.",
+        "properties": {
+          "anyof": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "title": "Anyof",
+            "type": "object"
+          },
+          "contains": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "title": "Contains",
+            "type": "object"
+          },
+          "direction": {
+            "default": "desc",
+            "title": "Direction",
+            "type": "string"
+          },
+          "fields": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fields"
+          },
+          "filters": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "title": "Filters",
+            "type": "object"
+          },
+          "format": {
+            "title": "Format",
+            "type": "string"
+          },
+          "has": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "title": "Has",
+            "type": "object"
+          },
+          "ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ids"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner"
+          },
+          "q": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q"
+          },
+          "ranges": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "title": "Ranges",
+            "type": "object"
+          },
+          "sort": {
+            "default": "updated_at",
+            "title": "Sort",
+            "type": "string"
+          }
+        },
+        "required": [
+          "format"
+        ],
+        "title": "ExportBody",
         "type": "object"
       }
     }
@@ -3833,6 +3948,46 @@
         ]
       }
     },
+    "/v1/exports/{token}": {
+      "get": {
+        "operationId": "open_export_v1_exports__token__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Open Export",
+        "tags": [
+          "records"
+        ]
+      }
+    },
     "/v1/files": {
       "post": {
         "operationId": "upload_v1_files_post",
@@ -5870,7 +6025,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ExportBody"
+                "$ref": "#/components/schemas/tableui__ops__api__router__ExportBody"
               }
             }
           },
@@ -6342,6 +6497,112 @@
           }
         },
         "summary": "Check",
+        "tags": [
+          "records"
+        ]
+      }
+    },
+    "/v1/records/{table}/export": {
+      "post": {
+        "description": "Download the list, or the ticked rows, as CSV, JSON or Excel.",
+        "operationId": "export_v1_records__table__export_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "table",
+            "required": true,
+            "schema": {
+              "title": "Table",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/tableui__query__api__router__ExportBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export",
+        "tags": [
+          "records"
+        ]
+      }
+    },
+    "/v1/records/{table}/export/email": {
+      "post": {
+        "description": "Email the signed-in person a link to this export. It goes only to their own address.",
+        "operationId": "export_email_v1_records__table__export_email_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "table",
+            "required": true,
+            "schema": {
+              "title": "Table",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/tableui__query__api__router__ExportBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Export Email V1 Records  Table  Export Email Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export Email",
         "tags": [
           "records"
         ]
