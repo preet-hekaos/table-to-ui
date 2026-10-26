@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from tableui.platform.errors import NotFound, ValidationFailed
 
-ALLOWED_KEYS = {"q", "filters", "ranges", "owner", "has", "sort", "direction"}
+ALLOWED_KEYS = {"q", "filters", "ranges", "contains", "anyof", "owner", "has", "sort", "direction"}
 
 
 async def save(

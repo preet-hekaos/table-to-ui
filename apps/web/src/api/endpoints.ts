@@ -257,12 +257,14 @@ export interface ListQuery {
   q?: string
   filters?: Record<string, string>
   ranges?: Record<string, string>
+  contains?: Record<string, string>
+  anyof?: Record<string, string>
   has?: Record<string, string>
   owner?: string
 }
 export interface Facet { label: string; kind: 'values' | 'range'; values: { value: string; label: string; count: number }[] }
 export interface ScreenDef { key: string; title: string; pattern: string; table: string; config: Record<string, unknown>; roles: string[] }
-export interface SavedSearch { id: string; table: string; name: string; query: { q?: string; filters?: Record<string, string>; ranges?: Record<string, string>; screen?: string | null } }
+export interface SavedSearch { id: string; table: string; name: string; query: { q?: string; filters?: Record<string, string>; ranges?: Record<string, string>; contains?: Record<string, string>; anyof?: Record<string, string>; screen?: string | null } }
 export interface MatchPart { label: string; weight: number; fraction: number; points: number; why: string }
 export interface MatchResult {
   screen: string
@@ -298,7 +300,7 @@ export const matching = {
 
 export const app = {
   facets: (table: string, query: ListQuery & { fields?: string[] }) => {
-    const { filters, ranges, has, q, owner, fields } = query
+    const { filters, ranges, contains, anyof, has, q, owner, fields } = query
     return g<{ total: number; facets: Record<string, Facet> }>(
       `/v1/records/${table}/facets${qs({
         q,
@@ -306,6 +308,8 @@ export const app = {
         fields: fields?.join(','),
         ...Object.fromEntries(Object.entries(filters ?? {}).map(([k, v]) => [`f.${k}`, v])),
         ...Object.fromEntries(Object.entries(ranges ?? {}).map(([k, v]) => [`r.${k}`, v])),
+        ...Object.fromEntries(Object.entries(contains ?? {}).map(([k, v]) => [`c.${k}`, v])),
+        ...Object.fromEntries(Object.entries(anyof ?? {}).map(([k, v]) => [`in.${k}`, v])),
         ...Object.fromEntries(Object.entries(has ?? {}).map(([k, v]) => [`has.${k}`, v])),
       })}`,
     )
@@ -326,10 +330,12 @@ export const app = {
       api.GET('/v1/app/screens/{screen}' as never, { params: { path: { screen: key } } } as never),
     ),
   list: (table: string, query: ListQuery) => {
-    const { filters, ranges, has, cursor, q, ...rest } = query
+    const { filters, ranges, contains, anyof, has, cursor, q, ...rest } = query
     const extra = {
       ...Object.fromEntries(Object.entries(filters ?? {}).filter(([, v]) => v).map(([k, v]) => [`f.${k}`, v])),
       ...Object.fromEntries(Object.entries(ranges ?? {}).filter(([, v]) => v).map(([k, v]) => [`r.${k}`, v])),
+      ...Object.fromEntries(Object.entries(contains ?? {}).filter(([, v]) => v).map(([k, v]) => [`c.${k}`, v])),
+      ...Object.fromEntries(Object.entries(anyof ?? {}).filter(([, v]) => v).map(([k, v]) => [`in.${k}`, v])),
       ...Object.fromEntries(Object.entries(has ?? {}).filter(([, v]) => v).map(([k, v]) => [`has.${k}`, v])),
     }
     return cast<RecordPage>(

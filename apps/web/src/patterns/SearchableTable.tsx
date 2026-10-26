@@ -1,5 +1,5 @@
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from '@tanstack/react-table'
-import { Fragment } from 'react'
+import { Fragment, type ReactNode } from 'react'
 import { Button, Table, Td, Th, type SortDirection } from '@/design-system'
 
 export interface SortState {
@@ -19,6 +19,7 @@ export function SearchableTable<T>({
   onLoadMore,
   loadingMore,
   groupOf,
+  headerExtra,
 }: {
   caption: string
   columns: ColumnDef<T, unknown>[]
@@ -31,6 +32,8 @@ export function SearchableTable<T>({
   loadingMore?: boolean
   /** Rows arrive sorted by the grouping field; a heading row starts each group. */
   groupOf?: (row: T) => string
+  /** Extra controls on a column heading, such as the filter button. */
+  headerExtra?: (columnId: string) => ReactNode
 }) {
   const table = useReactTable({ data: rows, columns, getCoreRowModel: getCoreRowModel(), manualSorting: true })
   return (
@@ -45,6 +48,7 @@ export function SearchableTable<T>({
                   sortable={sortableKeys.has(h.column.id)}
                   direction={sort.key === h.column.id ? sort.direction : null}
                   onSort={() => onSort(h.column.id)}
+                  extra={headerExtra?.(h.column.id)}
                 >
                   {flexRender(h.column.columnDef.header, h.getContext())}
                 </Th>

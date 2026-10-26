@@ -682,6 +682,36 @@ async def update_stages(
     return updated.workflow.model_dump(mode="json")  # type: ignore[union-attr]
 
 
+def _fit_features(f: TableFeatures, table: TableDef, *, strict: bool) -> TableFeatures:
+    """Field names in the settings must be fields of this table. For one table an unknown name is
+    refused; when the same settings go to every table, names a table lacks are left out."""
+    have = {x.key for x in table.fields}
+    bad = [k for k in [*f.unsortable, *f.unfilterable] if k not in have]
+    if (
+        f.default_sort
+        and f.default_sort.field not in have
+        and f.default_sort.field
+        not in (
+            "updated_at",
+            "created_at",
+        )
+    ):
+        bad.append(f.default_sort.field)
+    if bad and strict:
+        raise _bad("features", f"unknown field '{bad[0]}'", "unknown")
+    if not bad:
+        return f
+    return f.model_copy(
+        update={
+            "unsortable": [k for k in f.unsortable if k in have],
+            "unfilterable": [k for k in f.unfilterable if k in have],
+            "default_sort": f.default_sort
+            if f.default_sort and f.default_sort.field not in bad
+            else None,
+        }
+    )
+
+
 async def set_features(
     s: AsyncSession,
     *,
@@ -694,7 +724,7 @@ async def set_features(
     """Set the table features of one table, or of every table when `table_keys` is None."""
     await _enter_tenant(s, tenant_id)
     try:
-        features = TableFeatures.model_validate(body)
+        requested = TableFeatures.model_validate(body)
     except ValidationError as e:
         raise _pydantic_errors(e) from None
     keys = table_keys if table_keys is not None else sorted(await _keys(s, "table"))
@@ -705,6 +735,7 @@ async def set_features(
             raise NotFound(f"There is no table '{key}'.")
         definition, source = found
         table = TableDef.model_validate(definition)
+        features = _fit_features(requested, table, strict=table_keys is not None)
         if (table.features or TableFeatures()) == features:
             continue  # already as asked: no new version, no change in the Draft
         updated = table.model_copy(update={"features": features, "version": table.version + 1})
@@ -719,4 +750,4 @@ async def set_features(
         {"tables": changed},
         request_id,
     )
-    return {"features": features.model_dump(mode="json"), "tables": changed}
+    return {"features": requested.model_dump(mode="json"), "tables": changed}
