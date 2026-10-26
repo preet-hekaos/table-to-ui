@@ -325,6 +325,50 @@ async def list_records(
     return {"items": items, "next_cursor": next_cursor}
 
 
+async def matching_ids(
+    db: Database,
+    principal: Principal,
+    app: RuntimeApp,
+    table_key: str,
+    *,
+    ids: list[uuid.UUID] | None = None,
+    filters: dict[str, str] | None = None,
+    q: str | None = None,
+    ranges: dict[str, str] | None = None,
+    owner: str | None = None,
+    has: dict[str, str] | None = None,
+    contains: dict[str, str] | None = None,
+    anyof: dict[str, str] | None = None,
+    limit: int = 10_000,
+) -> tuple[list[uuid.UUID], bool]:
+    """The ids this person may see that match, up to ``limit``; the flag says more exist.
+
+    Uses the same scope and filter rules as the list, so a bulk action can never reach
+    a record the person could not have ticked.
+    """
+    principal.require(f"record.{table_key}.read")
+    table = app.table(table_key)
+    conds: list[str] = []
+    params: dict[str, Any] = {"lim": limit + 1}
+    scope_sql, scope_params = await scope_predicate(db, principal, table_key)
+    if scope_sql:
+        conds.append(scope_sql)
+        params |= scope_params
+    conds_f, params_f = _filter_conditions(
+        principal, table, filters or {}, q, ranges, owner, has, contains, anyof
+    )
+    conds += conds_f
+    params |= params_f
+    if ids is not None:
+        conds.append("id = ANY(CAST(:only_ids AS uuid[]))")
+        params["only_ids"] = ids
+    where = f"WHERE {' AND '.join(conds)}" if conds else ""
+    sql = f'SELECT id FROM "{table_key}" {where} ORDER BY id LIMIT :lim'  # noqa: S608 - identifiers are validated metadata keys
+    async with db.tenant(principal.tenant_id) as s:
+        rows = (await s.execute(text(sql), params)).all()
+    return [r.id for r in rows[:limit]], len(rows) > limit
+
+
 async def get_record(
     db: Database, principal: Principal, app: RuntimeApp, table_key: str, record_id: uuid.UUID
 ) -> dict[str, Any]:

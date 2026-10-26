@@ -1,4 +1,5 @@
 from tableui.commands.application.batch import BatchOp, BatchResult, apply_batch
+from tableui.commands.application.bulk import bulk_change, bulk_undo
 from tableui.commands.application.pipeline import (
     CommandContext,
     CommandResult,
@@ -14,6 +15,8 @@ __all__ = [
     "BatchOp",
     "BatchResult",
     "apply_batch",
+    "bulk_change",
+    "bulk_undo",
     "CommandContext",
     "CommandResult",
     "Overrides",

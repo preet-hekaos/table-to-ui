@@ -262,6 +262,10 @@ export interface ListQuery {
   has?: Record<string, string>
   owner?: string
 }
+export interface BulkMatching { q?: string; filters: Record<string, string>; ranges: Record<string, string>; contains: Record<string, string>; anyof: Record<string, string>; expected_count: number }
+export interface BulkUndo { kind: 'update' | 'delete'; ids: string[] }
+export interface BulkBody { action: 'update' | 'delete' | 'undo'; ids?: string[]; matching?: BulkMatching; field?: string; value?: unknown; undo?: BulkUndo }
+export interface BulkResult { applied: number; failed: { id: string; message: string; code: string }[]; undo: BulkUndo | null }
 export interface Facet { label: string; kind: 'values' | 'range'; values: { value: string; label: string; count: number }[] }
 export interface ScreenDef { key: string; title: string; pattern: string; table: string; config: Record<string, unknown>; roles: string[] }
 export interface SavedSearch { id: string; table: string; name: string; query: { q?: string; filters?: Record<string, string>; ranges?: Record<string, string>; contains?: Record<string, string>; anyof?: Record<string, string>; screen?: string | null } }
@@ -314,6 +318,9 @@ export const app = {
       })}`,
     )
   },
+  /** How many records match a search (counted by the server, no facets asked for). */
+  count: async (table: string, query: ListQuery) => (await app.facets(table, { ...query, fields: ['_'] })).total,
+  bulk: (table: string, body: BulkBody) => send<BulkResult>('POST', `/v1/records/${table}/bulk`, body),
   screens: (query: { table?: string; pattern?: string; source_table?: string }) => g<ScreenDef[]>(`/v1/app/screens${qs(query)}`),
   table: (table: string) => cast<{ release_version: number; table: TableDef }>(api.GET('/v1/app/tables/{table}', { params: { path: { table } } })),
   tables: () => cast<{ release_version: number; tables: { key: string; label: string; plural_label: string }[] }>(api.GET('/v1/app/tables')),

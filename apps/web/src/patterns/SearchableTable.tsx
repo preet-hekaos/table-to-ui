@@ -20,6 +20,7 @@ export function SearchableTable<T>({
   loadingMore,
   groupOf,
   headerExtra,
+  selection,
 }: {
   caption: string
   columns: ColumnDef<T, unknown>[]
@@ -34,6 +35,14 @@ export function SearchableTable<T>({
   groupOf?: (row: T) => string
   /** Extra controls on a column heading, such as the filter button. */
   headerExtra?: (columnId: string) => ReactNode
+  /** Tick-boxes down the left edge: which rows are picked, and how to pick or clear them. */
+  selection?: {
+    picked: Set<string>
+    rowId: (row: T) => string
+    rowLabel: (row: T) => string
+    onToggle: (id: string) => void
+    onPage: (on: boolean) => void
+  }
 }) {
   const table = useReactTable({ data: rows, columns, getCoreRowModel: getCoreRowModel(), manualSorting: true })
   return (
@@ -42,6 +51,20 @@ export function SearchableTable<T>({
         <thead>
           {table.getHeaderGroups().map((hg) => (
             <tr key={hg.id}>
+              {selection && (
+                <Th className="w-10">
+                  <input
+                    type="checkbox"
+                    className="size-5"
+                    aria-label="Select all rows shown"
+                    checked={rows.length > 0 && rows.every((r) => selection.picked.has(selection.rowId(r)))}
+                    ref={(el) => {
+                      if (el) el.indeterminate = rows.some((r) => selection.picked.has(selection.rowId(r))) && !rows.every((r) => selection.picked.has(selection.rowId(r)))
+                    }}
+                    onChange={(e) => selection.onPage(e.target.checked)}
+                  />
+                </Th>
+              )}
               {hg.headers.map((h) => (
                 <Th
                   key={h.id}
@@ -64,12 +87,23 @@ export function SearchableTable<T>({
               <Fragment key={r.id}>
                 {startsGroup && (
                   <tr className="bg-soft">
-                    <th scope="colgroup" colSpan={columns.length} className="px-3 py-1.5 text-left text-xs font-bold text-ink">
+                    <th scope="colgroup" colSpan={columns.length + (selection ? 1 : 0)} className="px-3 py-1.5 text-left text-xs font-bold text-ink">
                       {g}
                     </th>
                   </tr>
                 )}
-                <tr className="hover:bg-canvas">
+                <tr className={selection?.picked.has(selection.rowId(r.original)) ? 'bg-canvas' : 'hover:bg-canvas'}>
+                  {selection && (
+                    <Td className="w-10">
+                      <input
+                        type="checkbox"
+                        className="size-5"
+                        aria-label={`Select ${selection.rowLabel(r.original)}`}
+                        checked={selection.picked.has(selection.rowId(r.original))}
+                        onChange={() => selection.onToggle(selection.rowId(r.original))}
+                      />
+                    </Td>
+                  )}
                   {r.getVisibleCells().map((c) => (
                     <Td key={c.id}>{flexRender(c.column.columnDef.cell, c.getContext())}</Td>
                   ))}
