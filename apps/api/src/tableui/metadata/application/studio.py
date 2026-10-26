@@ -17,7 +17,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from tableui.audit.public import write_audit
 from tableui.metadata.domain.ddl import add_field_index_sql, add_shadow_column_sql, table_ddl_sql
 from tableui.metadata.domain.links import describe_cycle, required_cycle
-from tableui.metadata.domain.models import FieldDef, NavItem, RuleDef, ScreenDef, TableDef
+from tableui.metadata.domain.models import (
+    FieldDef,
+    NavItem,
+    RuleDef,
+    ScreenDef,
+    TableDef,
+    TableFeatures,
+)
 from tableui.platform.errors import NotFound, ValidationFailed
 from tableui.platform.ids import schema_name
 from tableui.platform.sql import split_statements
@@ -673,3 +680,43 @@ async def update_stages(
         request_id,
     )
     return updated.workflow.model_dump(mode="json")  # type: ignore[union-attr]
+
+
+async def set_features(
+    s: AsyncSession,
+    *,
+    tenant_id: uuid.UUID,
+    user_id: uuid.UUID,
+    table_keys: list[str] | None,
+    body: dict[str, Any],
+    request_id: str | None,
+) -> dict[str, Any]:
+    """Set the table features of one table, or of every table when `table_keys` is None."""
+    await _enter_tenant(s, tenant_id)
+    try:
+        features = TableFeatures.model_validate(body)
+    except ValidationError as e:
+        raise _pydantic_errors(e) from None
+    keys = table_keys if table_keys is not None else sorted(await _keys(s, "table"))
+    changed = []
+    for key in keys:
+        found = await _draft(s, "table", key)
+        if found is None:
+            raise NotFound(f"There is no table '{key}'.")
+        definition, source = found
+        table = TableDef.model_validate(definition)
+        if (table.features or TableFeatures()) == features:
+            continue  # already as asked: no new version, no change in the Draft
+        updated = table.model_copy(update={"features": features, "version": table.version + 1})
+        await _put(s, tenant_id, "table", key, updated.model_dump(mode="json"), source)
+        changed.append(key)
+    await _audit(
+        s,
+        tenant_id,
+        user_id,
+        "metadata.features.update",
+        keys[0] if len(keys) == 1 else "*",
+        {"tables": changed},
+        request_id,
+    )
+    return {"features": features.model_dump(mode="json"), "tables": changed}

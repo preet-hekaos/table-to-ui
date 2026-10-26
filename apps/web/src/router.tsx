@@ -159,7 +159,7 @@ const studio = createRoute({
   path: '/studio',
   validateSearch: (s: Record<string, unknown>): { tab?: StudioTab; table?: string; part?: TablePart } => ({
     tab: typeof s.tab === 'string' ? ((s.tab === 'links' ? 'map' : s.tab === 'screens' ? 'data' : s.tab) as StudioTab) : undefined,
-    part: s.part === 'screens' || s.tab === 'screens' ? 'screens' : s.part === 'fields' ? 'fields' : undefined,
+    part: s.part === 'screens' || s.tab === 'screens' ? 'screens' : s.part === 'features' ? 'features' : s.part === 'fields' ? 'fields' : undefined,
     table: typeof s.table === 'string' ? s.table : undefined,
   }),
   component: function StudioRoute() {

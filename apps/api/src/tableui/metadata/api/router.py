@@ -505,6 +505,41 @@ async def update_stages(
         )
 
 
+@router.put("/studio/tables/{table}/features")
+async def set_table_features(
+    table: str, body: dict[str, Any], p: PrincipalDep, db: DbDep, request: Request
+) -> dict[str, Any]:
+    p.require("metadata.write")
+    assert p.tenant_id
+    async with db.control() as s:
+        return await studio.set_features(
+            s,
+            tenant_id=p.tenant_id,
+            user_id=p.user_id,
+            table_keys=[table],
+            body=body,
+            request_id=get_request_id(request),
+        )
+
+
+@router.put("/studio/features")
+async def set_all_features(
+    body: dict[str, Any], p: PrincipalDep, db: DbDep, request: Request
+) -> dict[str, Any]:
+    """Apply the same features to every table."""
+    p.require("metadata.write")
+    assert p.tenant_id
+    async with db.control() as s:
+        return await studio.set_features(
+            s,
+            tenant_id=p.tenant_id,
+            user_id=p.user_id,
+            table_keys=None,
+            body=body,
+            request_id=get_request_id(request),
+        )
+
+
 @router.put("/studio/rules/{rule}/checks/{check}")
 async def set_check_severity(
     rule: str, check: str, body: dict[str, Any], p: PrincipalDep, db: DbDep, request: Request

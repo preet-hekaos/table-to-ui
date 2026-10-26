@@ -43,7 +43,9 @@ from tableui.metadata.domain.models import (
     SampleRecord,
     StageDef,
     TableDef,
+    TableFeatures,
     WorkflowDef,
+    features_of,
 )
 from tableui.metadata.domain.values import (
     normalise,
@@ -53,6 +55,7 @@ from tableui.metadata.domain.values import (
 )
 
 __all__ = [
+    "features_of",
     "create_table",
     "read_draft",
     "REGISTRY",
@@ -87,6 +90,7 @@ __all__ = [
     "EffectDef",
     "StageDef",
     "TableDef",
+    "TableFeatures",
     "WorkflowDef",
     "build_manifest",
     "list_releases",
