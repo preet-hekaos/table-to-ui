@@ -3,7 +3,8 @@ import { ArrowDown, ArrowUp, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import type { ApiError } from '@/api/client'
 import { admin, studio, type DraftNav } from '@/api/endpoints'
-import { Badge, Button, Card, ErrorState, Input, LoadingState, Select, useToast } from '@/design-system'
+import { Badge, Button, Card, ErrorState, Input, LoadingState, Select, StageBadge, cn, stageStripe, useToast } from '@/design-system'
+import { useStages } from './useStages'
 
 type Item = Omit<DraftNav, 'version' | 'source'>
 const strip = (n: DraftNav): Item => ({ key: n.key, label: n.label, screen: n.screen, icon: n.icon, section: n.section, order: n.order, roles: n.roles })
@@ -17,6 +18,7 @@ export function NavTab({ canEdit }: { canEdit: boolean }) {
 }
 
 function NavEditor({ saved, canEdit }: { saved: Item[]; canEdit: boolean }) {
+  const stages = useStages()
   const qc = useQueryClient()
   const toast = useToast()
   const screens = useQuery({ queryKey: ['studio-screens'], queryFn: studio.screens, retry: false })
@@ -55,7 +57,8 @@ function NavEditor({ saved, canEdit }: { saved: Item[]; canEdit: boolean }) {
           <ul className="divide-y divide-line" aria-label={title}>
             {items.map((n, i) =>
               n.section !== section ? null : (
-                <li key={n.key} className="flex flex-wrap items-center gap-2 p-3" data-testid={`nav-item-${n.key}`}>
+                <li key={n.key} className={cn('flex flex-wrap items-center gap-2 p-3', stageStripe(stages.of('navs', n.key)))} data-stage={stages.of('navs', n.key)} data-testid={`nav-item-${n.key}`}>
+                  {stages.of('navs', n.key) && <StageBadge stage={stages.of('navs', n.key)!} isNew={stages.isNew('navs', n.key)} />}
                   <Input
                     aria-label={`Label for ${n.label || n.key}`}
                     className="w-44"

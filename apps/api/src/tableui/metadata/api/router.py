@@ -11,6 +11,7 @@ from tableui.metadata.application import draft, releases, studio
 from tableui.metadata.application import measures as measure_builder
 from tableui.metadata.application import relationships as rel
 from tableui.metadata.domain.diff import diff_manifests
+from tableui.metadata.domain.stages import item_stages
 from tableui.platform.db import Database
 from tableui.platform.errors import NotFound, PermissionDenied
 from tableui.platform.web import get_db, get_request_id
@@ -264,6 +265,22 @@ async def studio_status(p: PrincipalDep, db: DbDep) -> dict[str, Any]:
         "live_version": live[0] if live else None,
         "draft_changed": changes["changed"],
         "changes": changes,
+    }
+
+
+@router.get("/studio/stages")
+async def studio_stages(p: PrincipalDep, db: DbDep) -> dict[str, Any]:
+    """The stage (Draft, Test, Live or removed) of every table, field, screen, menu item, rule, measure and automation."""
+    p.require("metadata.read")
+    assert p.tenant_id
+    d = await _draft_manifest(db, p.tenant_id)
+    async with db.control() as s:
+        test = await releases.environment_manifest(s, p.tenant_id, "test")
+        live = await releases.environment_manifest(s, p.tenant_id, "live")
+    return {
+        "test_version": test[0] if test else None,
+        "live_version": live[0] if live else None,
+        **item_stages(d, test[1] if test else None, live[1] if live else None),
     }
 
 

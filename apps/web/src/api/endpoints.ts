@@ -193,6 +193,7 @@ export const studio = {
   navigation: () => g<DraftNav[]>('/v1/studio/navigation'),
   saveNavigation: (items: Omit<DraftNav, 'version'>[]) => send<DraftNav[]>('PUT', '/v1/studio/navigation', { items }),
   status: () => g<{ live_version: number | null; draft_changed: boolean; changes: ManifestDiff }>('/v1/studio/status'),
+  stages: () => g<StageReport>('/v1/studio/stages'),
   compare: (from: string | number, to: string | number = 'draft') => g<ManifestDiff>(`/v1/apps/current/compare?from=${from}&to=${to}`),
   approvals: () => g<Approval[]>('/v1/apps/current/approvals'),
   runFixtures: (env: 'test' | 'live') => send<unknown>('POST', `/v1/apps/current/fixtures/run?env=${env}`),
@@ -206,6 +207,14 @@ export const studio = {
 
 export interface DraftScreen { key: string; title: string; pattern: string; table: string; config: Record<string, unknown>; roles: string[]; version: number; source?: string }
 export interface DraftNav { key: string; label: string; screen: string; icon: string; section: string; order: number; roles: string[]; version: number; source?: string }
+export type StageKind = 'tables' | 'screens' | 'navs' | 'rules' | 'measures' | 'automations'
+export interface StageItem { stage: 'draft' | 'test' | 'live' | 'removed'; is_new?: boolean; label?: string; fields?: Record<string, 'draft' | 'test' | 'live' | 'removed'>; removed_fields?: { key: string; label: string }[] }
+export interface StageReport {
+  test_version: number | null
+  live_version: number | null
+  items: Record<StageKind, Record<string, StageItem>>
+  counts: { draft: number; test: number; live: number; removed: number }
+}
 export interface Approval { approval_id: string; version: number; status: 'pending' | 'approved' | 'rejected'; requested_by: string; requested_at: string; decided_at: string | null }
 export interface DiffItem { key: string; change: 'added' | 'removed' | 'changed'; attributes?: string[]; fields?: { field: string; change: string; label: string; attributes?: Record<string, { from: unknown; to: unknown }> }[] }
 export interface ManifestDiff { changed: boolean; tables: DiffItem[]; screens: DiffItem[]; navs: DiffItem[]; rules: DiffItem[]; measures: DiffItem[]; automations: DiffItem[] }

@@ -4,7 +4,8 @@ import { useState } from 'react'
 import type { ApiError } from '@/api/client'
 import { app, studio, type DraftScreen } from '@/api/endpoints'
 import type { RecordRow, ScreenConfig, StudioTable } from '@/api/types'
-import { Badge, Button, Card, ErrorState, Field, Input, LoadingState, Select, cn, useToast } from '@/design-system'
+import { Badge, Button, Card, ErrorState, Field, Input, LoadingState, Select, StageBadge, cn, useToast } from '@/design-system'
+import { useStages } from './useStages'
 import { RecordsList } from '@/features/records/RecordsList'
 import { MasterDetail } from '@/patterns/MasterDetail'
 import { useDraftTables } from './DataTab'
@@ -209,6 +210,7 @@ export function ScreensTab({ canEdit }: { canEdit: boolean }) {
   const tables = useDraftTables()
   const [selected, setSelected] = useState<string | null>(null)
   const [gallery, setGallery] = useState(false)
+  const stages = useStages()
   if (screens.isLoading || tables.isLoading) return <LoadingState label="Loading screens" />
   if (screens.isError) return <ErrorState requestId={(screens.error as ApiError).requestId} onRetry={() => void screens.refetch()} />
   const all = screens.data ?? []
@@ -220,6 +222,7 @@ export function ScreensTab({ canEdit }: { canEdit: boolean }) {
         <Select aria-label="Screen to configure" className="w-64" value={current?.key ?? ''} onChange={(e) => setSelected(e.target.value)}>
           {all.map((s) => <option key={s.key} value={s.key}>{s.title}</option>)}
         </Select>
+        {current && stages.of('screens', current.key) && <StageBadge stage={stages.of('screens', current.key)!} isNew={stages.isNew('screens', current.key)} />}
         {canEdit && (
           <Button onClick={() => setGallery((g) => !g)} aria-expanded={gallery}>
             <Plus className="size-4" aria-hidden /> New screen from a pattern

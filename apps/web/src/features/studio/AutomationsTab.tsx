@@ -2,7 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { ApiError } from '@/api/client'
 import { admin, automations, studio, type AutomationAction, type AutomationDraft } from '@/api/endpoints'
-import { Badge, Button, Card, Dialog, DialogContent, EmptyState, ErrorState, Field, Input, LoadingState, Select, useToast } from '@/design-system'
+import { Badge, Button, Card, Dialog, DialogContent, EmptyState, ErrorState, Field, Input, LoadingState, Select, StageBadge, cn, stageStripe, useToast } from '@/design-system'
+import { useStages } from './useStages'
 import { useDraftTables } from './DataTab'
 
 type Trigger = AutomationDraft['trigger']
@@ -46,6 +47,7 @@ function does(x: AutomationAction, field: (t: string, k?: string | null) => stri
 export function AutomationsTab({ canEdit }: { canEdit: boolean }) {
   const qc = useQueryClient()
   const toast = useToast()
+  const stages = useStages()
   const list = useQuery({ queryKey: ['studio-automations'], queryFn: studio.automations, retry: false })
   const runs = useQuery({ queryKey: ['automation-runs'], queryFn: () => automations.runs({}), retry: false, refetchInterval: 20_000 })
   const { tables, field } = useLabels()
@@ -84,9 +86,12 @@ export function AutomationsTab({ canEdit }: { canEdit: boolean }) {
         <Card className="p-0">
           <ul className="divide-y divide-line" aria-label="Automations">
             {list.data.map((a) => (
-              <li key={a.key} className="flex flex-wrap items-center gap-2 p-3" data-testid={`automation-row-${a.key}`}>
+              <li key={a.key} className={cn('flex flex-wrap items-center gap-2 p-3', stageStripe(stages.of('automations', a.key)))} data-stage={stages.of('automations', a.key)} data-testid={`automation-row-${a.key}`}>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-ink">{a.label}</p>
+                  <p className="flex items-center gap-2 text-sm font-semibold text-ink">
+                    {a.label}
+                    {stages.of('automations', a.key) && <StageBadge stage={stages.of('automations', a.key)!} isNew={stages.isNew('automations', a.key)} />}
+                  </p>
                   <p className="text-xs text-muted">
                     {when(a, field)}, {a.actions.map((x) => does(x, field, tableOf, a.trigger.table)).join(', then ')}.
                   </p>

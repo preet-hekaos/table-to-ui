@@ -4,8 +4,9 @@ import { useState } from 'react'
 import type { ApiError } from '@/api/client'
 import { studio } from '@/api/endpoints'
 import type { FieldDef, StudioTable } from '@/api/types'
-import { Badge, Button, Card, ErrorState, LoadingState, Table, Td, Th, cn } from '@/design-system'
+import { Badge, Button, Card, ErrorState, LoadingState, StageBadge, StageDot, Table, Td, Th, cn, stageStripe } from '@/design-system'
 import { FieldDialog, NewTableDialog, TYPE_LABELS } from './FieldDialog'
+import { useStages } from './useStages'
 
 const origin = (s?: string) => <Badge tone={s === 'agency' ? 'neutral' : 'accent'}>{s === 'agency' ? 'Workspace' : 'Pack'}</Badge>
 
@@ -18,6 +19,7 @@ export function DataTab({ selected, onSelect, canEdit, defaultTable }: { selecte
   const tables = useDraftTables()
   const [editing, setEditing] = useState<FieldDef | 'new' | null>(null)
   const [newTable, setNewTable] = useState(false)
+  const stages = useStages()
   if (tables.isLoading) return <LoadingState label="Loading tables" />
   if (tables.isError) return <ErrorState requestId={(tables.error as ApiError).requestId} onRetry={() => void tables.refetch()} />
   const all = tables.data ?? []
@@ -42,7 +44,10 @@ export function DataTab({ selected, onSelect, canEdit, defaultTable }: { selecte
                   t.key === current?.key ? 'bg-accent-soft font-semibold text-accent-ink' : 'text-body hover:bg-soft',
                 )}
               >
-                <span>{t.label}</span>
+                <span className="flex items-center gap-2">
+                  {stages.of('tables', t.key) && <StageDot stage={stages.of('tables', t.key)!} />}
+                  {t.label}
+                </span>
                 <span className={cn('text-xs', t.key === current?.key ? 'text-accent-ink' : 'text-muted')}>{t.fields.length}</span>
               </button>
             </li>
@@ -54,6 +59,7 @@ export function DataTab({ selected, onSelect, canEdit, defaultTable }: { selecte
           <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
             <h2 className="text-sm font-bold text-ink">{current.label}</h2>
             {origin(current.source)}
+            {stages.of('tables', current.key) && <StageBadge stage={stages.of('tables', current.key)!} isNew={stages.isNew('tables', current.key)} />}
             <Badge>{current.fields.length} fields</Badge>
             {canEdit && (
               <Button size="sm" variant="primary" className="ml-auto" onClick={() => setEditing('new')}>
@@ -75,8 +81,10 @@ export function DataTab({ selected, onSelect, canEdit, defaultTable }: { selecte
               </thead>
               <tbody>
                 {current.fields.map((f) => (
-                  <tr key={f.key}>
-                    <Td className="font-semibold text-ink">{f.label}</Td>
+                  <tr key={f.key} className={cn(stageStripe(stages.field(current.key, f.key)))} data-stage={stages.field(current.key, f.key)}>
+                    <Td className="font-semibold text-ink">
+                      {f.label} {stages.field(current.key, f.key) && stages.field(current.key, f.key) !== 'live' && <StageBadge stage={stages.field(current.key, f.key)!} className="ml-1" />}
+                    </Td>
                     <Td>
                       {TYPE_LABELS[f.type] ?? f.type}
                       {f.ref_table && <span className="text-muted"> to {all.find((t) => t.key === f.ref_table)?.label ?? f.ref_table}</span>}
@@ -91,6 +99,14 @@ export function DataTab({ selected, onSelect, canEdit, defaultTable }: { selecte
                         </Button>
                       </Td>
                     )}
+                  </tr>
+                ))}
+                {stages.removedFields(current.key).map((f) => (
+                  <tr key={`removed-${f.key}`} className={cn(stageStripe('removed'), 'text-muted line-through')} data-stage="removed">
+                    <Td>
+                      {f.label} <StageBadge stage="removed" className="ml-1 no-underline" />
+                    </Td>
+                    <Td colSpan={canEdit ? 5 : 4}>Deleted in the Draft; goes away when published.</Td>
                   </tr>
                 ))}
               </tbody>

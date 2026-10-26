@@ -2052,6 +2052,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/studio/stages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Studio Stages
+         * @description The stage (Draft, Test, Live or removed) of every table, field, screen, menu item, rule, measure and automation.
+         */
+        get: operations["studio_stages_v1_studio_stages_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/studio/status": {
         parameters: {
             query?: never;
@@ -7263,6 +7283,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    studio_stages_v1_studio_stages_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
