@@ -1,6 +1,6 @@
 """Drag to reorder: one shared hand-made order per table.
 
-Each record carries ``sort_order`` (a number; null sorts last). Moving a record puts it between
+Each record carries ``sort_order`` (a number; null (never placed) sorts first, newest first). Moving a record puts it between
 two neighbours, so only that record changes. The first move gives every record a number, in the order the
 list was showing; if two numbers ever get too close they are spread out again.
 """
@@ -25,7 +25,7 @@ async def _renumber(s: Any, table_key: str) -> None:
     await s.execute(
         text(
             f'UPDATE "{table_key}" t SET sort_order = n.r * :step FROM ('  # noqa: S608 - identifiers are validated metadata keys
-            f'SELECT id, row_number() OVER (ORDER BY COALESCE(sort_order, 1e18), id) AS r FROM "{table_key}") n '
+            f'SELECT id, row_number() OVER (ORDER BY COALESCE(sort_order, -1e12 - extract(epoch FROM updated_at)), id) AS r FROM "{table_key}") n '
             "WHERE t.id = n.id"
         ),
         {"step": STEP},
