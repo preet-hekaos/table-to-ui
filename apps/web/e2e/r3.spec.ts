@@ -6,18 +6,18 @@ test('Excel-style column filter: values with counts, search, select all, sort, C
   await page.setViewportSize({ width: 1440, height: 900 })
   await signUpWithPack(page, `Excel Co ${run}`, `excel-${run}@excel.test`)
   const rows = [
-    ['Asha Rao', 'Infosys', 'Active'],
-    ['Bimal Das', 'Infosys', 'Placed'],
-    ['Chitra Iyer', 'Wipro', 'Active'],
-    ['Dev Patel', 'TCS', 'Active'],
+    ['Asha Rao', 'Developer', 'Active'],
+    ['Bimal Das', 'Developer', 'Placed'],
+    ['Chitra Iyer', 'Designer', 'Active'],
+    ['Dev Patel', 'Tester', 'Active'],
   ]
   const made = await page.evaluate(async (data) => {
     const out: number[] = []
-    for (const [i, [full_name, current_employer, status]] of data.entries()) {
+    for (const [i, [full_name, current_title, status]] of data.entries()) {
       const res = await fetch('/v1/records/candidate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionStorage.getItem('tableui.token')}` },
-        body: JSON.stringify({ data: { full_name, current_employer, email: `x${i}@example.in`, phone: `+91 98450 2234${i}`, status } }),
+        body: JSON.stringify({ data: { full_name, current_title, email: `x${i}@example.in`, phone: `+91 98450 2234${i}`, status } }),
       })
       out.push(res.status)
     }
@@ -47,9 +47,9 @@ test('Excel-style column filter: values with counts, search, select all, sort, C
   })
 
   await test.step('Counts follow the other filters; this column keeps showing all its values', async () => {
-    await page.getByRole('button', { name: 'Filter Current employer' }).click()
-    await expect(panel.getByRole('checkbox', { name: /^Wipro\s*1$/ })).toBeVisible()
-    await expect(panel.getByRole('checkbox', { name: /^Infosys\s*1$/ })).toBeVisible() // Bimal is Placed, so only Asha counts
+    await page.getByRole('button', { name: 'Filter Current title' }).click()
+    await expect(panel.getByRole('checkbox', { name: /^Designer\s*1$/ })).toBeVisible()
+    await expect(panel.getByRole('checkbox', { name: /^Developer\s*1$/ })).toBeVisible() // Bimal is Placed, so only Asha counts
     await panel.getByRole('button', { name: 'Cancel' }).click()
     await page.getByRole('button', { name: 'Filter Status' }).click()
     await expect(panel.getByRole('checkbox', { name: /^Placed\s*1$/ })).not.toBeChecked() // still listed, not ticked
@@ -58,21 +58,22 @@ test('Excel-style column filter: values with counts, search, select all, sort, C
   })
 
   await test.step('Search the values; the typed result becomes the choice', async () => {
-    await page.getByRole('button', { name: 'Filter Current employer' }).click()
-    await panel.getByRole('searchbox', { name: /Search .* values/ }).fill('inf')
-    await expect(panel.getByRole('checkbox', { name: /^Wipro/ })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Filter Current title' }).click()
+    await panel.getByRole('searchbox', { name: /Search .* values/ }).fill('dev')
+    await expect(panel.getByRole('checkbox', { name: /^Designer/ })).toHaveCount(0)
     await expect(panel.getByRole('checkbox', { name: /Select all results/ })).toBeChecked()
     await panel.getByRole('button', { name: 'Apply' }).click()
     await expect(page.getByRole('row')).toHaveCount(3)
-    await expect(page.getByLabel('Active filters')).toContainText('Infosys')
+    await expect(page.getByLabel('Active filters')).toContainText('Developer')
   })
 
   await test.step('Select all then none: Apply waits for at least one value', async () => {
-    await page.getByRole('button', { name: 'Filter Current employer' }).click()
+    await page.getByRole('button', { name: 'Filter Current title' }).click()
+    await panel.getByRole('checkbox', { name: /Select all/ }).check() // partly ticked now: one click ticks all, the next clears
     await panel.getByRole('checkbox', { name: /Select all/ }).uncheck()
     await expect(panel.getByRole('button', { name: 'Apply' })).toBeDisabled()
     await expect(panel.getByRole('status')).toContainText('Tick at least one value')
-    await panel.getByRole('checkbox', { name: /^Wipro/ }).check()
+    await panel.getByRole('checkbox', { name: /^Designer/ }).check()
     await panel.getByRole('button', { name: 'Apply' }).click()
     await expect(page.getByRole('row')).toHaveCount(2)
   })
@@ -89,11 +90,11 @@ test('Excel-style column filter: values with counts, search, select all, sort, C
   })
 
   await test.step('Contains still works on text columns', async () => {
-    await page.getByRole('button', { name: 'Filter Current employer' }).click()
+    await page.getByRole('button', { name: 'Filter Current title' }).click()
     await panel.getByRole('tab', { name: 'Contains' }).click()
-    await panel.getByRole('textbox', { name: /contains/ }).fill('tcs')
+    await panel.getByRole('textbox', { name: /contains/ }).fill('test')
     await panel.getByRole('button', { name: 'Apply' }).click()
     await expect(page.getByRole('row')).toHaveCount(2)
-    await expect(page.getByLabel('Active filters')).toContainText('contains “tcs”')
+    await expect(page.getByLabel('Active filters')).toContainText('contains “test”')
   })
 })
