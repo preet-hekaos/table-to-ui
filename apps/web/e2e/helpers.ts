@@ -62,6 +62,8 @@ export async function openTables(page: Page) {
 /** Run one of the schema actions from the Studio "More" menu. */
 export async function schemaAction(page: Page, name: 'Import schema' | 'Export schema') {
   const more = page.getByRole('button', { name: 'More table actions' })
+  const direct = page.getByRole('button', { name, exact: true })
+  await more.or(direct).first().waitFor()
   if (await more.count()) {
     await more.click()
     await page.getByRole('menuitem', { name }).click()
