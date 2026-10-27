@@ -1,10 +1,11 @@
-import { FileUp, Plus } from 'lucide-react'
+import { FileDown, FileUp, Plus } from 'lucide-react'
 import { useState } from 'react'
 import type { ApiError } from '@/api/client'
 import type { FieldDef, StudioTable } from '@/api/types'
 import { Badge, Button, Card, ErrorState, LoadingState, StageBadge, StageDot, Table, Tabs, TabsContent, TabsList, TabsTrigger, Td, Th, cn, stageStripe } from '@/design-system'
 import { FieldDialog, NewTableDialog, TYPE_LABELS } from './FieldDialog'
 import { FeaturesPanel } from './FeaturesPanel'
+import { SchemaExportDialog } from './SchemaExportDialog'
 import { SchemaImportDialog } from './SchemaImportDialog'
 import { ScreensTab } from './ScreensTab'
 import { useDraftTables } from './useDraftTables'
@@ -35,6 +36,7 @@ export function DataTab({
   const [editing, setEditing] = useState<FieldDef | 'new' | null>(null)
   const [newTable, setNewTable] = useState(false)
   const [importing, setImporting] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const stages = useStages()
   if (tables.isLoading) return <LoadingState label="Loading tables" />
   if (tables.isError) return <ErrorState requestId={(tables.error as ApiError).requestId} onRetry={() => void tables.refetch()} />
@@ -53,6 +55,9 @@ export function DataTab({
             <FileUp className="size-4" aria-hidden /> Import schema
           </Button>
         )}
+        <Button variant="secondary" size="sm" className="mb-2 justify-start border-dashed" onClick={() => setExporting(true)}>
+          <FileDown className="size-4" aria-hidden /> Export schema
+        </Button>
         <ul className="flex max-h-[60vh] flex-col gap-0.5 overflow-y-auto">
           {all.map((t) => (
             <li key={t.key}>
@@ -162,6 +167,7 @@ export function DataTab({
       )}
       {newTable && <NewTableDialog open onOpenChange={setNewTable} onCreated={onSelect} />}
       {importing && <SchemaImportDialog open onOpenChange={setImporting} onCreated={onSelect} />}
+      {exporting && <SchemaExportDialog open onOpenChange={setExporting} tables={all.map((t) => ({ key: t.key, label: t.label }))} />}
     </div>
   )
 }

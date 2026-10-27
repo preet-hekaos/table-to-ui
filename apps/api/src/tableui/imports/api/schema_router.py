@@ -1,11 +1,12 @@
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, File, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Query, Request, Response, UploadFile
 from pydantic import BaseModel
 
 from tableui.identity.api.deps import PrincipalDep
-from tableui.imports.application import schema_import
+from tableui.imports.application import schema_export, schema_import
 from tableui.imports.domain.schema_read import MAX_BYTES
+from tableui.metadata.public import read_draft
 from tableui.platform.db import Database
 from tableui.platform.errors import ValidationFailed
 from tableui.platform.web import get_db, get_request_id
@@ -50,3 +51,30 @@ async def apply(body: ApplyIn, p: PrincipalDep, db: DbDep, request: Request) -> 
             tables=body.tables,
             request_id=get_request_id(request),
         )
+
+
+@router.get("/export")
+async def export(
+    p: PrincipalDep,
+    db: DbDep,
+    format: Annotated[str, Query()] = "json",
+    tables: Annotated[str | None, Query()] = None,
+) -> Response:
+    """The Draft's tables, fields and links as one file. Nothing is changed."""
+    p.require("metadata.read")
+    assert p.tenant_id
+    if format not in schema_export.FORMATS:
+        raise ValidationFailed(
+            errors=[{"field": "format", "code": "invalid", "message": "Choose JSON, SQL or CSV."}]
+        )
+    keys = [k for k in (tables or "").split(",") if k] or None
+    async with db.control() as s:
+        defs = await read_draft(s, p.tenant_id, "table")
+    body = schema_export.render(defs, format, keys)
+    return Response(
+        body,
+        media_type=schema_export.FORMATS[format],
+        headers={
+            "Content-Disposition": f'attachment; filename="schema.{schema_export.EXTENSIONS[format]}"'
+        },
+    )

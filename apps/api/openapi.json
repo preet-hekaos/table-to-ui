@@ -7997,6 +7997,64 @@
         ]
       }
     },
+    "/v1/studio/schema-import/export": {
+      "get": {
+        "description": "The Draft's tables, fields and links as one file. Nothing is changed.",
+        "operationId": "export_v1_studio_schema_import_export_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "default": "json",
+              "title": "Format",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tables",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tables"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
     "/v1/studio/schema-import/preview": {
       "post": {
         "description": "Read the files and say which tables they would make. Nothing is saved.",

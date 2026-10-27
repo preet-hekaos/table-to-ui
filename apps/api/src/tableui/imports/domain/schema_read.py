@@ -223,6 +223,19 @@ def read_xlsx(name: str, data: bytes) -> list[dict[str, Any]]:
 # ---- JSON ----------------------------------------------------------------------------------
 
 _JSON_TYPES = {"integer": "integer", "number": "decimal", "boolean": "boolean"}
+_EXPORTED_TYPES = {
+    "text",
+    "long_text",
+    "email",
+    "phone",
+    "integer",
+    "decimal",
+    "boolean",
+    "date",
+    "url",
+    "money",
+    "months",
+}
 _FORMATS = {"email": "email", "date": "date", "date-time": "date", "uri": "url", "url": "url"}
 
 
@@ -307,6 +320,11 @@ def _schema_fields(
             fields.append(_field(_title(k), "select", taken, required=k in required, options=opts))
             continue
         ftype = _FORMATS.get(str(spec.get("format"))) or _JSON_TYPES.get(str(t)) or "text"
+        hinted = spec.get(
+            "x-field-type"
+        )  # written by Export schema, so a round trip keeps the type
+        if hinted in _EXPORTED_TYPES:
+            ftype = str(hinted)
         if ftype == "text" and (spec.get("maxLength") or 0) > 255:
             ftype = "long_text"
         fields.append(_field(_title(k), ftype, taken, required=k in required))
@@ -326,13 +344,15 @@ def read_json(name: str, data: bytes) -> list[dict[str, Any]]:
         return [_from_objects(label, items, name)]
     if not isinstance(doc, dict):
         raise SchemaError("The JSON file must be a list of objects or a JSON Schema.")
-    if isinstance(doc.get("properties"), dict):
+    if isinstance(doc.get("properties"), dict) or isinstance(doc.get("$defs"), dict):
         defs = {**doc.get("$defs", {}), **doc.get("definitions", {})}
         defs = {k: v for k, v in defs.items() if isinstance(v, dict) and "properties" in v}
         out = []
         root_label = _title(str(doc.get("title") or name))
         warnings: list[str] = []
-        fields = _schema_fields(doc["properties"], set(doc.get("required", [])), defs, warnings)
+        fields = _schema_fields(
+            doc.get("properties") or {}, set(doc.get("required", [])), defs, warnings
+        )
         if fields:
             out.append(_table(root_label, name, fields, 0, warnings))
         for dk, dv in list(defs.items())[:MAX_TABLES]:
