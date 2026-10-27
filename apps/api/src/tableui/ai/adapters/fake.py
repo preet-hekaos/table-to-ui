@@ -1,5 +1,6 @@
 import json
 from collections.abc import Callable
+from typing import Any
 
 from tableui.ai.domain.provider import Completion, ProviderUnavailable
 
@@ -40,6 +41,8 @@ def demo_answer(system: str, user: str) -> object:
             if len(chunk) == 3:
                 out[f["key"]] = {"value": " ".join(chunk), "quote": " ".join(chunk)}
         return {"fields": out}
+    if "Describe the data tables" in system:
+        return _demo_schema(data)
     if "You plan changes to the setup" in system:
         return _demo_plan(data)
     if "search filters" in system:
@@ -95,3 +98,50 @@ def _demo_plan(words: str) -> object:
             *more,
         ],
     }
+
+
+def _demo_schema(words: str) -> object:
+    """Reads lines like 'Clients: Name, City, Email' as tables, so the document import can be tried offline."""
+    import re
+
+    tables: list[dict[str, Any]] = []
+    for line in words.splitlines():
+        m = re.match(r"^\s*([A-Z][A-Za-z ]{1,30}):\s*(.+)$", line)
+        if not m:
+            continue
+        fields: list[dict[str, Any]] = []
+        for raw in m.group(2).split(","):
+            f = raw.strip()
+            if not f:
+                continue
+            low = f.lower()
+            ftype = (
+                "email"
+                if "email" in low
+                else "phone"
+                if "phone" in low
+                else "date"
+                if "date" in low
+                else "text"
+            )
+            fields.append(
+                {
+                    "label": f,
+                    "type": ftype,
+                    "required": False,
+                    "choices": [],
+                    "links_to": None,
+                    "quote": f,
+                }
+            )
+        tables.append({"label": m.group(1).strip(), "quote": m.group(1).strip(), "fields": fields})
+    labels = {str(t["label"]).lower(): str(t["label"]) for t in tables}
+    for t in tables:
+        for f in t["fields"]:
+            one = str(f["label"]).lower()
+            for lab in labels:
+                if lab != str(t["label"]).lower() and (
+                    one == lab or one + "s" == lab or one == lab.rstrip("s")
+                ):
+                    f["links_to"] = labels[lab]
+    return {"tables": tables}

@@ -6,7 +6,9 @@ import { studio, type SchemaField, type SchemaPreview, type SchemaTable } from '
 import { Badge, Button, Dialog, DialogContent, Input, Select, cn, useToast } from '@/design-system'
 import { TYPE_LABELS } from './FieldDialog'
 
-const ACCEPT = '.csv,.tsv,.xlsx,.json,.sql'
+const ACCEPT = '.csv,.tsv,.xlsx,.json,.sql,.pdf,.docx,.txt,.md'
+/** Documents that describe data in words: AI reads them and proposes tables, which are then checked like any other file. */
+const isDocument = (f: File) => /\.(pdf|docx|txt|md)$/i.test(f.name)
 
 /** What each part of a file becomes, and the one thing a person must do next. */
 const rowsNote = (t: SchemaTable) => (t.rows > 0 ? `Schema + ${t.rows.toLocaleString('en-IN')} rows` : 'Schema only')
@@ -35,15 +37,34 @@ export function SchemaImportDialog({ open, onOpenChange, onCreated }: { open: bo
   const [rows, setRows] = useState<Row[] | null>(null)
   const [problems, setProblems] = useState<SchemaPreview['problems']>([])
   const [error, setError] = useState('')
+  const [fromAi, setFromAi] = useState<{ name: string; tables: number; fields: number; dropped: number }[]>([])
 
   const read = useMutation({
-    mutationFn: (files: File[]) => studio.schemaPreview(files),
+    onMutate: () => {
+      setProblems([])
+      setError('')
+    },
+    mutationFn: async (files: File[]) => {
+      const ready: File[] = []
+      const proposals: typeof fromAi = []
+      for (const f of files) {
+        if (!isDocument(f)) {
+          ready.push(f)
+          continue
+        }
+        const r = await studio.schemaFromDocument(f)
+        proposals.push({ name: f.name, tables: r.tables, fields: r.fields, dropped: r.dropped })
+        ready.push(new File([JSON.stringify(r.schema)], `${f.name.replace(/\.[^.]+$/, '')} (read by AI).json`, { type: 'application/json' }))
+      }
+      setFromAi(proposals)
+      return studio.schemaPreview(ready)
+    },
     onSuccess: (p) => {
       setProblems(p.problems)
       setRows(p.tables.length ? toRows(p) : null)
       setError('')
     },
-    onError: (e) => setError(e instanceof ApiError ? e.message : 'The files could not be read.'),
+    onError: (e) => setError(e instanceof ApiError ? (e.errors[0]?.message ?? e.message) : 'The files could not be read.'),
   })
 
   const chosen = (rows ?? []).filter((r) => r.include)
@@ -96,6 +117,7 @@ export function SchemaImportDialog({ open, onOpenChange, onCreated }: { open: bo
         if (!o) {
           setRows(null)
           setProblems([])
+          setFromAi([])
           setError('')
         }
         onOpenChange(o)
@@ -104,7 +126,7 @@ export function SchemaImportDialog({ open, onOpenChange, onCreated }: { open: bo
       <DialogContent
         wide
         title="Import schema"
-        description="Drop CSV, Excel, JSON or SQL files. You see the tables they would make before anything is created."
+        description="Drop CSV, Excel, JSON or SQL files, or a PDF, Word or text document that describes your data (AI reads it). You see the tables before anything is created."
       >
         {!rows ? (
           <div className="flex flex-col gap-3">
@@ -123,7 +145,7 @@ export function SchemaImportDialog({ open, onOpenChange, onCreated }: { open: bo
                 <FileUp className="size-4" aria-hidden /> Choose files
               </Button>
               <input ref={input} type="file" multiple accept={ACCEPT} className="sr-only" aria-label="Schema files" onChange={(e) => take(e.target.files)} />
-              <p className="text-xs text-muted">CSV (one table), Excel (one table per sheet), JSON (a list of objects or a JSON Schema) and SQL (CREATE TABLE). Up to 5 MB each.</p>
+              <p className="text-xs text-muted">CSV (one table), Excel (one table per sheet), JSON (a list of objects or a JSON Schema) and SQL (CREATE TABLE). PDF, Word and text files are read by AI when it is on. Up to 5 MB each.</p>
             </div>
             {error && <p role="alert" className="text-sm text-bad">{error}</p>}
             {problems.map((p) => (
@@ -140,6 +162,12 @@ export function SchemaImportDialog({ open, onOpenChange, onCreated }: { open: bo
             }}
           >
             <p className="text-sm text-muted">Nothing is created until you confirm. Names and types can be changed here. New tables start in Draft.</p>
+            {fromAi.map((a) => (
+              <p key={a.name} role="status" className="rounded-lg border border-line bg-canvas p-3 text-sm text-body">
+                <strong className="text-ink">Read by AI from {a.name}:</strong> {a.tables} {a.tables === 1 ? 'table' : 'tables'}, {a.fields} fields. AI can be wrong, so check every table, field and link below.
+                {a.dropped > 0 && ` ${a.dropped} ${a.dropped === 1 ? 'item' : 'items'} the document did not clearly say ${a.dropped === 1 ? 'was' : 'were'} left out.`}
+              </p>
+            ))}
             {problems.map((p) => (
               <p key={p.file + p.message} role="alert" className="text-sm text-bad">{p.file ? `${p.file}: ` : ''}{p.message}</p>
             ))}

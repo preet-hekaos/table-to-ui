@@ -11,7 +11,7 @@ A client who already has a schema (a spreadsheet header, a SQL file, a JSON Sche
 - Limits: 5 MB per file, 10 files, 50 tables, 200 fields per table, type detection on the first 1,000 rows, zip-bomb guard on Excel, SQL statement cap. Names are cleaned into safe keys and a name already in use is renamed in the preview.
 - Links come from `*_id` column names, SQL foreign keys and JSON Schema `$ref`; the person ticks them in the preview. Links from matching values are suggested too (see [ADR-36](0036-links-from-matching-values.md)).
 - Rows are not loaded by the schema import. Records can only be written to a table that is Live, so a table that came with data says "Schema + N rows" and, once published, its empty list offers **Import data**, which opens the existing import wizard with its row checks, bad-row report and duplicate handling.
-- PDF and free-text schema documents are a later step (read by AI, shown as a proposal, never applied without review).
+- PDF and free-text schema documents are read by AI and shown as a proposal, never applied without review (see [ADR-37](0037-schema-from-documents.md)).
 
 ## Consequences
 - One new dependency, sqlglot (MIT).

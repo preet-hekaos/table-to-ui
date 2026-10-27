@@ -191,6 +191,11 @@ export const studio = {
     files.forEach((f) => body.append('files', f))
     return cast<SchemaPreview>(api.POST('/v1/studio/schema-import/preview' as never, { body, bodySerializer: (b: FormData) => b } as never))
   },
+  schemaFromDocument: (file: File) => {
+    const body = new FormData()
+    body.append('file', file)
+    return cast<{ schema: unknown; tables: number; fields: number; dropped: number }>(api.POST('/v1/ai/schema-from-document' as never, { body, bodySerializer: (b: FormData) => b } as never))
+  },
   schemaExport: (format: 'json' | 'sql' | 'csv', tables: string[] | null) =>
     unwrap<Blob>(api.GET('/v1/studio/schema-import/export' as never, { params: { query: { format, ...(tables ? { tables: tables.join(',') } : {}) } }, parseAs: 'blob' } as never) as never),
   schemaApply: (tables: SchemaTable[]) => send<{ tables: string[]; fields: number }>('POST', '/v1/studio/schema-import/apply', { tables }),
