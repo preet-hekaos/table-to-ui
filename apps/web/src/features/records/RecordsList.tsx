@@ -193,7 +193,11 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
   // The screen can start the list grouped; the person can change or clear it while it is open.
   const groupBy = feat.grouping && !(custom && feat.row_order) ? (groupChoice ?? config.group_by) || undefined : undefined
   const sortState: SortState = sortChoice ?? (feat.sort_filter && feat.default_sort ? { key: feat.default_sort.field, direction: feat.default_sort.direction } : { key: 'updated_at', direction: 'desc' })
-  const manual = custom && feat.row_order && !preview
+  // The shared (dragged) order is the list's own order unless the person sorts by a column or the owner set a default sort,
+  // so the list reads the same with Custom order on or off. The switch only adds the drag handles.
+  const ownDefault = feat.sort_filter && !!feat.default_sort
+  const dragging = custom && feat.row_order && !preview
+  const manual = dragging || (feat.row_order && !preview && !sortChoice && !ownDefault && !groupBy)
   const sort: SortState = manual ? { key: 'manual', direction: 'asc' } : groupBy ? { key: groupBy, direction: sortState.key === groupBy ? sortState.direction : 'asc' } : sortState
   const list = useInfiniteQuery({
     queryKey: ['records', tableKey, sort, debouncedQ, filters, ranges, contains, anyof],
@@ -233,9 +237,12 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
   const add = () => !preview && void navigate({ to: '/records/$table/new', params: { table: tableKey } })
   const keepSet = (o: Record<string, string>) => Object.fromEntries(Object.entries(o).filter(([, v]) => v))
   const selectable = feat.select_bulk && !preview && feat.bulk_actions.length > 0
-  const onSort = (key: string) => setSort({ key, direction: sortState.key === key && sortState.direction === 'asc' ? 'desc' : 'asc' })
+  const onSort = (key: string) => {
+    setCustom(false)
+    setSort({ key, direction: sortState.key === key && sortState.direction === 'asc' ? 'desc' : 'asc' })
+  }
   const sortable = new Set(
-    feat.sort_filter && !manual
+    feat.sort_filter && !dragging
       ? [...table.fields.filter((f) => f.type !== 'long_text' && !feat.unsortable.includes(f.key)).map((f) => f.key), ...(feat.unsortable.includes('updated_at') ? [] : ['updated_at'])]
       : [],
   )
@@ -276,11 +283,11 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
       <TableToolbar summary={`${rows.length.toLocaleString('en-IN')}${list.hasNextPage ? '+' : ''} ${(rows.length === 1 && !list.hasNextPage ? table.label : table.plural_label).toLowerCase()} shown`} >
         {feat.row_order && !preview && canUpdate && (
           <label className="flex items-center gap-2 text-xs text-body">
-            <input type="checkbox" role="switch" className="size-4" checked={custom} onChange={(e) => setCustom(e.target.checked)} />
+            <input type="checkbox" role="switch" className="size-4" checked={custom} onChange={(e) => { setCustom(e.target.checked); if (e.target.checked) setSort(null) }} />
             Custom order
           </label>
         )}
-        {feat.grouping && !preview && !manual && groupable.length > 0 && (
+        {feat.grouping && !preview && !dragging && groupable.length > 0 && (
           <label className="flex items-center gap-2 text-xs text-body">
             Group by
             <Select aria-label="Group by" className="h-8 w-44" value={groupBy ?? ''} onChange={(e) => setGroupChoice(e.target.value)}>
@@ -341,7 +348,7 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
             : undefined
         }
         reorder={
-          manual && canUpdate
+          dragging && canUpdate
             ? { rowId: (r) => r.id, rowLabel: (r) => String(r.data[table.title_field] ?? 'row'), onMove: (id, before) => move.mutate({ id, before }), hasMore: !!list.hasNextPage }
             : undefined
         }
@@ -352,7 +359,7 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
         hasMore={!!list.hasNextPage}
         onLoadMore={() => void list.fetchNextPage()}
         loadingMore={list.isFetchingNextPage}
-        groupOf={groupField ? (r) => (groupField.type === 'reference' ? (r.refs?.[groupField.key]?.label ?? '') : String(r.data[groupField.key] ?? '')) || `No ${groupField.label.toLowerCase()}` : undefined}
+        groupOf={groupField && !list.isPlaceholderData ? (r) => (groupField.type === 'reference' ? (r.refs?.[groupField.key]?.label ?? '') : String(r.data[groupField.key] ?? '')) || `No ${groupField.label.toLowerCase()}` : undefined}
       />
       </>
     )

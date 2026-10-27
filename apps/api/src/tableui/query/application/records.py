@@ -23,8 +23,10 @@ def _sort_spec(table: TableDef, key: str, hidden: set[str] | None = None) -> tup
     A field the person may not see cannot be sorted on: the order would reveal its values."""
     if key in ("updated_at", "created_at"):
         return f'"{key}"', "timestamptz"
-    if key == "manual":  # the order people made by dragging; records never moved come last
-        return 'COALESCE("sort_order", 1e18)', "numeric"
+    if (
+        key == "manual"
+    ):  # the shared order: dragged records by position; newer, never-placed ones on top
+        return 'COALESCE("sort_order", -1e12 - extract(epoch FROM "updated_at"))', "numeric"
     f = table.field(key)
     if f is None or key in (hidden or set()):
         raise ValidationFailed(

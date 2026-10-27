@@ -49,6 +49,15 @@ test('Drag to reorder: custom order, drag, keyboard, switch off', async ({ page 
     await expect(page.getByRole('status').filter({ hasText: 'Moved' })).toContainText(`Moved ${start[2]}`)
   })
 
+  await test.step('The list shows the same order with Custom order off, and after a reload', async () => {
+    const order = [start[0], start[2], start[1]]
+    await page.getByRole('switch', { name: 'Custom order' }).uncheck()
+    await expect(page.getByRole('button', { name: /^Move / })).toHaveCount(0)
+    await expect.poll(names).toEqual(order)
+    await page.reload()
+    await expect.poll(names).toEqual(order)
+  })
+
   await test.step('Switching it off removes the toggle', async () => {
     await page.goto('/studio?tab=data&table=candidate&part=features')
     const panel = page.getByTestId('features-panel')

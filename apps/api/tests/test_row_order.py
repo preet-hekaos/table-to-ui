@@ -53,7 +53,11 @@ async def test_a_record_moves_before_another_or_to_the_end_and_data_is_untouched
     after = (await client.get(f"/v1/records/candidate/{ids[0]}", headers=agency.h())).json()
     assert after["version"] == before["version"]  # the order is not a change to the record
     new = await agency.create_candidate(candidate(full_name="Newest", phone="+91 98450 59999"))
-    assert (await _order(client, agency))[-1] == "Newest"  # never moved: last
+    shown = await _order(client, agency)
+    assert shown[0] == "Newest"  # never placed: on top, like any new record
+    r = await _move(client, agency, by_name[start[0]], None)  # a move keeps what the list showed
+    assert r.status_code == 200
+    assert await _order(client, agency) == [n for n in shown if n != start[0]] + [start[0]]
     bad = await _move(client, agency, ids[0], ids[0])
     assert bad.status_code == 422
     gone = await _move(client, agency, str(uuid.uuid4()), None)
