@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { studio } from '@/api/endpoints'
 import type { StudioTable } from '@/api/types'
 import { Badge, Button, Input, Select, useToast } from '@/design-system'
+import { FieldGrid } from './FieldGrid'
 import { ACTIVE_FEATURES, DEFAULT_FEATURES, featuresOf, type StatCard, type TableFeatures } from './features'
 
 type Group<K extends keyof TableFeatures> = { value: TableFeatures[K] extends (infer U)[] ? U : never; label: string }
@@ -132,22 +133,6 @@ export function FeaturesPanel({ table, canEdit }: { table: StudioTable; canEdit:
                     ])}
                   </Select>
                 </label>
-                <table className="text-xs text-body" aria-label="Fields that can be sorted or filtered">
-                  <thead><tr><th className="pr-4 text-left font-semibold">Field</th><th className="pr-4 text-left font-semibold">Sort</th><th className="text-left font-semibold">Filter</th></tr></thead>
-                  <tbody>
-                    {table.fields.map((x) => (
-                      <tr key={x.key}>
-                        <td className="pr-4">{x.label}</td>
-                        <td className="pr-4">
-                          <input type="checkbox" className="size-6" aria-label={`Sort by ${x.label}`} disabled={!canEdit || x.type === 'long_text'} checked={x.type !== 'long_text' && !f.unsortable.includes(x.key)} onChange={(e) => set('unsortable', toggle(f.unsortable, x.key, !e.target.checked))} />
-                        </td>
-                        <td>
-                          <input type="checkbox" className="size-6" aria-label={`Filter by ${x.label}`} disabled={!canEdit} checked={!f.unfilterable.includes(x.key)} onChange={(e) => set('unfilterable', toggle(f.unfilterable, x.key, !e.target.checked))} />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
               </div>
             )}
             {it.key === 'select_bulk' && f.select_bulk && (
@@ -187,6 +172,7 @@ export function FeaturesPanel({ table, canEdit }: { table: StudioTable; canEdit:
           </li>
         ))}
       </ul>
+      <FieldGrid table={table} f={f} set={set} canEdit={canEdit} />
       {canEdit && (
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="primary" disabled={!dirty} loading={save.isPending} onClick={() => save.mutate()}>

@@ -89,7 +89,10 @@ async def export_records(
     table = app.table(table_key)
     _allowed(table, principal, fmt)
     denied = {f for (t, f) in principal.field_denies if t == table.key}
-    visible = [f for f in table.fields if not f.hidden and f.key not in denied]
+    left_out = set(features_of(table).unexported)  # the owner keeps these out of every export
+    visible = [
+        f for f in table.fields if not f.hidden and f.key not in denied and f.key not in left_out
+    ]
     if fields:
         by_key = {f.key: f for f in visible}
         unknown = [k for k in fields if k not in by_key]

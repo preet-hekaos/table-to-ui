@@ -43,3 +43,4 @@
 | [39](0039-table-card-and-numbered-pages.md) | Table card: numbered pages, columns menu, density, sticky columns |
 | [40](0040-excel-style-column-filter.md) | Excel-style column filter: values with counts, search, select all, sort |
 | [41](0041-summary-strip-cards.md) | Summary strip cards chosen in Studio; whole-table numbers |
+| [42](0042-field-grid.md) | Field grid in Studio: per-field limits, default columns and density |

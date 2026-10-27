@@ -2,13 +2,16 @@ import { useCallback, useState } from 'react'
 
 export type Density = 'compact' | 'comfortable'
 export interface TablePrefs {
-  density: Density
+  /** null: this person has not chosen, so the table's own default applies. */
+  density: Density | null
   /** Field keys this person has hidden from the table. */
   hidden: string[]
+  /** Field keys this person has added on top of the table's default columns. */
+  added: string[]
   pageSize: number
 }
 
-const DEFAULTS: TablePrefs = { density: 'compact', hidden: [], pageSize: 25 }
+const DEFAULTS: TablePrefs = { density: null, hidden: [], added: [], pageSize: 25 }
 const key = (table: string) => `tableui.table.${table}`
 
 /** What this person chose for one table, or the defaults when nothing is saved or storage is blocked. */
@@ -16,8 +19,9 @@ export function readPrefs(table: string): TablePrefs {
   try {
     const v = JSON.parse(localStorage.getItem(key(table)) ?? '{}') as Partial<TablePrefs>
     return {
-      density: v.density === 'comfortable' ? 'comfortable' : 'compact',
+      density: v.density === 'comfortable' || v.density === 'compact' ? v.density : null,
       hidden: Array.isArray(v.hidden) ? v.hidden.filter((x) => typeof x === 'string') : [],
+      added: Array.isArray(v.added) ? v.added.filter((x) => typeof x === 'string') : [],
       pageSize: [15, 25, 50, 100].includes(v.pageSize as number) ? (v.pageSize as number) : DEFAULTS.pageSize,
     }
   } catch {

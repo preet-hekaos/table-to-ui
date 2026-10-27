@@ -11,7 +11,8 @@ export const MAX_BULK = 10_000
 const TYPES_NOT_EDITED_IN_BULK = new Set(['long_text', 'reference'])
 
 /** Fields a person may change on many rows: shown, not unique, and a kind with a single plain input. */
-export const bulkFields = (table: TableDef): FieldDef[] => table.fields.filter((f) => !f.hidden && !f.unique && !TYPES_NOT_EDITED_IN_BULK.has(f.type))
+export const bulkFields = (table: TableDef): FieldDef[] =>
+  table.fields.filter((f) => !f.hidden && !f.unique && !TYPES_NOT_EDITED_IN_BULK.has(f.type) && !(table.features?.nobulk ?? []).includes(f.key))
 
 function valueFor(f: FieldDef, raw: string): unknown {
   if (raw === '') return null

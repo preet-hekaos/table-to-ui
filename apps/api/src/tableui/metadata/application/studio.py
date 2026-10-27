@@ -686,7 +686,16 @@ def _fit_features(f: TableFeatures, table: TableDef, *, strict: bool) -> TableFe
     """Field names in the settings must be fields of this table. For one table an unknown name is
     refused; when the same settings go to every table, names a table lacks are left out."""
     have = {x.key for x in table.fields}
-    bad = [k for k in [*f.unsortable, *f.unfilterable] if k not in have]
+    per_field = [
+        *f.unsortable,
+        *f.unfilterable,
+        *f.uneditable,
+        *f.ungroupable,
+        *f.unexported,
+        *f.nobulk,
+        *(f.default_columns or []),
+    ]
+    bad = [k for k in per_field if k not in have]
     numeric = {x.key for x in table.fields if x.type in ("integer", "decimal", "money", "months")}
     bad += [k for k in (f.stat_fields or []) if k not in numeric]
     by_type = {x.key: x.type for x in table.fields}
@@ -718,6 +727,13 @@ def _fit_features(f: TableFeatures, table: TableDef, *, strict: bool) -> TableFe
         update={
             "unsortable": [k for k in f.unsortable if k in have],
             "unfilterable": [k for k in f.unfilterable if k in have],
+            "uneditable": [k for k in f.uneditable if k in have],
+            "ungroupable": [k for k in f.ungroupable if k in have],
+            "unexported": [k for k in f.unexported if k in have],
+            "nobulk": [k for k in f.nobulk if k in have],
+            "default_columns": [k for k in f.default_columns if k in have]
+            if f.default_columns is not None
+            else None,
             "stat_fields": [k for k in f.stat_fields if k not in bad]
             if f.stat_fields is not None
             else None,

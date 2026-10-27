@@ -58,6 +58,8 @@ async def bulk_change(
     if action == "update":
         if not field or field not in {f.key for f in table.fields}:
             raise _bad("field", "choose a field of this table")
+        if field in feat.nobulk:
+            raise _bad("field", "this field cannot be changed for many rows at once")
         payload: dict[str, Any] = {field: value}
         ops = [BatchOp("update", dict(payload), record_id=i) for i in ids]
     else:
