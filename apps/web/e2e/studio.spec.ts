@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { run, signUpWithPack } from './helpers'
+import { run, signUpWithPack, openSection, expectSection } from './helpers'
 
 const tags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 
@@ -50,12 +50,12 @@ test('Studio: fields, tables, map, screens, menu, preview and versions', async (
   })
 
   await test.step('S13. The canvas draws every table; opening one goes to Data', async () => {
-    await page.getByRole('tab', { name: 'Canvas' }).click()
+    await openSection(page, 'Canvas')
     const canvas = page.getByTestId('canvas')
     await expect(canvas.locator('.react-flow__node')).toHaveCount(14) // 13 pack tables + the new one
     await canvas.getByTestId('box-client').getByRole('button').click()
     await canvas.getByRole('button', { name: 'Open Client fields' }).click()
-    await expect(page.getByRole('tab', { name: 'Tables' })).toHaveAttribute('aria-selected', 'true')
+    await expectSection(page, 'Tables')
     await expect(page.getByRole('heading', { name: 'Client', exact: true })).toBeVisible()
   })
 
@@ -77,7 +77,7 @@ test('Studio: fields, tables, map, screens, menu, preview and versions', async (
   })
 
   await test.step('S14. Rename a menu entry; Live keeps the old one until publish', async () => {
-    await page.getByRole('tab', { name: 'Menu' }).click()
+    await openSection(page, 'Menu')
     await page.getByLabel('Label for Candidates').fill('Talent')
     await page.getByRole('button', { name: 'Save menu' }).click()
     await expect(page.getByText('Menu saved in Draft').first()).toBeVisible()
@@ -85,7 +85,7 @@ test('Studio: fields, tables, map, screens, menu, preview and versions', async (
   })
 
   await test.step('S17. Compare the Draft with Live, then publish and make it Live', async () => {
-    await page.getByRole('tab', { name: 'Versions' }).click()
+    await openSection(page, 'Versions')
     const diff = page.getByTestId('diff')
     await expect(diff).toContainText('candidate')
     await expect(diff).toContainText('Preferred shift: added')

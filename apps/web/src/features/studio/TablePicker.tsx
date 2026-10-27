@@ -31,7 +31,7 @@ export function TablePicker({ items, current, onSelect }: { items: Item[]; curre
         </Button>
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Content align="start" sideOffset={6} className={cn(panel, 'w-72')}>
+        <Popover.Content align="start" sideOffset={6} aria-label="Choose a table" className={cn(panel, 'w-72')}>
           <div className="relative p-1">
             <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted" aria-hidden />
             <input
@@ -101,7 +101,7 @@ export function TableActions({ canEdit, onNew, onImport, onExport }: { canEdit: 
           </Button>
         </Popover.Trigger>
         <Popover.Portal>
-          <Popover.Content align="end" sideOffset={6} className={cn(panel, 'w-48')}>
+          <Popover.Content align="end" sideOffset={6} aria-label="Table actions" className={cn(panel, 'w-48')}>
             <div role="menu" aria-label="More table actions">
               {canEdit && item('Import schema', <FileUp className="size-4" aria-hidden />, onImport)}
               {item('Export schema', <FileDown className="size-4" aria-hidden />, onExport)}

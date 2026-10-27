@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { run, signUpWithPack } from './helpers'
+import { run, signUpWithPack, openSection } from './helpers'
 
 const shot = async (page: Page, name: string) => {
   if (process.env.SCREENSHOTS) await page.screenshot({ path: `../../docs/screens/m55/${name}.png`, fullPage: true })
@@ -19,7 +19,7 @@ test('M5.5 demo: set up a new workspace by chat, apply to Draft, undo', async ({
 
   await test.step('2. Describe what to track', async () => {
     await page.goto('/studio?tab=chat')
-    await expect(page.getByRole('tab', { name: 'Set up by chat' })).toHaveAttribute('aria-selected', 'true')
+    await expect(page.getByRole('button', { name: 'Set up by chat', exact: true })).toHaveAttribute('aria-pressed', 'true')
     await shot(page, 'empty')
     await page.getByLabel('What should change?').fill('Track our projects with a status')
     await page.getByRole('button', { name: 'Make a plan' }).click()
@@ -36,12 +36,12 @@ test('M5.5 demo: set up a new workspace by chat, apply to Draft, undo', async ({
     await expect(page.getByTestId('setup-applied')).toBeVisible()
     await expect(page.getByTestId('draft-banner')).toBeVisible()
     await shot(page, 'applied')
-    await page.getByRole('tab', { name: 'Tables' }).click()
+    await openSection(page, 'Tables')
     await expect(page.getByText('Project', { exact: true }).first()).toBeVisible()
   })
 
   await test.step('4. Undo puts the Draft back', async () => {
-    await page.getByRole('tab', { name: 'Set up by chat' }).click()
+    await page.getByRole('button', { name: 'Set up by chat', exact: true }).click()
     await page.getByRole('button', { name: 'Undo this plan' }).click()
     await expect(page.getByTestId('setup-applied')).toHaveCount(0)
     await expect(page.getByTestId('draft-banner')).toHaveCount(0)

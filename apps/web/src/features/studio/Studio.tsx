@@ -15,15 +15,12 @@ import {
   Select,
   StageBadge,
   STAGES,
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
   useToast,
 } from '@/design-system'
 import { can, useMe } from '@/features/auth/useMe'
 import { DataTab, type TablePart } from './DataTab'
 import { useStages } from './useStages'
+import { HeaderActions, SectionSwitcher, sectionLabel } from './StudioToolbar'
 import { FlowTab } from './FlowTab'
 import { AutomationsTab } from './AutomationsTab'
 import { InsightsTab } from './InsightsTab'
@@ -48,19 +45,23 @@ function EnvironmentSwitch({ releases }: { releases: ReleaseRow[] }) {
   ]
   return (
     <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Environments">
-      {steps.map((s, i) => {
-        const def = STAGES[s.stage]
-        return (
-          <span key={s.stage} className="flex items-center gap-2">
-            {i > 0 && <span className="text-muted" aria-hidden>→</span>}
-            <span className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm ${def.badge}`} data-stage={s.stage} data-testid={`env-${s.stage}`}>
+      <div className="flex max-w-full overflow-x-auto rounded-lg border border-line">
+        {steps.map((s, i) => {
+          const def = STAGES[s.stage]
+          return (
+            <span
+              key={s.stage}
+              className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap px-3 py-1.5 text-sm ${def.badge} ${i > 0 ? 'border-l border-line' : ''}`}
+              data-stage={s.stage}
+              data-testid={`env-${s.stage}`}
+            >
               <def.Icon className="size-4" aria-hidden />
               <b>{def.label}</b> {s.value}
               {s.note && <span className="text-xs">· {s.note}</span>}
             </span>
-          </span>
-        )
-      })}
+          )
+        })}
+      </div>
       <details className="relative">
         <summary className="cursor-pointer rounded-md px-2 py-1.5 text-xs font-semibold text-accent-ink hover:bg-soft">Colour key</summary>
         <ul className="absolute z-10 mt-1 flex w-72 flex-col gap-2 rounded-lg border border-line bg-surface p-3 text-xs shadow-md" aria-label="What the colours mean">
@@ -351,52 +352,40 @@ export function Studio({ tab = 'data', table, part }: { tab?: StudioTab; table?:
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-xl font-bold text-ink">Studio</h1>
         <EnvironmentSwitch releases={releases.data ?? []} />
-        <a href="/patterns" className="ml-auto text-sm font-semibold text-accent-ink hover:underline">Pattern library</a>
+        <div className="ml-auto">
+          <HeaderActions chat={can(perms, 'ai.setup')} chatActive={tab === 'chat'} onChat={() => go({ tab: 'chat' })} />
+        </div>
       </div>
       <DraftBanner canPublish={canPublish} onReview={() => go({ tab: 'versions' })} />
       {!can(perms, 'ai.setup') && (
         <p className="text-xs text-muted" data-testid="chat-setup-hint">Ask an owner for setup access to build with chat.</p>
       )}
-      <Tabs value={tab} onValueChange={(v) => go({ tab: v as StudioTab })}>
-        <TabsList aria-label="Studio sections" className="overflow-x-auto">
-          {can(perms, 'ai.setup') && <TabsTrigger value="chat">Set up by chat</TabsTrigger>}
-          <TabsTrigger value="data">Tables</TabsTrigger>
-          <TabsTrigger value="map">Canvas</TabsTrigger>
-          <TabsTrigger value="flow">Stages &amp; rules</TabsTrigger>
-          <TabsTrigger value="insights">Insights</TabsTrigger>
-          <TabsTrigger value="automations">Automations</TabsTrigger>
-          <TabsTrigger value="menu">Menu</TabsTrigger>
-          <TabsTrigger value="preview">Preview</TabsTrigger>
-          <TabsTrigger value="versions">Versions</TabsTrigger>
-        </TabsList>
-        <TabsContent value="chat" className="pt-4">
-          <SetupChat />
-        </TabsContent>
-        <TabsContent value="data" className="pt-4">
-          <DataTab selected={table} defaultTable={defaultTable} onSelect={(k) => go({ table: k })} canEdit={canEdit} part={part} onPart={(p) => go({ part: p })} />
-        </TabsContent>
-        <TabsContent value="map" className="pt-4">
-          <MapTab canEdit={canEdit} onOpen={(k, p) => go({ tab: 'data', table: k, part: p ?? 'fields' })} />
-        </TabsContent>
-        <TabsContent value="flow" className="pt-4">
-          <FlowTab canEdit={canEdit} />
-        </TabsContent>
-        <TabsContent value="insights" className="pt-4">
-          <InsightsTab canEdit={canEdit} />
-        </TabsContent>
-        <TabsContent value="automations" className="pt-4">
-          <AutomationsTab canEdit={canEdit} />
-        </TabsContent>
-        <TabsContent value="menu" className="pt-4">
-          <NavTab canEdit={canEdit} />
-        </TabsContent>
-        <TabsContent value="preview" className="pt-4">
-          <PreviewTab />
-        </TabsContent>
-        <TabsContent value="versions" className="pt-4">
-          <VersionsTab releases={releases.data ?? []} canPublish={canPublish} isOwner={isOwner} />
-        </TabsContent>
-      </Tabs>
+      {tab !== 'data' && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-line bg-surface p-3">
+          <SectionSwitcher current={tab} onSelect={(k) => go({ tab: k })} />
+        </div>
+      )}
+      <section aria-label={sectionLabel(tab)} className="flex flex-col gap-4">
+        {tab === 'chat' && <SetupChat />}
+        {tab === 'data' && (
+          <DataTab
+            selected={table}
+            defaultTable={defaultTable}
+            onSelect={(k) => go({ table: k })}
+            canEdit={canEdit}
+            part={part}
+            onPart={(p) => go({ part: p })}
+            lead={<SectionSwitcher current="data" onSelect={(k) => go({ tab: k })} />}
+          />
+        )}
+        {tab === 'map' && <MapTab canEdit={canEdit} onOpen={(k, p) => go({ tab: 'data', table: k, part: p ?? 'fields' })} />}
+        {tab === 'flow' && <FlowTab canEdit={canEdit} />}
+        {tab === 'insights' && <InsightsTab canEdit={canEdit} />}
+        {tab === 'automations' && <AutomationsTab canEdit={canEdit} />}
+        {tab === 'menu' && <NavTab canEdit={canEdit} />}
+        {tab === 'preview' && <PreviewTab />}
+        {tab === 'versions' && <VersionsTab releases={releases.data ?? []} canPublish={canPublish} isOwner={isOwner} />}
+      </section>
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { run, signUpWithPack } from './helpers'
+import { run, signUpWithPack, expectSection } from './helpers'
 
 test('Screens live inside each table', async ({ page }) => {
   await signUpWithPack(page, `Northstar N3 ${run}`, `n3-${run}@northstar.test`)
@@ -9,7 +9,7 @@ test('Screens live inside each table', async ({ page }) => {
     await page.goto('/studio?tab=map')
     await page.getByTestId('box-candidate').getByRole('button').click()
     await page.getByTestId('table-drawer').getByRole('button', { name: 'Open screens' }).click()
-    await expect(page.getByRole('tab', { name: 'Tables' })).toHaveAttribute('aria-selected', 'true')
+    await expectSection(page, 'Tables')
     await expect(page.getByRole('tab', { name: 'Screens' })).toHaveAttribute('aria-selected', 'true')
     await expect(page.getByLabel('Screen to configure')).toBeVisible()
   })
@@ -23,7 +23,7 @@ test('Screens live inside each table', async ({ page }) => {
 
   await test.step('Old Screens addresses still work, and there is no separate Screens tab', async () => {
     await page.goto('/studio?tab=screens')
-    await expect(page.getByRole('tab', { name: 'Tables' })).toHaveAttribute('aria-selected', 'true')
+    await expectSection(page, 'Tables')
     await expect(page.getByRole('tab', { name: 'Screens' })).toHaveCount(1)
     await page.getByRole('tab', { name: 'Fields' }).click()
     await expect(page.getByRole('button', { name: 'Add field' })).toBeVisible()

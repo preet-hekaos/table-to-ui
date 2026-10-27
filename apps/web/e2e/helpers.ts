@@ -71,3 +71,14 @@ export async function schemaAction(page: Page, name: 'Import schema' | 'Export s
     await page.getByRole('button', { name }).click() // the Canvas tab keeps its own buttons
   }
 }
+
+/** Go to a Studio section from the section switcher in the toolbar. */
+export async function openSection(page: Page, name: 'Tables' | 'Canvas' | 'Stages & rules' | 'Automations' | 'Insights' | 'Menu' | 'Preview' | 'Versions') {
+  await page.getByRole('button', { name: /Change section/ }).click()
+  await page.getByRole('navigation', { name: 'Studio sections' }).getByRole('button', { name: new RegExp(`^${name.replace('&', '&')}`) }).click()
+}
+
+/** The Studio is on this section: the switcher names it. */
+export async function expectSection(page: Page, name: string) {
+  await expect(page.getByRole('button', { name: new RegExp(`^Section: ${name}\\.`) })).toBeVisible()
+}
