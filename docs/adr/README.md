@@ -39,3 +39,4 @@
 | [35](0035-export-schema.md) | Export schema |
 | [36](0036-links-from-matching-values.md) | Links from matching values |
 | [37](0037-schema-from-documents.md) | Schema from a document (PDF, Word, text), read by AI |
+| [38](0038-collapsible-sidebar.md) | Collapsible sidebar: full, icon rail or hidden; Ctrl+B; full screen |
