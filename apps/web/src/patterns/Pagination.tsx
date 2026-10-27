@@ -35,7 +35,8 @@ export function Pagination({
   const pages = Math.max(1, Math.ceil(total / pageSize))
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1
   const to = Math.min(total, page * pageSize)
-  const btn = 'inline-flex size-8 items-center justify-center rounded-md text-body hover:bg-soft disabled:cursor-not-allowed disabled:opacity-40'
+  const base = 'inline-flex size-8 items-center justify-center rounded-md disabled:cursor-not-allowed disabled:opacity-40'
+  const btn = `${base} text-body hover:bg-soft`
   return (
     <div className="flex flex-wrap items-center gap-3 border-t border-line bg-canvas px-3 py-2 text-xs text-body" data-testid="pagination">
       <label className="flex items-center gap-2">
@@ -57,7 +58,7 @@ export function Pagination({
             <button
               key={n}
               type="button"
-              className={`${btn} min-w-8 px-1 font-semibold ${n === page ? 'bg-accent text-white hover:bg-accent' : ''}`}
+              className={`${base} min-w-8 px-1 font-semibold ${n === page ? 'bg-accent text-white' : 'text-body hover:bg-soft'}`}
               aria-label={`Page ${n}`}
               aria-current={n === page ? 'page' : undefined}
               onClick={() => onPage(n)}
