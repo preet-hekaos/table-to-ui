@@ -29,23 +29,24 @@ export function StatsStrip({ table, query }: { table: TableDef; query: ListQuery
   }
   if (!s || s.fields.length === 0) return null
   return (
-    <div role="group" aria-label="Numbers for the current search" className="flex flex-wrap gap-2" data-testid="stats-strip">
-      <div className="rounded-lg border border-line bg-surface px-3 py-1.5 text-xs text-body">
-        <p className="font-semibold text-ink">Matching</p>
-        <p>{s.total.toLocaleString('en-IN')}</p>
+    <div role="group" aria-label="Numbers for the current search" className="flex flex-wrap gap-3" data-testid="stats-strip">
+      <div className="min-w-36 rounded-lg border border-line bg-surface px-4 py-2.5">
+        <p className="text-xs font-semibold text-muted">Matching</p>
+        <p className="text-2xl leading-tight font-bold text-ink">{s.total.toLocaleString('en-IN')}</p>
       </div>
-      {s.fields.map((x) => {
+      {s.fields.filter((x) => x.avg !== null || x.sum !== null).map((x) => {
         const f = by.get(x.key)
         const show = (v: number | null) => (v === null ? '—' : formatField(f, v))
         return (
-          <div key={x.key} className="rounded-lg border border-line bg-surface px-3 py-1.5 text-xs text-body">
-            <p className="font-semibold text-ink">{x.label}</p>
-            <p>
-              Average {show(x.avg)}
+          <div key={x.key} className="min-w-44 rounded-lg border border-line bg-surface px-4 py-2.5" data-testid="stat-tile">
+            <p className="text-xs font-semibold text-muted">{x.label}</p>
+            <p className="text-2xl leading-tight font-bold text-ink">{show(x.avg)}</p>
+            <p className="text-xs text-muted">
+              Average
               {x.type !== 'months' && <> · Total {show(x.sum)}</>}
             </p>
-            <p>
-              Lowest {show(x.min)} · Highest {show(x.max)}
+            <p className="text-xs text-muted">
+              Range {show(x.min)} to {show(x.max)}
             </p>
           </div>
         )

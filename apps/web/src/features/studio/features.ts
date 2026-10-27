@@ -26,6 +26,12 @@ export interface TableFeatures {
   stat_fields: string[] | null
   stat_cards: StatCard[] | null
   stat_scope: 'search' | 'table'
+  default_columns: string[] | null
+  density: 'compact' | 'comfortable'
+  uneditable: string[]
+  ungroupable: string[]
+  unexported: string[]
+  nobulk: string[]
   row_order: boolean
 }
 
@@ -48,6 +54,12 @@ export const DEFAULT_FEATURES: TableFeatures = {
   stat_fields: null,
   stat_cards: null,
   stat_scope: 'search',
+  default_columns: null,
+  density: 'compact',
+  uneditable: [],
+  ungroupable: [],
+  unexported: [],
+  nobulk: [],
   row_order: true,
 }
 

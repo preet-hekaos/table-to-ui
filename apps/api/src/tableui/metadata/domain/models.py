@@ -201,6 +201,14 @@ class TableFeatures(_Strict):
     stat_scope: Literal["search", "table"] = (
         "search"  # numbers follow the search, or always count the whole table
     )
+    default_columns: list[Key] | None = (
+        None  # columns everyone sees first; None: the first few fields
+    )
+    density: Literal["compact", "comfortable"] = "compact"  # row height people start with
+    uneditable: list[Key] = []  # fields whose cell cannot be edited in the list
+    ungroupable: list[Key] = []  # fields not offered in Group by
+    unexported: list[Key] = []  # fields left out of exports
+    nobulk: list[Key] = []  # fields that cannot be changed for many rows at once
     row_order: bool = True
 
 

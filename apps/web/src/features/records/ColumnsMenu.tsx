@@ -10,14 +10,14 @@ export interface ColumnChoice {
 }
 
 /** Show or hide columns for this person only. The owner's choices (hidden fields) are not offered here. */
-export function ColumnsMenu({ columns, hidden, onChange, onReset }: { columns: ColumnChoice[]; hidden: string[]; onChange: (hidden: string[]) => void; onReset: () => void }) {
+export function ColumnsMenu({ columns, hidden, changes = hidden.length, onChange, onReset }: { columns: ColumnChoice[]; hidden: string[]; changes?: number; onChange: (hidden: string[]) => void; onReset: () => void }) {
   const off = new Set(hidden)
   const flip = (k: string) => onChange(off.has(k) ? hidden.filter((x) => x !== k) : [...hidden, k])
   return (
     <Popover.Root>
       <Popover.Trigger asChild>
         <Button variant="secondary" size="sm" aria-label="Columns">
-          <Columns3 className="size-4" aria-hidden /> Columns{hidden.length > 0 && <span className="rounded-full bg-accent px-1.5 text-[11px] text-white">{hidden.length} hidden</span>}
+          <Columns3 className="size-4" aria-hidden /> Columns{changes > 0 && <span className="rounded-full bg-accent px-1.5 text-[11px] text-white">{changes} changed</span>}
         </Button>
       </Popover.Trigger>
       <Popover.Portal>
@@ -32,7 +32,7 @@ export function ColumnsMenu({ columns, hidden, onChange, onReset }: { columns: C
             ))}
           </fieldset>
           <div className="mt-1 flex justify-end border-t border-line pt-2">
-            <Button size="sm" variant="ghost" onClick={onReset} disabled={hidden.length === 0}>Reset to default</Button>
+            <Button size="sm" variant="ghost" onClick={onReset} disabled={changes === 0}>Reset to default</Button>
           </div>
         </Popover.Content>
       </Popover.Portal>

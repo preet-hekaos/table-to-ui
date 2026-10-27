@@ -11,7 +11,8 @@ export const InlineEditContext = createContext<{ table: TableDef } | null>(null)
 
 const NOT_INLINE = new Set(['long_text', 'reference'])
 /** The title opens the record, so it is not edited in place. */
-export const inlineEditable = (table: TableDef, f: FieldDef) => !f.hidden && !NOT_INLINE.has(f.type) && f.key !== table.title_field
+export const inlineEditable = (table: TableDef, f: FieldDef) =>
+  !f.hidden && !NOT_INLINE.has(f.type) && f.key !== table.title_field && !(table.features?.uneditable ?? []).includes(f.key)
 
 const message = (e: unknown) => (e instanceof ApiError ? (e.errors[0]?.message ?? e.message) : 'Could not save.')
 

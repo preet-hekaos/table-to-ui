@@ -28,6 +28,12 @@ import { formatField } from '@/patterns/format'
 
 function shownColumns(table: TableDef, config: ScreenConfig): FieldDef[] {
   const usable = table.fields.filter((f) => !f.hidden)
+  // The owner's default columns (set in Studio) win over the screen's own list, in the table's order, with the title first so every row still opens its record.
+  const chosen = table.features?.default_columns
+  if (chosen?.length) {
+    const picked = usable.filter((f) => chosen.includes(f.key) || f.key === table.title_field)
+    return [...picked.filter((f) => f.key === table.title_field), ...picked.filter((f) => f.key !== table.title_field)]
+  }
   if (config.columns?.length) return config.columns.map((k) => usable.find((f) => f.key === k)).filter((f): f is FieldDef => !!f)
   return usable.filter((f) => f.type !== 'long_text').slice(0, 6)
 }
@@ -39,8 +45,14 @@ function filterFields(table: TableDef, config: ScreenConfig): FieldDef[] {
   return usable.filter((f) => f.filterable && f.type === 'select')
 }
 
-function columnsFor(table: TableDef, config: ScreenConfig, preview: boolean): ColumnDef<RecordRow, unknown>[] {
-  const shown = shownColumns(table, config)
+/** The fields on screen: the table's default columns, less what this person hid, plus what they added. The title always stays. */
+function visibleFields(table: TableDef, config: ScreenConfig, hidden: string[], added: string[]): FieldDef[] {
+  const base = shownColumns(table, config)
+  const extra = table.fields.filter((f) => !f.hidden && f.type !== 'long_text' && added.includes(f.key) && !base.some((b) => b.key === f.key))
+  return [...base, ...extra].filter((f) => f.key === table.title_field || !hidden.includes(f.key))
+}
+
+function columnsFor(table: TableDef, preview: boolean, shown: FieldDef[]): ColumnDef<RecordRow, unknown>[] {
   const cols: ColumnDef<RecordRow, unknown>[] = shown.map((f) => ({
     id: f.key,
     header: f.label,
@@ -185,7 +197,7 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
   const [exporting, setExporting] = useState<{ ids: string[] | null } | null>(null)
   // Names for the ids in filter chips (a person's name rather than a code), learned from the value lists.
   const [labels, setLabels] = useState<Record<string, string>>({})
-  const { prefs, update: setPrefs, reset: resetPrefs } = useTablePrefs(tableKey)
+  const { prefs, update: setPrefs } = useTablePrefs(tableKey)
   const full = useContext(FullScreenContext)
   const [page, setPage] = useState(() => (preview ? 1 : Math.max(1, Number(new URLSearchParams(window.location.search).get('page')) || 1)))
   // A different search is a different set of rows, so what was ticked no longer applies and the list starts at page 1.
@@ -199,6 +211,7 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
   const def = useQuery({ queryKey: ['table', tableKey], queryFn: () => app.table(tableKey), retry: false })
   const table = tableOverride ?? def.data?.table
   const feat = featuresOf(table)
+  const density = prefs.density ?? feat.density // a person's own choice wins over the owner's default
   // The screen can start the list grouped; the person can change or clear it while it is open.
   const groupBy = feat.grouping && !(custom && feat.row_order) ? (groupChoice ?? config.group_by) || undefined : undefined
   const sortState: SortState = sortChoice ?? (feat.sort_filter && feat.default_sort ? { key: feat.default_sort.field, direction: feat.default_sort.direction } : { key: 'updated_at', direction: 'desc' })
@@ -238,8 +251,21 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
     onSettled: () => qc.invalidateQueries({ queryKey: ['records', tableKey] }),
   })
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const allColumns = useMemo(() => (table ? columnsFor(table, config, preview) : []), [table, configKey, preview])
-  const columns = useMemo(() => allColumns.filter((c, i) => i === 0 || !prefs.hidden.includes(c.id ?? '')), [allColumns, prefs.hidden])
+  const fieldsOnScreen = useMemo(() => (table ? visibleFields(table, config, prefs.hidden, prefs.added) : []), [table, configKey, prefs.hidden, prefs.added])
+  const columns = useMemo(() => (table ? columnsFor(table, preview, fieldsOnScreen) : []), [table, preview, fieldsOnScreen])
+  // Everything a person may show or hide, and which of it the table shows to begin with.
+  const choices = useMemo(() => {
+    if (!table) return []
+    const base = new Set(shownColumns(table, config).map((f) => f.key))
+    const fields = table.fields.filter((f) => !f.hidden && (f.type !== 'long_text' || base.has(f.key)))
+    return [
+      ...fields.map((f) => ({ key: f.key, label: f.label, locked: f.key === table.title_field, byDefault: base.has(f.key) })),
+      ...(table.counts ?? []).map((c) => ({ key: `count.${c.key}`, label: c.label, locked: false, byDefault: true })),
+      { key: 'owner', label: 'Owner', locked: false, byDefault: true },
+      { key: 'updated_at', label: 'Last updated', locked: false, byDefault: true },
+    ]
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [table, configKey])
   const rows = list.data?.items ?? []
   const total = list.data?.total ?? rows.length
   const lastPage = Math.max(1, Math.ceil(total / prefs.pageSize))
@@ -270,7 +296,7 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
   const filterable = new Map<string, FieldDef>(
     feat.sort_filter ? table.fields.filter((f) => !f.hidden && !feat.unfilterable.includes(f.key) && filterKind(f)).map((f) => [f.key, f] as [string, FieldDef]) : [],
   )
-  const groupable = table.fields.filter((f) => !f.hidden && ['select', 'boolean', 'reference', 'text'].includes(f.type))
+  const groupable = table.fields.filter((f) => !f.hidden && !feat.ungroupable.includes(f.key) && ['select', 'boolean', 'reference', 'text'].includes(f.type))
   const groupField = groupBy ? table.fields.find((f) => f.key === groupBy) : undefined
   const filters_ = filterFields(table, config)
   const facetFields = (config.facets ?? []).filter((k) => table.fields.some((f) => f.key === k && !f.hidden))
@@ -324,14 +350,20 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
         )}
         {!preview && (
           <ColumnsMenu
-            columns={allColumns.map((c, i) => ({ key: c.id ?? '', label: typeof c.header === 'string' ? c.header : (c.id ?? ''), locked: i === 0 }))}
-            hidden={prefs.hidden}
-            onChange={(hidden) => setPrefs({ hidden })}
-            onReset={() => resetPrefs()}
+            columns={choices}
+            changes={prefs.hidden.length + prefs.added.length}
+            hidden={choices.filter((c) => (c.byDefault ? prefs.hidden.includes(c.key) : !prefs.added.includes(c.key))).map((c) => c.key)}
+            onChange={(off) =>
+              setPrefs({
+                hidden: choices.filter((c) => c.byDefault && off.includes(c.key)).map((c) => c.key),
+                added: choices.filter((c) => !c.byDefault && !off.includes(c.key)).map((c) => c.key),
+              })
+            }
+            onReset={() => setPrefs({ hidden: [], added: [] })}
           />
         )}
-        <Button variant="secondary" size="sm" aria-pressed={prefs.density === 'comfortable'} onClick={() => setPrefs({ density: prefs.density === 'comfortable' ? 'compact' : 'comfortable' })}>
-          {prefs.density === 'comfortable' ? 'Comfortable' : 'Compact'}
+        <Button variant="secondary" size="sm" aria-pressed={density === 'comfortable'} onClick={() => setPrefs({ density: density === 'comfortable' ? 'compact' : 'comfortable' })}>
+          {density === 'comfortable' ? 'Comfortable' : 'Compact'}
         </Button>
         {full && (
           <Button variant="secondary" size="sm" aria-label={full.fullScreen ? 'Exit full screen' : 'Full screen'} onClick={() => full.setFullScreen(!full.fullScreen)}>
@@ -360,7 +392,7 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
           onOpenChange={(o) => !o && setExporting(null)}
           table={table}
           feat={feat}
-          shown={shownColumns(table, config)}
+          shown={fieldsOnScreen.filter((f) => !feat.unexported.includes(f.key))}
           count={exporting.ids ? `${exporting.ids.length.toLocaleString('en-IN')} selected` : searching ? 'Everything in the current search' : `All ${table.plural_label.toLowerCase()}`}
           request={
             exporting.ids
@@ -409,7 +441,7 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
           ) : null
         }}
         bare
-        density={prefs.density}
+        density={density}
         groupOf={groupField && !list.isPlaceholderData ? (r) => (groupField.type === 'reference' ? (r.refs?.[groupField.key]?.label ?? '') : String(r.data[groupField.key] ?? '')) || `No ${groupField.label.toLowerCase()}` : undefined}
       />
       <Pagination total={total} page={Math.min(shownPage, lastPage)} pageSize={prefs.pageSize} onPage={setPage} onPageSize={(n) => { setPrefs({ pageSize: n }); setPage(1) }} noun={table.plural_label.toLowerCase()} />
