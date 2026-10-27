@@ -36,7 +36,7 @@ export async function expectReadable(page: Page, locator: Locator, states: Array
     await page.waitForTimeout(300) // let colour transitions finish
     const ratio = await locator.evaluate((el) => {
       const parse = (c: string) => (c.match(/[\d.]+/g) ?? []).map(Number)
-      const lum = ([r, g, b]: number[]) => {
+      const lum = ([r = 0, g = 0, b = 0]: number[]) => {
         const f = (v: number) => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4 }
         return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b)
       }
