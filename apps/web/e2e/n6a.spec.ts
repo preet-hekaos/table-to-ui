@@ -6,7 +6,7 @@ import { run, signUpWithPack } from './helpers'
 const tags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 
 test('Export schema: choose a format and tables, download, accessible', async ({ page }) => {
-  await signUpWithPack(page, `Schema Co ${run}`, `schema-${run}@schema.test`)
+  await signUpWithPack(page, `Blueprint Co ${run}`, `blueprint-${run}@blueprint.test`)
   await page.goto('/studio?tab=map')
   await page.getByRole('button', { name: 'Export schema' }).click()
   const dialog = page.getByRole('dialog', { name: 'Export schema' })
