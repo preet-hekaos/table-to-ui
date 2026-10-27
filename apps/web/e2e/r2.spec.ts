@@ -1,8 +1,8 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
-import { run, signUpWithPack } from './helpers'
+import { expectReadable, run, signUpWithPack } from './helpers'
 
-test('Table card: numbered pages, page size, columns, density, full screen', async ({ page }) => {
+test('Table card: numbered pages, page size, columns, density, full screen', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await signUpWithPack(page, `Card Co ${run}`, `card-${run}@card.test`)
   const made = await page.evaluate(async () => {
@@ -24,11 +24,20 @@ test('Table card: numbered pages, page size, columns, density, full screen', asy
   await expect(card).toBeVisible()
   await expect(pager).toBeVisible()
 
+  await test.step('Visual: text stays readable at rest, on hover and on focus', async () => {
+    await expectReadable(page, pager.getByRole('button', { name: 'Page 1' }))
+    await expectReadable(page, page.getByRole('button', { name: 'Columns' }))
+    await expectReadable(page, page.getByRole('button', { name: 'Compact' }))
+    await expectReadable(page, pager.getByRole('button', { name: 'Next page' }))
+    await testInfo.attach('table-card', { body: await page.screenshot(), contentType: 'image/png' })
+  })
+
   await test.step('Pages of 25, then page 2 shows the rest', async () => {
     await expect(page.getByTestId('page-range')).toContainText('Showing 1 to 25 of 32')
     await pager.getByRole('button', { name: /^(Page )?2$|Go to page 2/ }).first().click()
     await expect(page.getByTestId('page-range')).toContainText('Showing 26 to 32 of 32')
     expect(page.url()).toContain('page=2')
+    await expectReadable(page, pager.getByRole('button', { name: 'Page 2' })) // the current page, hovered, was once unreadable
     await page.reload()
     await expect(page.getByTestId('page-range')).toContainText('Showing 26 to 32 of 32')
   })
