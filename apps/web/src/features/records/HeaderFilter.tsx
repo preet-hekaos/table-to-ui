@@ -58,7 +58,7 @@ const SORT_WORDS = {
  * and nothing narrowed until Apply. Counts follow the rest of the search, not this column's own choice.
  */
 function ValueList({
-  f, tableKey, q, criteria, picked, onPick, onLabels,
+  f, tableKey, q, criteria, picked, onPick, onLabels, onView,
 }: {
   f: FieldDef
   tableKey: string
@@ -67,6 +67,8 @@ function ValueList({
   picked: Set<string> | null
   onPick: (next: Set<string> | null) => void
   onLabels: (m: Record<string, string>) => void
+  /** What the list shows right now, so Apply can use a typed search as the choice (as Excel does). */
+  onView: (shown: string[], searched: boolean) => void
 }) {
   const [typed, setTyped] = useState('')
   const search = useDebounced(typed, 250)
@@ -78,8 +80,10 @@ function ValueList({
   })
   const data = list.data
   useEffect(() => {
-    if (data) onLabels(Object.fromEntries(data.values.map((v) => [v.value, v.label])))
-  }, [data, onLabels])
+    if (!data) return
+    onLabels(Object.fromEntries(data.values.map((v) => [v.value, v.label])))
+    onView(data.values.map((v) => v.value), search.trim() !== '')
+  }, [data, onLabels, onView, search])
   const all = useRef<HTMLInputElement>(null)
   const values = data?.values ?? []
   const everything = !data?.truncated // with a long list nothing starts ticked: the others cannot be named
@@ -151,6 +155,8 @@ export function HeaderFilter({
   const [hi, setHi] = useState('')
   const seen = useRef<Record<string, string>>({})
   const remember = (m: Record<string, string>) => { Object.assign(seen.current, m) }
+  const view = useRef<{ shown: string[]; searched: boolean }>({ shown: [], searched: false })
+  const onView = (shown: string[], searched: boolean) => { view.current = { shown, searched } }
   if (!kind) return null
   const listed = kind === 'choices' || kind === 'tags' || kind === 'reference' || (kind === 'text' && f.type !== 'long_text')
   const active = !!describe(f, criteria)
@@ -171,7 +177,7 @@ export function HeaderFilter({
       if (clear || (mode === 'contains' && kind === 'text')) next.anyof[f.key] = ''
       if (clear || mode === 'values') next.contains[f.key] = ''
       if (!clear && mode === 'contains') next.contains[f.key] = text.trim()
-      if (!clear && mode === 'values') next.anyof[f.key] = picked ? [...picked].join(',') : ''
+      if (!clear && mode === 'values') next.anyof[f.key] = picked ? [...picked].join(',') : view.current.searched ? view.current.shown.join(',') : ''
     } else if (kind === 'boolean') next.filters[f.key] = clear ? '' : bool
     else next.ranges[f.key] = clear || (!lo && !hi) ? '' : `${lo}..${hi}`
     onApply(next, seen.current)
@@ -236,7 +242,7 @@ export function HeaderFilter({
                 ))}
               </div>
             )}
-            {listed && mode === 'values' && <ValueList f={f} tableKey={tableKey} q={q} criteria={criteria} picked={picked} onPick={setPicked} onLabels={remember} />}
+            {listed && mode === 'values' && <ValueList f={f} tableKey={tableKey} q={q} criteria={criteria} picked={picked} onPick={setPicked} onLabels={remember} onView={onView} />}
             {(kind === 'text' && (mode === 'contains' || f.type === 'long_text')) && <Input aria-label={`${f.label} contains`} placeholder="Contains…" value={text} onChange={(e) => setText(e.target.value)} autoFocus />}
             {kind === 'boolean' && (
               <fieldset className="flex gap-3">

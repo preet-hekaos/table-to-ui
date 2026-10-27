@@ -47,7 +47,11 @@ async def test_values_follow_the_rest_of_the_search_and_a_typed_word(
 ) -> None:
     await _seed(agency)
     only_active = await _values(client, agency, "current_employer", **{"f.status": "Active"})
-    assert sorted(v["value"].lower() for v in only_active["values"]) == ["infosys", "infosys", "tcs"]
+    assert sorted(v["value"].lower() for v in only_active["values"]) == [
+        "infosys",
+        "infosys",
+        "tcs",
+    ]
     typed = await _values(client, agency, "current_employer", search="wip")
     assert [v["value"] for v in typed["values"]] == ["Wipro"]
     nothing = await _values(client, agency, "current_employer", search="zzz")
@@ -69,7 +73,12 @@ async def test_ticked_values_filter_text_columns_ignoring_case(
     r = await client.get(
         "/v1/records/candidate",
         headers=agency.h(),
-        params={"in.current_employer": "infosys,TCS", "page": 1, "sort": "full_name", "direction": "asc"},
+        params={
+            "in.current_employer": "infosys,TCS",
+            "page": 1,
+            "sort": "full_name",
+            "direction": "asc",
+        },
     )
     assert r.status_code == 200, r.text
     assert [i["data"]["full_name"] for i in r.json()["items"]] == ["Asha", "Bimal", "Dev"]

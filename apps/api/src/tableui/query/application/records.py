@@ -634,16 +634,17 @@ async def field_values(
         params |= scope_params
     key = field_key
     if f.type == "tags":
-        source = f"\"{table_key}\", jsonb_array_elements_text(COALESCE(data->'{key}', '[]'::jsonb)) AS v"
+        source = (
+            f"\"{table_key}\", jsonb_array_elements_text(COALESCE(data->'{key}', '[]'::jsonb)) AS v"
+        )
         value = "v"
     else:
         source = f'"{table_key}"'
         value = f"data->>'{key}'"
     where = list(conds)
-    if f.type != "reference":
-        if search and search.strip():
-            where.append(f"position(lower(:vs) in lower({value})) > 0")
-            params["vs"] = search.strip()
+    if f.type != "reference" and search and search.strip():
+        where.append(f"position(lower(:vs) in lower({value})) > 0")
+        params["vs"] = search.strip()
     where.append(f"{value} IS NOT NULL AND {value} <> ''")
     sql = (
         f"SELECT {value} AS v, count(*) AS n FROM {source} WHERE {' AND '.join(where)} "  # noqa: S608 - identifiers are validated metadata keys
@@ -659,7 +660,9 @@ async def field_values(
             labels = {
                 str(r.id): (r.data or {}).get(target.title_field)
                 for r in await s.execute(
-                    text(f'SELECT id, data FROM "{target.key}" WHERE id = ANY(CAST(:ids AS uuid[]))'),  # noqa: S608 - identifiers are validated metadata keys
+                    text(
+                        f'SELECT id, data FROM "{target.key}" WHERE id = ANY(CAST(:ids AS uuid[]))'
+                    ),  # noqa: S608 - identifiers are validated metadata keys
                     {"ids": [v["value"] for v in values]},
                 )
             }
@@ -671,7 +674,13 @@ async def field_values(
         if f.type == "boolean":
             for v in values:
                 v["label"] = "Yes" if v["value"] == "true" else "No"
-    return {"field": field_key, "label": f.label, "kind": f.type, "values": values, "truncated": truncated}
+    return {
+        "field": field_key,
+        "label": f.label,
+        "kind": f.type,
+        "values": values,
+        "truncated": truncated,
+    }
 
 
 async def quick_search(

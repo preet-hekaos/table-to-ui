@@ -29,6 +29,7 @@ test('Sort and filter: header filters, chips, per-field settings, switch off', a
     await page.goto('/s/candidates')
     await expect(page.getByRole('row')).toHaveCount(4)
     await page.getByRole('button', { name: /Filter (Full name|Name)/i }).first().click()
+    await page.getByRole('tab', { name: 'Contains' }).click()
     await page.getByRole('textbox').last().fill('bimal')
     await page.getByRole('button', { name: 'Apply' }).click()
     await expect(page.getByRole('row')).toHaveCount(2)
