@@ -158,6 +158,24 @@ class DefaultSort(_Strict):
     direction: Literal["asc", "desc"] = "asc"
 
 
+class StatCard(_Strict):
+    """One card in the summary strip: how many records, a number measured over a field, or how many hold a value."""
+
+    kind: Literal["count", "number", "value"]
+    field: Key | None = None
+    measure: Literal["sum", "avg", "min", "max"] | None = None  # for kind "number"
+    value: str | None = Field(default=None, max_length=120)  # for kind "value"
+    label: str | None = Field(default=None, max_length=60)
+
+    @model_validator(mode="after")
+    def _complete(self) -> "StatCard":
+        if self.kind == "number" and not (self.field and self.measure):
+            raise ValueError("a number card needs a field and a measure")
+        if self.kind == "value" and not (self.field and self.value is not None):
+            raise ValueError("a value card needs a field and a value")
+        return self
+
+
 class TableFeatures(_Strict):
     """The classic table features a workspace owner can keep or switch off, per table.
     A table that has never been customised has every feature on (see `features_of`)."""
@@ -177,6 +195,12 @@ class TableFeatures(_Strict):
     grouping: bool = True
     statistics: bool = True
     stat_fields: list[Key] | None = None  # number fields to summarise; None picks the first few
+    stat_cards: "list[StatCard] | None" = Field(
+        default=None, max_length=6
+    )  # chosen summary cards; None: automatic
+    stat_scope: Literal["search", "table"] = (
+        "search"  # numbers follow the search, or always count the whole table
+    )
     row_order: bool = True
 
 

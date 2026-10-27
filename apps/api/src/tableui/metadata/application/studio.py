@@ -689,6 +689,17 @@ def _fit_features(f: TableFeatures, table: TableDef, *, strict: bool) -> TableFe
     bad = [k for k in [*f.unsortable, *f.unfilterable] if k not in have]
     numeric = {x.key for x in table.fields if x.type in ("integer", "decimal", "money", "months")}
     bad += [k for k in (f.stat_fields or []) if k not in numeric]
+    by_type = {x.key: x.type for x in table.fields}
+
+    def _card_ok(c: Any) -> bool:
+        if c.kind == "count":
+            return True
+        if c.kind == "number":
+            return c.field in numeric
+        return by_type.get(c.field or "") in ("select", "boolean", "text")
+
+    bad_cards = [c for c in (f.stat_cards or []) if not _card_ok(c)]
+    bad += [c.field for c in bad_cards if c.field]
     if (
         f.default_sort
         and f.default_sort.field not in have
@@ -709,6 +720,9 @@ def _fit_features(f: TableFeatures, table: TableDef, *, strict: bool) -> TableFe
             "unfilterable": [k for k in f.unfilterable if k in have],
             "stat_fields": [k for k in f.stat_fields if k not in bad]
             if f.stat_fields is not None
+            else None,
+            "stat_cards": [c for c in f.stat_cards if _card_ok(c)]
+            if f.stat_cards is not None
             else None,
             "default_sort": f.default_sort
             if f.default_sort and f.default_sort.field not in bad

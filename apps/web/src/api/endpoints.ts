@@ -284,7 +284,8 @@ export interface ExportBody {
   sort?: string
   direction?: string
 }
-export interface TableStats { total: number; fields: { key: string; label: string; type: string; count: number; sum: number | null; avg: number | null; min: number | null; max: number | null }[] }
+export interface StatCardResult { kind: 'count' | 'number' | 'value'; label: string; field: string | null; measure: 'sum' | 'avg' | 'min' | 'max' | null; value: string | null; type: string; number: number | null }
+export interface TableStats { total: number; scope: 'search' | 'table'; cards: StatCardResult[] | null; fields: { key: string; label: string; type: string; count: number; sum: number | null; avg: number | null; min: number | null; max: number | null }[] }
 export interface BulkMatching { q?: string; filters: Record<string, string>; ranges: Record<string, string>; contains: Record<string, string>; anyof: Record<string, string>; expected_count: number }
 export interface BulkUndo { kind: 'update' | 'delete'; ids: string[] }
 export interface BulkBody { action: 'update' | 'delete' | 'undo'; ids?: string[]; matching?: BulkMatching; field?: string; value?: unknown; undo?: BulkUndo }

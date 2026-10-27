@@ -1,5 +1,13 @@
 import type { TableDef } from '@/api/types'
 
+export interface StatCard {
+  kind: 'count' | 'number' | 'value'
+  field?: string | null
+  measure?: 'sum' | 'avg' | 'min' | 'max' | null
+  value?: string | null
+  label?: string | null
+}
+
 export interface TableFeatures {
   sort_filter: boolean
   unsortable: string[]
@@ -16,6 +24,8 @@ export interface TableFeatures {
   grouping: boolean
   statistics: boolean
   stat_fields: string[] | null
+  stat_cards: StatCard[] | null
+  stat_scope: 'search' | 'table'
   row_order: boolean
 }
 
@@ -36,6 +46,8 @@ export const DEFAULT_FEATURES: TableFeatures = {
   grouping: true,
   statistics: true,
   stat_fields: null,
+  stat_cards: null,
+  stat_scope: 'search',
   row_order: true,
 }
 
