@@ -1,20 +1,21 @@
-import { FileDown, FileUp, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import type { ApiError } from '@/api/client'
 import type { FieldDef, StudioTable } from '@/api/types'
-import { Badge, Button, Card, ErrorState, LoadingState, StageBadge, StageDot, Table, Tabs, TabsContent, TabsList, TabsTrigger, Td, Th, cn, stageStripe } from '@/design-system'
+import { Badge, Button, Card, ErrorState, LoadingState, StageBadge, Table, Tabs, TabsContent, TabsList, TabsTrigger, Td, Th, cn, stageStripe } from '@/design-system'
 import { FieldDialog, NewTableDialog, TYPE_LABELS } from './FieldDialog'
 import { FeaturesPanel } from './FeaturesPanel'
 import { SchemaExportDialog } from './SchemaExportDialog'
 import { SchemaImportDialog } from './SchemaImportDialog'
 import { ScreensTab } from './ScreensTab'
+import { TableActions, TablePicker } from './TablePicker'
 import { useDraftTables } from './useDraftTables'
 import { useStages } from './useStages'
 
 const origin = (s?: string) => <Badge tone={s === 'agency' ? 'neutral' : 'accent'}>{s === 'agency' ? 'Workspace' : 'Pack'}</Badge>
 
 
-/** Screen 2.4: tables on the left, the chosen table's fields on the right. */
+/** Screen 2.4: pick a table from the header; its fields, screens and features sit below. */
 export type TablePart = 'fields' | 'screens' | 'features'
 
 export function DataTab({
@@ -43,56 +44,23 @@ export function DataTab({
   const all = tables.data ?? []
   const current = all.find((t) => t.key === (selected ?? defaultTable)) ?? all[0]
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-[15rem_minmax(0,1fr)]">
-      <nav aria-label="Tables" className="flex flex-col gap-1">
-        {canEdit && (
-          <Button variant="secondary" size="sm" className="mb-2 justify-start" onClick={() => setNewTable(true)}>
-            <Plus className="size-4" aria-hidden /> New table
-          </Button>
-        )}
-        {canEdit && (
-          <Button variant="secondary" size="sm" className="mb-2 justify-start border-dashed" onClick={() => setImporting(true)}>
-            <FileUp className="size-4" aria-hidden /> Import schema
-          </Button>
-        )}
-        <Button variant="secondary" size="sm" className="mb-2 justify-start border-dashed" onClick={() => setExporting(true)}>
-          <FileDown className="size-4" aria-hidden /> Export schema
-        </Button>
-        <ul className="flex max-h-[60vh] flex-col gap-0.5 overflow-y-auto">
-          {all.map((t) => (
-            <li key={t.key}>
-              <button
-                type="button"
-                aria-current={t.key === current?.key ? 'true' : undefined}
-                onClick={() => onSelect(t.key)}
-                className={cn(
-                  'flex w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-sm',
-                  t.key === current?.key ? 'bg-accent-soft font-semibold text-accent-ink' : 'text-body hover:bg-soft',
-                )}
-              >
-                <span className="flex items-center gap-2">
-                  {stages.of('tables', t.key) && <StageDot stage={stages.of('tables', t.key)!} />}
-                  {t.label}
-                </span>
-                <span className={cn('text-xs', t.key === current?.key ? 'text-accent-ink' : 'text-muted')}>{t.fields.length}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </nav>
+    <div className="flex flex-col gap-4">
       {current && (
         <Card className="p-0">
           <Tabs value={part} onValueChange={(v) => onPart(v as TablePart)}>
           <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
-            <h2 className="text-sm font-bold text-ink">{current.label}</h2>
+            <h2 className="sr-only">{current.label}</h2>
+            <TablePicker
+              items={all.map((t) => ({ key: t.key, label: t.label, fields: t.fields.length, stage: stages.of('tables', t.key) ?? undefined }))}
+              current={{ key: current.key, label: current.label, fields: current.fields.length, stage: stages.of('tables', current.key) ?? undefined }}
+              onSelect={onSelect}
+            />
             {origin(current.source)}
             {stages.of('tables', current.key) && <StageBadge stage={stages.of('tables', current.key)!} isNew={stages.isNew('tables', current.key)} />}
             <Badge>{current.fields.length} fields</Badge>
-            {canEdit && part === 'fields' && (
-              <Button size="sm" variant="primary" className="ml-auto" onClick={() => setEditing('new')}>
-                <Plus className="size-4" aria-hidden /> Add field
-              </Button>
-            )}
+            <div className="ml-auto">
+              <TableActions canEdit={canEdit} onNew={() => setNewTable(true)} onImport={() => setImporting(true)} onExport={() => setExporting(true)} />
+            </div>
           </div>
           <TabsList aria-label={`${current.label} parts`} className="px-3">
             <TabsTrigger value="fields">Fields</TabsTrigger>
@@ -100,6 +68,13 @@ export function DataTab({
             <TabsTrigger value="features">Features</TabsTrigger>
           </TabsList>
           <TabsContent value="fields">
+          {canEdit && (
+            <div className="flex justify-end px-3 pt-3">
+              <Button size="sm" variant="primary" onClick={() => setEditing('new')}>
+                <Plus className="size-4" aria-hidden /> Add field
+              </Button>
+            </div>
+          )}
           <div className="overflow-x-auto">
             <Table aria-label={`${current.label} fields`}>
               <thead>

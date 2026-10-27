@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { run, signUpWithPack } from './helpers'
+import { openTables, run, signUpWithPack } from './helpers'
 
 /** N1: Draft, Test and Live each have their own colour, word and icon, and the colour follows a change. */
 test('Stage colours follow a field from Draft to Test to Live', async ({ page }) => {
@@ -20,7 +20,8 @@ test('Stage colours follow a field from Draft to Test to Live', async ({ page })
     await expect(page.getByTestId('env-draft')).toContainText('1 waiting')
     // Existing fields are untouched, so they stay Live
     await expect(page.getByRole('row', { name: /^Current employer/ })).toHaveAttribute('data-stage', 'live')
-    await expect(page.getByRole('navigation', { name: 'Tables' }).getByRole('img', { name: 'Draft' }).first()).toBeVisible()
+    await expect((await openTables(page)).getByRole('img', { name: 'Draft' }).first()).toBeVisible()
+    await page.keyboard.press('Escape')
   })
 
   await test.step('The colour key explains all four colours', async () => {
