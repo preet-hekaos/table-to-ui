@@ -1,8 +1,8 @@
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
-import { Bookmark, Plus, SlidersHorizontal, X } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { Bookmark, Maximize2, Plus, SlidersHorizontal, X } from 'lucide-react'
+import { useContext, useEffect, useMemo, useState } from 'react'
 import { useDebounced } from '@/lib/useDebounced'
 import { ApiError } from '@/api/client'
 import { app, search, type SavedSearch } from '@/api/endpoints'
@@ -12,6 +12,10 @@ import { AskInWords } from '@/features/ai/Ai'
 import { can, useMe } from '@/features/auth/useMe'
 import { SearchableTable, type SortState } from '@/patterns/SearchableTable'
 import { TableToolbar } from '@/patterns/TableToolbar'
+import { Pagination } from '@/patterns/Pagination'
+import { useTablePrefs } from '@/patterns/useTablePrefs'
+import { FullScreenContext } from '@/shell/useSidebar'
+import { ColumnsMenu } from './ColumnsMenu'
 import { featuresOf } from '@/features/studio/features'
 import { BulkBar } from './BulkBar'
 import { ExportDialog } from './ExportDialog'
@@ -20,7 +24,6 @@ import { InlineCell, InlineEditContext, inlineEditable } from './InlineCell'
 import { HeaderFilter, describe, filterKind } from './HeaderFilter'
 import { formatField } from '@/patterns/format'
 
-const PAGE = 50
 
 
 function shownColumns(table: TableDef, config: ScreenConfig): FieldDef[] {
@@ -180,10 +183,14 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
   const [groupChoice, setGroupChoice] = useState<string | null>(null)
   const [picked, setPicked] = useState<Set<string>>(new Set())
   const [exporting, setExporting] = useState<{ ids: string[] | null } | null>(null)
-  // A different search is a different set of rows, so what was ticked no longer applies.
+  const { prefs, update: setPrefs, reset: resetPrefs } = useTablePrefs(tableKey)
+  const full = useContext(FullScreenContext)
+  const [page, setPage] = useState(() => (preview ? 1 : Math.max(1, Number(new URLSearchParams(window.location.search).get('page')) || 1)))
+  // A different search is a different set of rows, so what was ticked no longer applies and the list starts at page 1.
   const setCriteria = (c: Criteria) => {
     setCriteriaRaw(c)
     setPicked(new Set())
+    setPage(1)
   }
   const { q, filters, ranges, contains, anyof } = criteria
   const debouncedQ = useDebounced(q, 250)
@@ -199,21 +206,29 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
   const dragging = custom && feat.row_order && !preview
   const manual = dragging || (feat.row_order && !preview && !sortChoice && !ownDefault && !groupBy)
   const sort: SortState = manual ? { key: 'manual', direction: 'asc' } : groupBy ? { key: groupBy, direction: sortState.key === groupBy ? sortState.direction : 'asc' } : sortState
-  const list = useInfiniteQuery({
-    queryKey: ['records', tableKey, sort, debouncedQ, filters, ranges, contains, anyof],
-    queryFn: ({ pageParam }) => {
+  const list = useQuery({
+    queryKey: ['records', tableKey, sort, debouncedQ, filters, ranges, contains, anyof, page, prefs.pageSize],
+    queryFn: () => {
       // In a Studio preview the Draft may name fields that are not live yet; leave those out.
       const live = new Set(def.data?.table.fields.map((f) => f.key))
       const keep = (o: Record<string, string>) => Object.fromEntries(Object.entries(o).filter(([k, v]) => v && live.has(k)))
       const sortKey = sort.key === 'updated_at' || sort.key === 'manual' || live.has(sort.key) ? sort.key : 'updated_at'
-      return app.list(tableKey, { sort: sortKey, direction: sort.direction, cursor: pageParam, limit: PAGE, q: debouncedQ, filters: keep(filters), ranges: keep(ranges), contains: keep(contains), anyof: keep(anyof) })
+      return app.list(tableKey, { sort: sortKey, direction: sort.direction, page, page_size: prefs.pageSize, q: debouncedQ, filters: keep(filters), ranges: keep(ranges), contains: keep(contains), anyof: keep(anyof) })
     },
-    initialPageParam: null as string | null,
-    getNextPageParam: (last) => last.next_cursor,
     enabled: def.isSuccess,
     retry: false,
     placeholderData: (prev) => prev,
   })
+  // The server shows the last page when asked for one past the end; show what it served.
+  const shownPage = list.data?.page ?? page
+  // Keep the page number in the address so a reload or a shared link opens the same page.
+  useEffect(() => {
+    if (preview) return
+    const u = new URL(window.location.href)
+    if (shownPage > 1) u.searchParams.set('page', String(shownPage))
+    else u.searchParams.delete('page')
+    if (u.href !== window.location.href) window.history.replaceState(window.history.state, '', u)
+  }, [shownPage, preview])
   const configKey = JSON.stringify(config)
   const qc = useQueryClient()
   const move = useMutation({
@@ -221,8 +236,11 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
     onSettled: () => qc.invalidateQueries({ queryKey: ['records', tableKey] }),
   })
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const columns = useMemo(() => (table ? columnsFor(table, config, preview) : []), [table, configKey, preview])
-  const rows = list.data?.pages.flatMap((p) => p.items) ?? []
+  const allColumns = useMemo(() => (table ? columnsFor(table, config, preview) : []), [table, configKey, preview])
+  const columns = useMemo(() => allColumns.filter((c, i) => i === 0 || !prefs.hidden.includes(c.id ?? '')), [allColumns, prefs.hidden])
+  const rows = list.data?.items ?? []
+  const total = list.data?.total ?? rows.length
+  const lastPage = Math.max(1, Math.ceil(total / prefs.pageSize))
 
   const err = def.error ?? list.error
   if (err instanceof ApiError && err.status === 404) return <NotFound what="app" />
@@ -239,6 +257,7 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
   const selectable = feat.select_bulk && !preview && feat.bulk_actions.length > 0
   const onSort = (key: string) => {
     setCustom(false)
+    setPage(1)
     setSort({ key, direction: sortState.key === key && sortState.direction === 'asc' ? 'desc' : 'asc' })
   }
   const sortable = new Set(
@@ -280,26 +299,45 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
       <EmptyState title="Nothing matches">Try fewer filters or other words.</EmptyState>
     ) : (
       <>
-      <TableToolbar summary={`${rows.length.toLocaleString('en-IN')}${list.hasNextPage ? '+' : ''} ${(rows.length === 1 && !list.hasNextPage ? table.label : table.plural_label).toLowerCase()} shown`} >
+      {feat.statistics && !preview && rows.length > 0 && (
+        <StatsStrip table={table} query={{ q: debouncedQ, filters: keepSet(filters), ranges: keepSet(ranges), contains: keepSet(contains), anyof: keepSet(anyof) }} />
+      )}
+      <div className="overflow-hidden rounded-lg border border-line bg-surface" data-testid="table-card">
+      <div className="border-b border-line px-3 py-2">
+      <TableToolbar summary={total === rows.length ? `${total.toLocaleString('en-IN')} ${(total === 1 ? table.label : table.plural_label).toLowerCase()} shown` : `${((shownPage - 1) * prefs.pageSize + 1).toLocaleString('en-IN')}–${((shownPage - 1) * prefs.pageSize + rows.length).toLocaleString('en-IN')} of ${total.toLocaleString('en-IN')} ${table.plural_label.toLowerCase()}`} >
         {feat.row_order && !preview && canUpdate && (
           <label className="flex items-center gap-2 text-xs text-body">
-            <input type="checkbox" role="switch" className="size-4" checked={custom} onChange={(e) => { setCustom(e.target.checked); if (e.target.checked) setSort(null) }} />
+            <input type="checkbox" role="switch" className="size-4" checked={custom} onChange={(e) => { setCustom(e.target.checked); setPage(1); if (e.target.checked) setSort(null) }} />
             Custom order
           </label>
         )}
         {feat.grouping && !preview && !dragging && groupable.length > 0 && (
           <label className="flex items-center gap-2 text-xs text-body">
             Group by
-            <Select aria-label="Group by" className="h-8 w-44" value={groupBy ?? ''} onChange={(e) => setGroupChoice(e.target.value)}>
+            <Select aria-label="Group by" className="h-8 w-44" value={groupBy ?? ''} onChange={(e) => { setGroupChoice(e.target.value); setPage(1) }}>
               <option value="">No grouping</option>
               {groupable.map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}
             </Select>
           </label>
         )}
+        {!preview && (
+          <ColumnsMenu
+            columns={allColumns.map((c, i) => ({ key: c.id ?? '', label: typeof c.header === 'string' ? c.header : (c.id ?? ''), locked: i === 0 }))}
+            hidden={prefs.hidden}
+            onChange={(hidden) => setPrefs({ hidden })}
+            onReset={() => resetPrefs()}
+          />
+        )}
+        <Button variant="secondary" size="sm" aria-pressed={prefs.density === 'comfortable'} onClick={() => setPrefs({ density: prefs.density === 'comfortable' ? 'compact' : 'comfortable' })}>
+          {prefs.density === 'comfortable' ? 'Comfortable' : 'Compact'}
+        </Button>
+        {full && (
+          <Button variant="secondary" size="sm" aria-label={full.fullScreen ? 'Exit full screen' : 'Full screen'} onClick={() => full.setFullScreen(!full.fullScreen)}>
+            <Maximize2 className="size-4" aria-hidden />
+          </Button>
+        )}
       </TableToolbar>
-      {feat.statistics && !preview && rows.length > 0 && (
-        <StatsStrip table={table} query={{ q: debouncedQ, filters: keepSet(filters), ranges: keepSet(ranges), contains: keepSet(contains), anyof: keepSet(anyof) }} />
-      )}
+      </div>
       {selectable && (
         <BulkBar
           key={JSON.stringify(criteria)}
@@ -349,18 +387,19 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
         }
         reorder={
           dragging && canUpdate
-            ? { rowId: (r) => r.id, rowLabel: (r) => String(r.data[table.title_field] ?? 'row'), onMove: (id, before) => move.mutate({ id, before }), hasMore: !!list.hasNextPage }
+            ? { rowId: (r) => r.id, rowLabel: (r) => String(r.data[table.title_field] ?? 'row'), onMove: (id, before) => move.mutate({ id, before }), hasMore: false }
             : undefined
         }
         headerExtra={(id) => {
           const f = filterable.get(id)
           return f && !preview ? <HeaderFilter f={f} tableKey={tableKey} criteria={criteria} onApply={(n) => setCriteria({ ...criteria, ...n })} /> : null
         }}
-        hasMore={!!list.hasNextPage}
-        onLoadMore={() => void list.fetchNextPage()}
-        loadingMore={list.isFetchingNextPage}
+        bare
+        density={prefs.density}
         groupOf={groupField && !list.isPlaceholderData ? (r) => (groupField.type === 'reference' ? (r.refs?.[groupField.key]?.label ?? '') : String(r.data[groupField.key] ?? '')) || `No ${groupField.label.toLowerCase()}` : undefined}
       />
+      <Pagination total={total} page={Math.min(shownPage, lastPage)} pageSize={prefs.pageSize} onPage={setPage} onPageSize={(n) => { setPrefs({ pageSize: n }); setPage(1) }} noun={table.plural_label.toLowerCase()} />
+      </div>
       </>
     )
 

@@ -1,7 +1,8 @@
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from '@tanstack/react-table'
 import { ChevronDown, ChevronRight, GripVertical } from 'lucide-react'
 import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react'
-import { Button, Table, Td, Th, type SortDirection } from '@/design-system'
+import { Button, Table, Td, Th, cn, type SortDirection } from '@/design-system'
+import type { Density } from './useTablePrefs'
 
 export interface SortState {
   key: string
@@ -16,9 +17,11 @@ export function SearchableTable<T>({
   sort,
   onSort,
   sortableKeys,
-  hasMore,
+  hasMore = false,
   onLoadMore,
   loadingMore,
+  density = 'compact',
+  bare = false,
   groupOf,
   headerExtra,
   selection,
@@ -30,9 +33,14 @@ export function SearchableTable<T>({
   sort: SortState
   onSort: (key: string) => void
   sortableKeys: Set<string>
-  hasMore: boolean
-  onLoadMore: () => void
+  /** More rows can be fetched with Load more. Pages do not use this. */
+  hasMore?: boolean
+  onLoadMore?: () => void
   loadingMore?: boolean
+  /** Row height: compact (tight) or comfortable. */
+  density?: Density
+  /** Draw without its own border, because a card around it supplies one. */
+  bare?: boolean
   /** Rows arrive sorted by the grouping field; a heading row starts each group. */
   groupOf?: (row: T) => string
   /** Extra controls on a column heading, such as the filter button. */
@@ -74,6 +82,10 @@ export function SearchableTable<T>({
     reorder.onMove(id, before ? reorder.rowId(before) : null)
     setSaid(`Moved ${reorder.rowLabel(rows[from]!)} to position ${to + 1}`)
   }
+  const pad = density === 'comfortable' ? 'py-2.5' : 'py-1'
+  // Left offsets so the handle, tick-box and first column stay in view while the rest scrolls sideways.
+  const selLeft = reorder ? '2rem' : '0'
+  const firstLeft = `${(reorder ? 2 : 0) + (selection ? 2.5 : 0)}rem`
   const [closed, setClosed] = useState<Set<string>>(new Set())
   const counts = new Map<string, number>()
   if (groupOf) for (const r of rows) counts.set(groupOf(r), (counts.get(groupOf(r)) ?? 0) + 1)
@@ -88,17 +100,17 @@ export function SearchableTable<T>({
         </div>
       )}
       {reorder && <p role="status" aria-live="polite" className="sr-only">{said}</p>}
-      <Table aria-label={caption}>
+      <Table aria-label={caption} wrapperClassName={cn('max-h-[calc(100dvh-20rem)] min-h-48 overflow-y-auto', bare && 'rounded-none border-0')}>
         <thead>
           {table.getHeaderGroups().map((hg) => (
             <tr key={hg.id}>
               {reorder && (
-                <Th className="w-8">
+                <Th className="sticky top-0 left-0 z-30 w-8" style={{ left: 0 }}>
                   <span className="sr-only">Move</span>
                 </Th>
               )}
               {selection && (
-                <Th className="w-10">
+                <Th className="sticky top-0 z-30 w-10" style={{ left: selLeft }}>
                   <input
                     type="checkbox"
                     className="size-5"
@@ -114,6 +126,8 @@ export function SearchableTable<T>({
               {hg.headers.map((h) => (
                 <Th
                   key={h.id}
+                  className={cn('sticky top-0', h.index === 0 ? 'z-30' : 'z-20', pad)}
+                  style={h.index === 0 ? { left: firstLeft } : undefined}
                   sortable={sortableKeys.has(h.column.id)}
                   direction={sort.key === h.column.id ? sort.direction : null}
                   onSort={() => onSort(h.column.id)}
@@ -144,7 +158,7 @@ export function SearchableTable<T>({
                 )}
                 {!(g !== undefined && closed.has(g)) && (
                 <tr
-                  className={selection?.picked.has(selection.rowId(r.original)) ? 'bg-canvas' : 'hover:bg-canvas'}
+                  className={selection?.picked.has(selection.rowId(r.original)) ? 'bg-canvas' : 'bg-surface hover:bg-canvas'}
                   onDragOver={reorder ? (e) => e.preventDefault() : undefined}
                   onDrop={
                     reorder
@@ -158,7 +172,7 @@ export function SearchableTable<T>({
                   }
                 >
                   {reorder && (
-                    <Td className="w-8">
+                    <Td className={cn('sticky z-10 w-8 bg-inherit', pad)} style={{ left: 0 }}>
                       <button
                         type="button"
                         data-handle={reorder.rowId(r.original)}
@@ -184,7 +198,7 @@ export function SearchableTable<T>({
                     </Td>
                   )}
                   {selection && (
-                    <Td className="w-10">
+                    <Td className={cn('sticky z-10 w-10 bg-inherit', pad)} style={{ left: selLeft }}>
                       <input
                         type="checkbox"
                         className="size-5"
@@ -195,7 +209,7 @@ export function SearchableTable<T>({
                     </Td>
                   )}
                   {r.getVisibleCells().map((c) => (
-                    <Td key={c.id}>{flexRender(c.column.columnDef.cell, c.getContext())}</Td>
+                    <Td key={c.id} className={cn(pad, c.column.getIndex() === 0 && 'sticky z-10 bg-inherit')} style={c.column.getIndex() === 0 ? { left: firstLeft } : undefined}>{flexRender(c.column.columnDef.cell, c.getContext())}</Td>
                   ))}
                 </tr>
                 )}
@@ -204,7 +218,7 @@ export function SearchableTable<T>({
           })}
         </tbody>
       </Table>
-      {hasMore && (
+      {hasMore && onLoadMore && (
         <div className="flex justify-center">
           <Button onClick={onLoadMore} loading={loadingMore}>
             Load more

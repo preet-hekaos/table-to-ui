@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, Outlet, useNavigate } from '@tanstack/react-router'
 import { BarChart3, CheckCheck, ClipboardList, Home, LayoutGrid, LogOut, Maximize2, Menu, Minimize2, PanelLeftClose, PanelLeftOpen, Settings2, Bookmark, Upload, UserPlus, Users, X } from 'lucide-react'
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
-import { useDesktop, useSidebar } from './useSidebar'
+import { FullScreenContext, useDesktop, useSidebar } from './useSidebar'
 import { ApiError } from '@/api/client'
 import { app, approvals, auth } from '@/api/endpoints'
 import { preview, tokens } from '@/api/session'
@@ -217,7 +217,9 @@ export function AppShell() {
           </div>
         )}
         <main id="main" className="min-h-0 flex-1 overflow-auto p-4 md:p-6">
-          <Outlet />
+          <FullScreenContext.Provider value={{ fullScreen: side.fullScreen, setFullScreen: side.setFullScreen }}>
+            <Outlet />
+          </FullScreenContext.Provider>
         </main>
       </div>
     </div>
