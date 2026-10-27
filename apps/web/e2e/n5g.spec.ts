@@ -42,8 +42,8 @@ test('Numbers above the table follow the search; chosen in Studio; switch off', 
   await test.step('Choose the fields in Studio', async () => {
     await page.goto('/studio?tab=data&table=candidate&part=features')
     const panel = page.getByTestId('features-panel')
-    await panel.getByRole('checkbox', { name: /Choose for me/ }).uncheck()
-    await panel.getByRole('checkbox', { name: 'Expected CTC', exact: true }).check()
+    for (const f of ['Notice period (days)', 'Total experience', 'Current CTC']) await panel.getByRole('checkbox', { name: `Summarise ${f}` }).uncheck()
+    await panel.getByRole('checkbox', { name: 'Summarise Expected CTC' }).check()
     await panel.getByRole('button', { name: 'Save features' }).click()
     await expect(page.getByText('Saved features for Candidate').first()).toBeVisible()
   })

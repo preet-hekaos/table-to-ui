@@ -39,7 +39,7 @@ export function Chip({
         className={cn(
           'inline-flex h-7 items-center gap-1 rounded-full border px-2.5 text-xs font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
           checked ? 'border-accent/40 bg-accent-soft text-accent-ink' : 'border-line bg-surface text-body hover:bg-soft',
-          disabled && 'cursor-not-allowed opacity-60 hover:bg-surface',
+          disabled && 'cursor-not-allowed border-dashed bg-canvas text-muted hover:bg-canvas',
           className,
         )}
       >

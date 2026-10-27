@@ -74,3 +74,19 @@ async def test_a_field_left_out_of_bulk_change_is_refused_by_the_server(
         json={"action": "update", "ids": [rid], "field": "current_title", "value": "Lead"},
     )
     assert other.status_code == 200, other.text
+
+
+async def test_filtering_can_be_off_while_sorting_stays_on(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    await _one(agency)
+    ok = await client.get("/v1/records/candidate?in.status=Active", headers=agency.h())
+    assert ok.status_code == 200, ok.text
+    assert (await _put(client, agency, {"filterable": False})).status_code == 200
+    await agency.publish_live()
+    refused = await client.get("/v1/records/candidate?in.status=Active", headers=agency.h())
+    assert refused.status_code == 422
+    still = await client.get(
+        "/v1/records/candidate?sort=full_name&direction=asc", headers=agency.h()
+    )
+    assert still.status_code == 200, still.text
