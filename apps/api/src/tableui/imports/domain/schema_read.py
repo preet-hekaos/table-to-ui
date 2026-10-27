@@ -24,6 +24,8 @@ MAX_COLUMNS = 200
 MAX_OPTIONS = 25
 SAMPLE_ROWS = 1000
 MAX_STATEMENTS = 2000
+MAX_MATCH_ROWS = 50_000
+MATCH_SHARE = 0.9  # how much of a column must appear in the other table's column
 RESERVED = {
     "id", "tenant_id", "version", "data", "owner_id", "owner", "search_doc",
     "created_at", "updated_at", "created_by", "updated_by",
@@ -129,6 +131,7 @@ def _from_grid(name: str, header: list[str], rows: list[list[str]], source: str)
         header = header[:MAX_COLUMNS]
     taken: set[str] = set()
     fields = []
+    seen: dict[str, set[str]] = {}
     sample = rows[:SAMPLE_ROWS]
     for i, h in enumerate(header):
         if h.strip().lower() == "id":
@@ -146,9 +149,12 @@ def _from_grid(name: str, header: list[str], rows: list[list[str]], source: str)
             if share < 0.5 and len(sample) >= 20:
                 warnings.append(f"Column {h} is mostly empty.")
         fields.append(_field(h, ftype, taken, options=options))
+        seen[fields[-1]["key"]] = _norm_set(r[i] for r in rows[:MAX_MATCH_ROWS] if i < len(r))
     if not fields:
         raise SchemaError(f"{source} has no usable columns.")
-    return _table(name, source, fields, len(rows), warnings)
+    t = _table(name, source, fields, len(rows), warnings)
+    t["_values"] = seen
+    return t
 
 
 def read_csv(name: str, data: bytes) -> list[dict[str, Any]]:
@@ -257,6 +263,7 @@ def _from_objects(label: str, items: list[dict[str, Any]], source: str) -> dict[
             cols.setdefault(str(k), []).append(v)
     taken: set[str] = set()
     fields = []
+    values_seen: dict[str, set[str]] = {}
     for k, vals in list(cols.items())[:MAX_COLUMNS]:
         present = [v for v in vals if v is not None]
         if k.lower() == "id":
@@ -283,9 +290,18 @@ def _from_objects(label: str, items: list[dict[str, Any]], source: str) -> dict[
         options = sorted({str(v) for v in present})[:MAX_OPTIONS] if ftype == "select" else None
         required = len(present) == len(items[:SAMPLE_ROWS]) and bool(present)
         fields.append(_field(_title(k), ftype, taken, required=required, options=options))
+        values_seen[fields[-1]["key"]] = _norm_set(
+            str(v) for v in vals[:MAX_MATCH_ROWS] if v is not None
+        )
     if not fields:
         raise SchemaError(f"{source} has no usable keys.")
-    return _table(label, source, fields, len(items), warnings)
+    t = _table(label, source, fields, len(items), warnings)
+    t["_values"] = values_seen
+    return t
+
+
+def _norm_set(values: Any) -> set[str]:
+    return {" ".join(str(v).split()).casefold() for v in values if v is not None and str(v).strip()}
 
 
 def _schema_fields(
@@ -558,6 +574,51 @@ def read_schema(filename: str, content_type: str, data: bytes) -> list[dict[str,
     )
 
 
+def detect_value_links(tables: list[dict[str, Any]]) -> None:
+    """A column whose values (almost) all appear in another table's unique text column is a link to
+    that table, even when its name says nothing (a Client column holding client names).
+    Only text-like columns are compared, never numbers, so two columns of 1, 2, 3 do not link."""
+    keys: list[tuple[dict[str, Any], dict[str, Any], set[str]]] = []
+    for t in tables:
+        vals = t.get("_values") or {}
+        for f in t["fields"]:
+            v = vals.get(f["key"]) or set()
+            if f["type"] != "text" or len(v) < 2 or all(x.replace(" ", "").isdigit() for x in v):
+                continue
+            # unique: every non-empty row holds a different value
+            if len(v) == t["rows"] or (t["rows"] <= MAX_MATCH_ROWS and len(v) >= t["rows"] * 0.98):
+                keys.append((t, f, v))
+    unique = {(t["key"], f["key"]) for t, f, _ in keys}  # a unique column is a key, not a link
+    for t in tables:
+        vals = t.get("_values") or {}
+        for f in t["fields"]:
+            mine = vals.get(f["key"]) or set()
+            if (
+                (t["key"], f["key"]) in unique
+                or f["link"]
+                or f["type"] not in {"text", "select"}
+                or len(mine) < 2
+            ):
+                continue
+            best: tuple[float, dict[str, Any], dict[str, Any]] | None = None
+            tied = False
+            for kt, kf, kv in keys:
+                if kt is t:
+                    continue
+                share = len(mine & kv) / len(mine)
+                if share < MATCH_SHARE:
+                    continue
+                if best is None or share > best[0]:
+                    best, tied = (share, kt, kf), False
+                elif share == best[0]:
+                    tied = True
+            if best is None or tied:
+                continue
+            _, kt, kf = best
+            f["link"] = {"to": kt["key"], "reason": f"values match {kt['label']} {kf['label']}"}
+            f["type"], f["options"] = "text", []
+
+
 def combine(tables: list[dict[str, Any]], existing: set[str]) -> list[dict[str, Any]]:
     """Give every proposed table a key no one else uses; say when a name was already taken."""
     if len(tables) > MAX_TABLES:
@@ -578,6 +639,9 @@ def combine(tables: list[dict[str, Any]], existing: set[str]) -> list[dict[str, 
             t["label"] = f"{t['label']} {n - 1}"
             t["plural_label"] = _plural(t["label"])
     detect_links(tables)
+    detect_value_links(tables)
+    for t in tables:
+        t.pop("_values", None)
     keys = {t["key"] for t in tables} | existing
     for t in tables:
         for f in t["fields"]:
