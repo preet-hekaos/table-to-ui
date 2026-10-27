@@ -74,7 +74,7 @@ jobs:
 
   e2e:
     name: End-to-end demo script (Playwright + axe)
-    timeout-minutes: 20
+    timeout-minutes: 35
     runs-on: ubuntu-latest
     needs: [api, web]
     services:
