@@ -14,7 +14,7 @@ import {
   type NodeChange,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { FileUp, Plus, Search } from 'lucide-react'
+import { FileDown, FileUp, Plus, Search } from 'lucide-react'
 import { useCallback, useMemo, useState, type FormEvent } from 'react'
 import type { ApiError } from '@/api/client'
 import { studio, type Link } from '@/api/endpoints'
@@ -27,6 +27,7 @@ import { TableDrawer } from './canvas/TableDrawer'
 import { layeredLayout } from './canvas/layout'
 import { useDraftTables } from './useDraftTables'
 import { NewTableDialog } from './FieldDialog'
+import { SchemaExportDialog } from './SchemaExportDialog'
 import { SchemaImportDialog } from './SchemaImportDialog'
 import { AddLink, AddMany, EditLink, LinkHealth } from './RelationshipsTab'
 
@@ -124,7 +125,7 @@ function Canvas({
   const [find, setFind] = useState('')
   const [findMessage, setFindMessage] = useState('')
   const [linkDraft, setLinkDraft] = useState<{ table: string; to: string } | null>(null)
-  const [adding, setAdding] = useState<'link' | 'many' | 'table' | 'schema' | null>(null)
+  const [adding, setAdding] = useState<'link' | 'many' | 'table' | 'schema' | 'export' | null>(null)
   const [editing, setEditing] = useState<Link | null>(null)
 
   const merged = useMemo(() => mergeLinks(list), [list])
@@ -258,6 +259,9 @@ function Canvas({
           <datalist id="canvas-tables">{all.map((t) => <option key={t.key} value={t.label} />)}</datalist>
           <Button size="sm" variant="secondary" type="submit" aria-label="Go to table"><Search className="size-4" aria-hidden /></Button>
         </form>
+        <Button size="sm" variant="secondary" onClick={() => setAdding('export')}>
+          <FileDown className="size-4" aria-hidden /> Export schema
+        </Button>
         {canEdit && (
           <>
             <Button size="sm" variant="secondary" onClick={() => setAdding('table')}>
@@ -377,6 +381,7 @@ function Canvas({
         />
       )}
       {adding === 'schema' && <SchemaImportDialog open onOpenChange={(o) => !o && setAdding(null)} />}
+      {adding === 'export' && <SchemaExportDialog open onOpenChange={(o) => !o && setAdding(null)} tables={all.map((t) => ({ key: t.key, label: t.label }))} />}
       {editing && <EditLink link={editing} onClose={() => setEditing(null)} />}
     </div>
   )

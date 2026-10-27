@@ -2175,6 +2175,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/studio/schema-import/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export
+         * @description The Draft's tables, fields and links as one file. Nothing is changed.
+         */
+        get: operations["export_v1_studio_schema_import_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/studio/schema-import/preview": {
         parameters: {
             query?: never;
@@ -7848,6 +7868,38 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_v1_studio_schema_import_export_get: {
+        parameters: {
+            query?: {
+                format?: string;
+                tables?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
