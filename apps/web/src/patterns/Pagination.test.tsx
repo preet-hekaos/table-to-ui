@@ -38,10 +38,10 @@ describe('Pagination', () => {
 describe('table preferences', () => {
   it('fall back to defaults and ignore bad saved values', () => {
     localStorage.clear()
-    expect(readPrefs('t')).toEqual({ density: 'compact', hidden: [], pageSize: 25 })
+    expect(readPrefs('t')).toEqual({ density: null, hidden: [], added: [], pageSize: 25 })
     localStorage.setItem('tableui.table.t', JSON.stringify({ density: 'weird', hidden: ['a', 3], pageSize: 7 }))
-    expect(readPrefs('t')).toEqual({ density: 'compact', hidden: ['a'], pageSize: 25 })
+    expect(readPrefs('t')).toEqual({ density: null, hidden: ['a'], added: [], pageSize: 25 })
     localStorage.setItem('tableui.table.t', '{not json')
-    expect(readPrefs('t').density).toBe('compact')
+    expect(readPrefs('t').density).toBeNull()
   })
 })
