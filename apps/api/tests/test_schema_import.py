@@ -318,3 +318,64 @@ async def test_the_awkward_samples_read_and_rename_clashes(
     assert any("nested" in w for w in tables["orders"]["warnings"])
     link = next(f for f in tables["orders"]["fields"] if f["key"] == "customer_id")["link"]
     assert link["to"] == "customers"
+
+
+# ---- links from matching values (N6b) -----------------------------------------------------------
+
+
+def _csv(*lines: str) -> bytes:
+    return ("\n".join(lines) + "\n").encode()
+
+
+def _combined(files: dict[str, bytes]) -> dict[str, dict[str, Any]]:
+    tables: list[dict[str, Any]] = []
+    for name, data in files.items():
+        tables += sr.read_schema(name, "", data)
+    return {t["key"]: t for t in sr.combine(tables, set())}
+
+
+def test_a_column_of_names_links_to_the_table_that_holds_them() -> None:
+    out = _combined(
+        {
+            "clients.csv": _csv(
+                "Client name,City", "Acme Ltd,Pune", "Birla Co,Delhi", "Cobra Inc,Noida"
+            ),
+            "jobs.csv": _csv(
+                "Job title,Company",
+                "Analyst,Acme Ltd",
+                "Tester,acme ltd",
+                "Lead,Birla Co",
+                "Dev,Cobra Inc",
+            ),
+        }
+    )
+    company = _fields(out["jobs"])["company"]
+    assert company["link"] == {"to": "clients", "reason": "values match Clients Client name"}
+    assert company["type"] == "text" and company["options"] == []
+    assert "_values" not in out["jobs"] and "_values" not in out["clients"]
+    json.dumps(out)  # the preview is plain data
+
+
+def test_numbers_unique_columns_and_partial_matches_do_not_link() -> None:
+    out = _combined(
+        {
+            "a.csv": _csv("Code,Name", "100,Alpha", "200,Beta", "300,Gamma"),
+            "b.csv": _csv("Ref,Same name", "100,Alpha", "200,Beta", "300,Gamma"),
+            "c.csv": _csv("Task,Assignee", "T1,Alpha", "T2,Zed", "T3,Yan", "T4,Xi"),
+        }
+    )
+    assert all(
+        f["link"] is None for f in out["b"]["fields"]
+    )  # numbers; and the names are unique too
+    assert _fields(out["c"])["assignee"]["link"] is None  # one match in four
+
+
+def test_ties_are_left_for_the_person() -> None:
+    out = _combined(
+        {
+            "x.csv": _csv("Name", "Ann", "Bob", "Cy"),
+            "y.csv": _csv("Name", "Ann", "Bob", "Cy"),
+            "z.csv": _csv("Task,Who", "1,Ann", "2,Bob", "3,Ann", "4,Cy"),
+        }
+    )
+    assert _fields(out["z"])["who"]["link"] is None
