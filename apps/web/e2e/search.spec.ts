@@ -25,6 +25,7 @@ test('Search, facets, saved searches, command bar and ranked matches', async ({ 
 
   await test.step('S23. Facets narrow the list with counts', async () => {
     await page.goto('/s/candidates')
+    await page.getByRole('button', { name: 'Filters' }).click()
     const facets = page.getByTestId('facets')
     await expect(facets.getByRole('button', { name: /^Java\s*2$/ })).toBeVisible()
     await facets.getByRole('button', { name: /^Java/ }).click()

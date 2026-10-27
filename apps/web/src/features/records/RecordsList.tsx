@@ -449,7 +449,7 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
           </div>
         ))}
         {facetFields.length > 0 && (
-          <Button variant="secondary" className="lg:hidden" aria-expanded={showFacets} onClick={() => setShowFacets((v) => !v)}>
+          <Button variant="secondary" aria-expanded={showFacets} onClick={() => setShowFacets((v) => !v)}>
             <SlidersHorizontal className="size-4" aria-hidden /> Filters
           </Button>
         )}
@@ -469,9 +469,10 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
           ))}
         </div>
       )}
-      {facetFields.length > 0 ? (
+      {facetFields.length > 0 && showFacets ? (
+        // The counts panel is opt-in: the table is the page, and the panel opens beside it on request.
         <div className="grid gap-4 lg:grid-cols-[14rem_1fr]">
-          <aside className={cn(showFacets ? 'block' : 'hidden', 'lg:block')} data-testid="facets">
+          <aside data-testid="facets">
             <Facets tableKey={tableKey} fields={facetFields} criteria={criteria} set={setCriteria} />
           </aside>
           <div className="min-w-0">{body}</div>

@@ -71,6 +71,7 @@ test('capture M1 screens', async ({ page }) => {
   await page.screenshot({ path: out('2.16-versions'), fullPage: true })
 
   await page.goto('/s/candidates')
+  await page.getByRole('button', { name: 'Filters' }).click()
   await expect(page.getByTestId('facets')).toBeVisible()
   await page.screenshot({ path: out('3.4-candidate-search') })
   await page.goto(`/records/candidate/${ids[0]}`)
