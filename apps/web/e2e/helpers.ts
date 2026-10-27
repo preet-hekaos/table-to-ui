@@ -61,6 +61,11 @@ export async function openTables(page: Page) {
 
 /** Run one of the schema actions from the Studio "More" menu. */
 export async function schemaAction(page: Page, name: 'Import schema' | 'Export schema') {
-  await page.getByRole('button', { name: 'More table actions' }).click()
-  await page.getByRole('menuitem', { name }).click()
+  const more = page.getByRole('button', { name: 'More table actions' })
+  if (await more.count()) {
+    await more.click()
+    await page.getByRole('menuitem', { name }).click()
+  } else {
+    await page.getByRole('button', { name }).click() // the Canvas tab keeps its own buttons
+  }
 }
