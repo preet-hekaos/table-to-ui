@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- test helper returns untyped API JSON */
 import { expect, test, type Browser, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { PASSWORD, run, signUpWithPack } from './helpers'
+import { PASSWORD, run, signUpWithPack, openSection } from './helpers'
 import { totp } from './totp'
 
 const shot = async (page: Page, name: string) => {
@@ -234,7 +234,7 @@ test('M2 demo: pipeline, guard rules, approvals, duplicates', async ({ browser }
 
   await test.step('12. The Studio shows the pack version with its new rules', async () => {
     await ananya.goto('/studio')
-    await ananya.getByRole('tab', { name: 'Versions' }).click()
+    await openSection(ananya, 'Versions')
     await expect(ananya.getByTestId('release-v1')).toBeVisible()
   })
 

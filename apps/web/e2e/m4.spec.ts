@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- test helper returns untyped API JSON */
 import { expect, test, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { run, signUpWithPack } from './helpers'
+import { run, signUpWithPack, expectSection } from './helpers'
 
 const shot = async (page: Page, name: string) => {
   if (process.env.SCREENSHOTS) await page.screenshot({ path: `../../docs/screens/m4/${name}.png`, fullPage: true })
@@ -32,7 +32,7 @@ test('M4 demo: automation, notifications and guided start', async ({ page }) => 
 
   await test.step('1. The Studio lists the five starter automations in plain sentences', async () => {
     await page.goto('/studio?tab=automations')
-    await expect(page.getByRole('tab', { name: 'Automations' })).toHaveAttribute('aria-selected', 'true')
+    await expectSection(page, 'Automations')
     const list = page.getByRole('list', { name: 'Automations' })
     await expect(list.getByRole('listitem')).toHaveCount(5)
     await expect(page.getByTestId('automation-row-screening_task_new_candidate')).toContainText('When a candidate is added')

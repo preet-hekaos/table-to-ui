@@ -25,6 +25,7 @@ export function DataTab({
   defaultTable,
   part = 'fields',
   onPart,
+  lead,
 }: {
   selected?: string
   onSelect: (k: string) => void
@@ -32,6 +33,8 @@ export function DataTab({
   defaultTable?: string
   part?: TablePart
   onPart: (p: TablePart) => void
+  /** The Studio section switcher, which opens the toolbar. */
+  lead?: React.ReactNode
 }) {
   const tables = useDraftTables()
   const [editing, setEditing] = useState<FieldDef | 'new' | null>(null)
@@ -50,6 +53,8 @@ export function DataTab({
           <Tabs value={part} onValueChange={(v) => onPart(v as TablePart)}>
           <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
             <h2 className="sr-only">{current.label}</h2>
+            {lead}
+            <span className="text-muted" aria-hidden>/</span>
             <TablePicker
               items={all.map((t) => ({ key: t.key, label: t.label, fields: t.fields.length, stage: stages.of('tables', t.key) ?? undefined }))}
               current={{ key: current.key, label: current.label, fields: current.fields.length, stage: stages.of('tables', current.key) ?? undefined }}
@@ -58,15 +63,18 @@ export function DataTab({
             {origin(current.source)}
             {stages.of('tables', current.key) && <StageBadge stage={stages.of('tables', current.key)!} isNew={stages.isNew('tables', current.key)} />}
             <Badge>{current.fields.length} fields</Badge>
-            <div className="ml-auto">
+            <div className="ml-auto flex flex-wrap items-center gap-3">
+              <TabsList aria-label={`${current.label} parts`} className="gap-0.5 overflow-visible rounded-lg border border-line bg-soft p-0.5">
+                {(['fields', 'screens', 'features'] as const).map((v) => (
+                  <TabsTrigger key={v} value={v} className="m-0 rounded-md border-0 px-3 py-1 capitalize text-body hover:bg-surface data-[state=active]:bg-surface data-[state=active]:shadow-sm">
+                    {v}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              <span className="h-6 w-px bg-line" aria-hidden />
               <TableActions canEdit={canEdit} onNew={() => setNewTable(true)} onImport={() => setImporting(true)} onExport={() => setExporting(true)} />
             </div>
           </div>
-          <TabsList aria-label={`${current.label} parts`} className="px-3">
-            <TabsTrigger value="fields">Fields</TabsTrigger>
-            <TabsTrigger value="screens">Screens</TabsTrigger>
-            <TabsTrigger value="features">Features</TabsTrigger>
-          </TabsList>
           <TabsContent value="fields">
           {canEdit && (
             <div className="flex justify-end px-3 pt-3">

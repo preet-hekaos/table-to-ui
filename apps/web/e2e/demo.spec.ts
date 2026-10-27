@@ -1,3 +1,4 @@
+import { openSection } from './helpers'
 import { expect, test, type Browser, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { totp } from './totp'
@@ -95,7 +96,7 @@ test('M0 demo script', async ({ browser }) => {
   })
 
   await test.step('5. Choosing the pack already published v1 Live; the version list shows its manifest', async () => {
-    await a.page.getByRole('tab', { name: 'Versions' }).click()
+    await openSection(a.page, 'Versions')
     const v1 = a.page.getByTestId('release-v1')
     await expect(v1).toContainText('Live')
     await v1.getByText('Manifest', { exact: true }).click()

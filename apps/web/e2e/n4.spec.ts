@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import path from 'node:path'
-import { openTables, run, schemaAction, signUpWithPack } from './helpers'
+import { openTables, run, schemaAction, signUpWithPack, openSection } from './helpers'
 
 const samples = path.resolve(process.cwd(), '../../samples/schema')
 const tags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
@@ -41,7 +41,7 @@ test('Import a schema from a SQL file: preview first, then Draft tables', async 
     await nav.getByRole('button', { name: /Jobs/ }).click()
     await expect(page.getByText('Link to another table').first()).toBeVisible()
     await expect(page.getByText('Number with decimals').first()).toBeVisible()
-    await page.getByRole('tab', { name: 'Canvas' }).click()
+    await openSection(page, 'Canvas')
     await expect(page.getByTestId('box-jobs')).toBeVisible()
     await expect(page.getByTestId('box-clients')).toBeVisible()
   })
