@@ -50,6 +50,10 @@ export interface RecordRow {
 export interface RecordPage {
   items: RecordRow[]
   next_cursor: string | null
+  /** Only on numbered pages. */
+  total?: number
+  page?: number
+  page_size?: number
 }
 export interface RuleOutcome {
   rule: string

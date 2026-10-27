@@ -84,6 +84,8 @@ async def list_(
     cursor: str | None = None,
     limit: int = 50,
     q: str | None = None,
+    page: int | None = None,
+    page_size: int = 25,
 ) -> dict[str, Any]:
     return await records.list_records(
         db,
@@ -95,6 +97,8 @@ async def list_(
         cursor=cursor,
         limit=limit,
         q=q,
+        page=page,
+        page_size=page_size,
         **_query_parts(request),
     )
 

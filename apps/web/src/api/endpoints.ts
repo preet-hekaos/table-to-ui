@@ -261,6 +261,9 @@ export interface ListQuery {
   direction?: string
   cursor?: string | null
   limit?: number
+  /** Ask for a numbered page (1 on) instead of cursor paging; the answer then carries the total. */
+  page?: number
+  page_size?: number
   q?: string
   filters?: Record<string, string>
   ranges?: Record<string, string>

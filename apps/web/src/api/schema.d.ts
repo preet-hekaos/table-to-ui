@@ -6738,6 +6738,8 @@ export interface operations {
                 cursor?: string | null;
                 limit?: number;
                 q?: string | null;
+                page?: number | null;
+                page_size?: number;
             };
             header?: never;
             path: {

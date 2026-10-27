@@ -274,7 +274,11 @@ async def list_records(
     contains: dict[str, str] | None = None,
     anyof: dict[str, str] | None = None,
     ids: list[uuid.UUID] | None = None,
+    page: int | None = None,
+    page_size: int = 25,
 ) -> dict[str, Any]:
+    """One page of records. With ``page`` set the answer is a numbered page and carries ``total``;
+    otherwise it pages by cursor as before."""
     principal.require(f"record.{table_key}.read")
     table = app.table(table_key)
     if direction not in ("asc", "desc"):
@@ -299,26 +303,49 @@ async def list_records(
     if ids is not None:
         conds.append("id = ANY(CAST(:only_ids AS uuid[]))")
         params["only_ids"] = ids
-    if cursor:
+    numbered = page is not None
+    total: int | None = None
+    number = 0
+    if page is not None:
+        size = max(1, min(page_size, MAX_PAGE))
+        where_all = f"WHERE {' AND '.join(conds)}" if conds else ""
+        count_sql = f'SELECT count(*) FROM "{table_key}" {where_all}'  # noqa: S608 - identifiers are validated metadata keys
+        async with db.tenant(principal.tenant_id) as s:
+            total = int((await s.execute(text(count_sql), params)).scalar_one())
+        last_page = max(1, -(-total // size))
+        number = max(1, min(page, last_page))
+        limit = size
+        params["lim"] = size
+        params["off"] = (number - 1) * size
+    elif cursor:
         value, rid = _decode(cursor)
         conds.append(f"({expr}, id) {op} (CAST(:cv AS {sql_type}), CAST(:cid AS uuid))")
         params |= {"cv": value, "cid": rid}
     where = f"WHERE {' AND '.join(conds)}" if conds else ""
+    offset = " OFFSET :off" if numbered else ""
     sql = (
         f'SELECT id, version, data, owner_id, created_at, updated_at, {expr} AS sort_value FROM "{table_key}" '  # noqa: S608 - identifiers are validated metadata keys
-        f"{where} ORDER BY {expr} {direction}, id {direction} LIMIT :lim"
+        f"{where} ORDER BY {expr} {direction}, id {direction} LIMIT :lim{offset}"
     )
     async with db.tenant(principal.tenant_id) as s:
         rows = (await s.execute(text(sql), params)).all()
-    page = rows[:limit]
-    items = [_row(table, r, principal) for r in page]
+    page_rows = rows[:limit]
+    items = [_row(table, r, principal) for r in page_rows]
     async with db.tenant(principal.tenant_id) as s:
         await _attach_refs(s, app, table, items)
         await _attach_counts(s, table, items)
-    await _attach_owners(db, items, {str(r.id): r.owner_id for r in page})
+    await _attach_owners(db, items, {str(r.id): r.owner_id for r in page_rows})
+    if numbered:
+        return {
+            "items": items,
+            "next_cursor": None,
+            "total": total,
+            "page": number,
+            "page_size": limit,
+        }
     next_cursor = None
-    if len(rows) > limit and page:
-        last = page[-1]
+    if len(rows) > limit and page_rows:
+        last = page_rows[-1]
         v = last.sort_value
         next_cursor = _encode(
             v.isoformat()

@@ -40,3 +40,4 @@
 | [36](0036-links-from-matching-values.md) | Links from matching values |
 | [37](0037-schema-from-documents.md) | Schema from a document (PDF, Word, text), read by AI |
 | [38](0038-collapsible-sidebar.md) | Collapsible sidebar: full, icon rail or hidden; Ctrl+B; full screen |
+| [39](0039-table-card-and-numbered-pages.md) | Table card: numbered pages, columns menu, density, sticky columns |

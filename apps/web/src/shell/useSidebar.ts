@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { createContext, useCallback, useEffect, useState } from 'react'
 
 /** How much of the left menu shows: full, an icon rail, or nothing. */
 export type SidebarState = 'expanded' | 'collapsed' | 'hidden'
@@ -68,3 +68,6 @@ export function useSidebar() {
   }, [step, fullScreen])
   return { state, choose, step, fullScreen, setFullScreen }
 }
+
+/** Lets a page ask the shell for full screen (a table that wants the whole width). Null outside the shell. */
+export const FullScreenContext = createContext<{ fullScreen: boolean; setFullScreen: (on: boolean) => void } | null>(null)
