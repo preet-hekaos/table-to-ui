@@ -87,6 +87,20 @@
         "title": "Body_preview_v1_studio_schema_import_preview_post",
         "type": "object"
       },
+      "Body_schema_from_document_v1_ai_schema_from_document_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_schema_from_document_v1_ai_schema_from_document_post",
+        "type": "object"
+      },
       "Body_upload_v1_files_post": {
         "properties": {
           "file": {
@@ -1991,6 +2005,50 @@
           }
         },
         "summary": "Extract",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/v1/ai/schema-from-document": {
+      "post": {
+        "description": "Read a PDF, Word or text file and propose tables as a JSON Schema. Nothing is saved: the\nschema goes through the Import schema preview, where the person checks it.",
+        "operationId": "schema_from_document_v1_ai_schema_from_document_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_schema_from_document_v1_ai_schema_from_document_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Schema From Document V1 Ai Schema From Document Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Schema From Document",
         "tags": [
           "ai"
         ]

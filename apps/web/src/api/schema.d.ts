@@ -143,6 +143,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/ai/schema-from-document": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Schema From Document
+         * @description Read a PDF, Word or text file and propose tables as a JSON Schema. Nothing is saved: the
+         *     schema goes through the Import schema preview, where the person checks it.
+         */
+        post: operations["schema_from_document_v1_ai_schema_from_document_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/ai/settings": {
         parameters: {
             query?: never;
@@ -2765,6 +2786,11 @@ export interface components {
             /** Files */
             files: string[];
         };
+        /** Body_schema_from_document_v1_ai_schema_from_document_post */
+        Body_schema_from_document_v1_ai_schema_from_document_post: {
+            /** File */
+            file: string;
+        };
         /** Body_upload_v1_files_post */
         Body_upload_v1_files_post: {
             /** File */
@@ -3673,6 +3699,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ExtractBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    schema_from_document_v1_ai_schema_from_document_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_schema_from_document_v1_ai_schema_from_document_post"];
             };
         };
         responses: {

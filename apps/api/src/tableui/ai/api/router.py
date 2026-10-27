@@ -1,10 +1,10 @@
 import uuid
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, File, Request, UploadFile
 from pydantic import BaseModel
 
-from tableui.ai.application import features, gateway, setup
+from tableui.ai.application import features, gateway, schema_doc, setup
 from tableui.ai.application import settings as store
 from tableui.identity.api.deps import PrincipalDep
 from tableui.metadata.api.deps import LiveAppDep
@@ -259,3 +259,21 @@ async def setup_undo(
 async def setup_discard(plan_id: uuid.UUID, p: PrincipalDep, db: DbDep) -> None:
     p.require("ai.setup")
     await setup.discard(db, p, plan_id)
+
+
+@router.post("/schema-from-document")
+async def schema_from_document(
+    req: Request,
+    p: PrincipalDep,
+    db: DbDep,
+    an: AnalyticsDep,
+    s: SettingsDep,
+    file: Annotated[UploadFile, File()],
+) -> dict[str, Any]:
+    """Read a PDF, Word or text file and propose tables as a JSON Schema. Nothing is saved: the
+    schema goes through the Import schema preview, where the person checks it."""
+    p.require("metadata.write")
+    data = await file.read(schema_doc.MAX_BYTES + 1)
+    return await schema_doc.propose(
+        await _ctx(req, p, db, an, s), p, file.filename or "document", data
+    )
