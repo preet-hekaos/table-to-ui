@@ -114,7 +114,9 @@ async def test_wrong_kind_of_filter_for_a_field_is_refused(
     h = agency.h()
     for params in (
         {"c.total_experience": "2"},
-        {"in.full_name": "a"},
+        {
+            "in.total_experience": "a"
+        },  # a list of values is for text and choice columns, not numbers
         {"c.nope": "a"},
         {"r.full_name": "1..2"},
     ):

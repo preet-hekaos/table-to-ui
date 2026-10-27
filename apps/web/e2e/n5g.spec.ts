@@ -32,7 +32,9 @@ test('Numbers above the table follow the search; chosen in Studio; switch off', 
 
   await test.step('A filter changes the numbers', async () => {
     await page.getByRole('button', { name: /Filter Status/i }).click()
-    await page.getByRole('checkbox', { name: 'Placed' }).check()
+    const menu = page.getByRole('dialog', { name: /^Filter / })
+    await menu.getByRole('checkbox', { name: /^Select all/ }).uncheck() // everything starts ticked; clear, then pick the one
+    await menu.getByRole('checkbox', { name: /^Placed/ }).check()
     await page.getByRole('button', { name: 'Apply' }).click()
     await expect(strip.locator('div').first()).toContainText('1')
   })

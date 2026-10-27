@@ -183,6 +183,8 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
   const [groupChoice, setGroupChoice] = useState<string | null>(null)
   const [picked, setPicked] = useState<Set<string>>(new Set())
   const [exporting, setExporting] = useState<{ ids: string[] | null } | null>(null)
+  // Names for the ids in filter chips (a person's name rather than a code), learned from the value lists.
+  const [labels, setLabels] = useState<Record<string, string>>({})
   const { prefs, update: setPrefs, reset: resetPrefs } = useTablePrefs(tableKey)
   const full = useContext(FullScreenContext)
   const [page, setPage] = useState(() => (preview ? 1 : Math.max(1, Number(new URLSearchParams(window.location.search).get('page')) || 1)))
@@ -277,7 +279,7 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
   type Slot = 'filters' | 'ranges' | 'contains' | 'anyof'
   const chipFor = (slot: Slot, k: string, v: string) => {
     const f = table.fields.find((x) => x.key === k)
-    return { k, slot, label: (f && describe(f, criteria)) || `${f?.label ?? k}: ${v}` }
+    return { k, slot, label: (f && describe(f, criteria, labels)) || `${f?.label ?? k}: ${v}` }
   }
   const chips = (['filters', 'ranges', 'contains', 'anyof'] as Slot[]).flatMap((slot) =>
     Object.entries(criteria[slot]).filter(([, v]) => v).map(([k, v]) => chipFor(slot, k, v)),
@@ -392,7 +394,19 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
         }
         headerExtra={(id) => {
           const f = filterable.get(id)
-          return f && !preview ? <HeaderFilter f={f} tableKey={tableKey} criteria={criteria} onApply={(n) => setCriteria({ ...criteria, ...n })} /> : null
+          return f && !preview ? (
+            <HeaderFilter
+              f={f}
+              tableKey={tableKey}
+              q={debouncedQ}
+              criteria={criteria}
+              onApply={(n, names) => {
+                if (names) setLabels((cur) => ({ ...cur, ...names }))
+                setCriteria({ ...criteria, ...n })
+              }}
+              sort={sortable.has(id) ? { direction: sortState.key === id ? sortState.direction : null, onSort: (direction) => { setCustom(false); setPage(1); setSort({ key: id, direction }) } } : undefined}
+            />
+          ) : null
         }}
         bare
         density={prefs.density}

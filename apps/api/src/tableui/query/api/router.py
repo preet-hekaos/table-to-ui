@@ -55,6 +55,24 @@ async def facets(
     )
 
 
+@router.get("/{table}/values/{field}")
+async def values(
+    table: str,
+    field: str,
+    p: PrincipalDep,
+    app: LiveAppDep,
+    db: DbDep,
+    request: Request,
+    q: str | None = None,
+    search: str | None = None,
+    limit: int = 200,
+) -> dict[str, Any]:
+    """The distinct values of one column with counts, for the Excel-style column filter."""
+    return await records.field_values(
+        db, p, app, table, field, search=search, limit=limit, q=q, **_query_parts(request)
+    )
+
+
 @router.get("/{table}/stats")
 async def stats(
     table: str,

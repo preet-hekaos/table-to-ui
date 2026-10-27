@@ -290,6 +290,7 @@ export interface BulkUndo { kind: 'update' | 'delete'; ids: string[] }
 export interface BulkBody { action: 'update' | 'delete' | 'undo'; ids?: string[]; matching?: BulkMatching; field?: string; value?: unknown; undo?: BulkUndo }
 export interface BulkResult { applied: number; failed: { id: string; message: string; code: string }[]; undo: BulkUndo | null }
 export interface Facet { label: string; kind: 'values' | 'range'; values: { value: string; label: string; count: number }[] }
+export interface ValueList { field: string; label: string; kind: string; values: { value: string; label: string; count: number }[]; truncated: boolean }
 export interface ScreenDef { key: string; title: string; pattern: string; table: string; config: Record<string, unknown>; roles: string[] }
 export interface SavedSearch { id: string; table: string; name: string; query: { q?: string; filters?: Record<string, string>; ranges?: Record<string, string>; contains?: Record<string, string>; anyof?: Record<string, string>; screen?: string | null } }
 export interface MatchPart { label: string; weight: number; fraction: number; points: number; why: string }
@@ -333,6 +334,23 @@ export const app = {
         q,
         owner,
         fields: fields?.join(','),
+        ...Object.fromEntries(Object.entries(filters ?? {}).map(([k, v]) => [`f.${k}`, v])),
+        ...Object.fromEntries(Object.entries(ranges ?? {}).map(([k, v]) => [`r.${k}`, v])),
+        ...Object.fromEntries(Object.entries(contains ?? {}).map(([k, v]) => [`c.${k}`, v])),
+        ...Object.fromEntries(Object.entries(anyof ?? {}).map(([k, v]) => [`in.${k}`, v])),
+        ...Object.fromEntries(Object.entries(has ?? {}).map(([k, v]) => [`has.${k}`, v])),
+      })}`,
+    )
+  },
+  /** What one column holds, with counts, under the rest of the search (the Excel-style column filter). */
+  values: (table: string, field: string, query: ListQuery & { search?: string; limit?: number }) => {
+    const { filters, ranges, contains, anyof, has, q, owner, search, limit } = query
+    return g<ValueList>(
+      `/v1/records/${table}/values/${field}${qs({
+        q,
+        owner,
+        search,
+        limit,
         ...Object.fromEntries(Object.entries(filters ?? {}).map(([k, v]) => [`f.${k}`, v])),
         ...Object.fromEntries(Object.entries(ranges ?? {}).map(([k, v]) => [`r.${k}`, v])),
         ...Object.fromEntries(Object.entries(contains ?? {}).map(([k, v]) => [`c.${k}`, v])),

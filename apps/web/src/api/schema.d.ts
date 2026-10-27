@@ -1855,6 +1855,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/records/{table}/values/{field}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Values
+         * @description The distinct values of one column with counts, for the Excel-style column filter.
+         */
+        get: operations["values_v1_records__table__values__field__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/records/{table}/{record_id}": {
         parameters: {
             query?: never;
@@ -7038,6 +7058,44 @@ export interface operations {
             header?: never;
             path: {
                 table: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    values_v1_records__table__values__field__get: {
+        parameters: {
+            query?: {
+                q?: string | null;
+                search?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                table: string;
+                field: string;
             };
             cookie?: never;
         };
