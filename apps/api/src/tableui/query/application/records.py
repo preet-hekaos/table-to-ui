@@ -40,6 +40,10 @@ def _sort_spec(table: TableDef, key: str, hidden: set[str] | None = None) -> tup
 _RANGED = {"integer", "decimal", "money", "months"}
 _TEXTY = {"text", "long_text", "email", "phone", "url"}
 _CHOICES = {"select", "reference", "tags"}
+_TEXTLIKE = {"text", "email", "phone", "url"}
+# Fields that can be filtered by ticking values from a list of what the column holds (Excel style).
+_LISTABLE = _CHOICES | _TEXTLIKE | {"boolean"}
+VALUE_LIST_MAX = 200
 
 
 def _bad(field: str, message: str) -> ValidationFailed:
@@ -85,11 +89,14 @@ def _filter_conditions(
         params[f"ct{i}"] = value.strip()
     for i, (key, value) in enumerate((anyof or {}).items()):
         f = table.field(key)
-        if f is None or key in hidden or f.type not in _CHOICES or not sort_filter:
+        if f is None or key in hidden or f.type not in _LISTABLE or not sort_filter:
             raise _bad(f"in.{key}", "cannot be filtered by a list of choices")
-        picks = [x for x in value.split(",") if x][:50]
+        picks = [x for x in value.split(",") if x][:VALUE_LIST_MAX]
         if f.type == "tags":
             conds.append(f"jsonb_exists_any(data->'{key}', CAST(:an{i} AS text[]))")
+        elif f.type in _TEXTLIKE:
+            conds.append(f"lower(data->>'{key}') = ANY(CAST(:an{i} AS text[]))")
+            picks = [x.lower() for x in picks]
         else:
             conds.append(f"data->>'{key}' = ANY(CAST(:an{i} AS text[]))")
         params[f"an{i}"] = picks
@@ -590,6 +597,81 @@ async def facet_counts(
                     v["label"] = labels.get(v["value"]) or v["value"]
             out[key] = {"label": f.label, "kind": "values", "values": values}
     return {"total": total, "facets": out}
+
+
+async def field_values(
+    db: Database,
+    principal: Principal,
+    app: RuntimeApp,
+    table_key: str,
+    field_key: str,
+    *,
+    search: str | None = None,
+    limit: int = VALUE_LIST_MAX,
+    filters: dict[str, str] | None = None,
+    q: str | None = None,
+    ranges: dict[str, str] | None = None,
+    owner: str | None = None,
+    has: dict[str, str] | None = None,
+    contains: dict[str, str] | None = None,
+    anyof: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    """What one column holds, with counts, for the Excel-style filter. The caller leaves this
+    column's own filter out of the query so every value stays listed; the rest of the search applies."""
+    principal.require(f"record.{table_key}.read")
+    table = app.table(table_key)
+    f = table.field(field_key)
+    hidden = {x for (t, x) in principal.field_denies if t == table.key}
+    if f is None or field_key in hidden or f.hidden or f.type not in _LISTABLE:
+        raise _bad(field_key, "has no list of values")
+    limit = max(1, min(limit, VALUE_LIST_MAX))
+    conds, params = _filter_conditions(
+        principal, table, filters or {}, q, ranges, owner, has, contains, anyof
+    )
+    scope_sql, scope_params = await scope_predicate(db, principal, table_key)
+    if scope_sql:
+        conds.append(scope_sql)
+        params |= scope_params
+    key = field_key
+    if f.type == "tags":
+        source = f"\"{table_key}\", jsonb_array_elements_text(COALESCE(data->'{key}', '[]'::jsonb)) AS v"
+        value = "v"
+    else:
+        source = f'"{table_key}"'
+        value = f"data->>'{key}'"
+    where = list(conds)
+    if f.type != "reference":
+        if search and search.strip():
+            where.append(f"position(lower(:vs) in lower({value})) > 0")
+            params["vs"] = search.strip()
+    where.append(f"{value} IS NOT NULL AND {value} <> ''")
+    sql = (
+        f"SELECT {value} AS v, count(*) AS n FROM {source} WHERE {' AND '.join(where)} "  # noqa: S608 - identifiers are validated metadata keys
+        f"GROUP BY 1 ORDER BY lower({value}), 1 LIMIT {limit + 1}"
+    )
+    async with db.tenant(principal.tenant_id) as s:
+        rows = (await s.execute(text(sql), params)).all()
+        truncated = len(rows) > limit
+        rows = rows[:limit]
+        values = [{"value": r.v, "label": r.v, "count": r.n} for r in rows]
+        if f.type == "reference" and f.ref_table in app.tables and values:
+            target = app.tables[f.ref_table]
+            labels = {
+                str(r.id): (r.data or {}).get(target.title_field)
+                for r in await s.execute(
+                    text(f'SELECT id, data FROM "{target.key}" WHERE id = ANY(CAST(:ids AS uuid[]))'),  # noqa: S608 - identifiers are validated metadata keys
+                    {"ids": [v["value"] for v in values]},
+                )
+            }
+            for v in values:
+                v["label"] = labels.get(v["value"]) or v["value"]
+            if search and search.strip():
+                needle = search.strip().lower()
+                values = [v for v in values if needle in str(v["label"]).lower()]
+        if f.type == "boolean":
+            for v in values:
+                v["label"] = "Yes" if v["value"] == "true" else "No"
+    return {"field": field_key, "label": f.label, "kind": f.type, "values": values, "truncated": truncated}
 
 
 async def quick_search(
