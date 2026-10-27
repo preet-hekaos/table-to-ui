@@ -80,7 +80,8 @@ def _filter_conditions(
         else:
             conds.append(f"data->>'{key}' = :flt{i}")
             params[f"flt{i}"] = value
-    sort_filter = features_of(table).sort_filter
+    feat = features_of(table)
+    sort_filter = feat.sort_filter and feat.filterable
     for i, (key, value) in enumerate((contains or {}).items()):
         f = table.field(key)
         if f is None or key in hidden or f.type not in _TEXTY or not sort_filter:

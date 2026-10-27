@@ -214,10 +214,10 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
   const density = prefs.density ?? feat.density // a person's own choice wins over the owner's default
   // The screen can start the list grouped; the person can change or clear it while it is open.
   const groupBy = feat.grouping && !(custom && feat.row_order) ? (groupChoice ?? config.group_by) || undefined : undefined
-  const sortState: SortState = sortChoice ?? (feat.sort_filter && feat.default_sort ? { key: feat.default_sort.field, direction: feat.default_sort.direction } : { key: 'updated_at', direction: 'desc' })
+  const sortState: SortState = sortChoice ?? (feat.sortable && feat.default_sort ? { key: feat.default_sort.field, direction: feat.default_sort.direction } : { key: 'updated_at', direction: 'desc' })
   // The shared (dragged) order is the list's own order unless the person sorts by a column or the owner set a default sort,
   // so the list reads the same with Custom order on or off. The switch only adds the drag handles.
-  const ownDefault = feat.sort_filter && !!feat.default_sort
+  const ownDefault = feat.sortable && !!feat.default_sort
   const dragging = custom && feat.row_order && !preview
   const manual = dragging || (feat.row_order && !preview && !sortChoice && !ownDefault && !groupBy)
   const sort: SortState = manual ? { key: 'manual', direction: 'asc' } : groupBy ? { key: groupBy, direction: sortState.key === groupBy ? sortState.direction : 'asc' } : sortState
@@ -289,12 +289,12 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
     setSort({ key, direction: sortState.key === key && sortState.direction === 'asc' ? 'desc' : 'asc' })
   }
   const sortable = new Set(
-    feat.sort_filter && !dragging
+    feat.sortable && !dragging
       ? [...table.fields.filter((f) => f.type !== 'long_text' && !feat.unsortable.includes(f.key)).map((f) => f.key), ...(feat.unsortable.includes('updated_at') ? [] : ['updated_at'])]
       : [],
   )
   const filterable = new Map<string, FieldDef>(
-    feat.sort_filter ? table.fields.filter((f) => !f.hidden && !feat.unfilterable.includes(f.key) && filterKind(f)).map((f) => [f.key, f] as [string, FieldDef]) : [],
+    feat.filterable ? table.fields.filter((f) => !f.hidden && !feat.unfilterable.includes(f.key) && filterKind(f)).map((f) => [f.key, f] as [string, FieldDef]) : [],
   )
   const groupable = table.fields.filter((f) => !f.hidden && !feat.ungroupable.includes(f.key) && ['select', 'boolean', 'reference', 'text'].includes(f.type))
   const groupField = groupBy ? table.fields.find((f) => f.key === groupBy) : undefined

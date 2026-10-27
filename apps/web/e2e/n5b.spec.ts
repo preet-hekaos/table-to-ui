@@ -57,7 +57,8 @@ test('Sort and filter: header filters, chips, per-field settings, switch off', a
 
   await test.step('Switching sort and filter off removes the controls', async () => {
     const panel = page.getByTestId('features-panel')
-    await panel.getByRole('switch', { name: /Sort and filter/ }).uncheck()
+    await panel.getByRole('switch', { name: 'Sorting' }).uncheck()
+    await panel.getByRole('switch', { name: 'Filtering' }).uncheck()
     await panel.getByRole('button', { name: 'Save features' }).click()
     await expect(page.getByText('Saved features for Candidate').first()).toBeVisible()
   })

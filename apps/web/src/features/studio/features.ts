@@ -9,7 +9,10 @@ export interface StatCard {
 }
 
 export interface TableFeatures {
+  /** Retired master for sort and filter together; kept so older saved settings still apply. */
   sort_filter: boolean
+  sortable: boolean
+  filterable: boolean
   unsortable: string[]
   unfilterable: string[]
   default_sort: { field: string; direction: 'asc' | 'desc' } | null
@@ -38,6 +41,8 @@ export interface TableFeatures {
 /** Every feature is on until the owner switches it off. Mirrors `TableFeatures` on the server. */
 export const DEFAULT_FEATURES: TableFeatures = {
   sort_filter: true,
+  sortable: true,
+  filterable: true,
   unsortable: [],
   unfilterable: [],
   default_sort: null,
@@ -63,7 +68,11 @@ export const DEFAULT_FEATURES: TableFeatures = {
   row_order: true,
 }
 
-export const featuresOf = (t?: Pick<TableDef, 'features'> | null): TableFeatures => ({ ...DEFAULT_FEATURES, ...(t?.features ?? {}) })
+export const featuresOf = (t?: Pick<TableDef, 'features'> | null): TableFeatures => {
+  const f = { ...DEFAULT_FEATURES, ...(t?.features ?? {}) }
+  // An older table that switched "Sort and filter" off has both off now.
+  return f.sort_filter ? f : { ...f, sort_filter: true, sortable: false, filterable: false }
+}
 
 /** Features whose behaviour is live on the real screens. Each part of step 5 adds its own. */
-export const ACTIVE_FEATURES = new Set<keyof TableFeatures>(['sort_filter', 'select_bulk', 'import_data', 'export_data', 'inline_edit', 'grouping', 'statistics', 'row_order'])
+export const ACTIVE_FEATURES = new Set<keyof TableFeatures>(['sort_filter', 'sortable', 'filterable', 'select_bulk', 'import_data', 'export_data', 'inline_edit', 'grouping', 'statistics', 'row_order'])

@@ -58,10 +58,10 @@ test('Studio tables: a picker and a menu instead of a side panel; chips instead 
   await test.step('Hovering a chip explains it', async () => {
     const grid = page.getByTestId('field-grid')
     await grid.getByRole('checkbox', { name: 'Export Email' }).hover()
-    await expect(page.getByRole('tooltip').filter({ hasText: 'Include this field when people export rows.' }).first()).toBeVisible()
+    await expect(page.getByRole('tooltip').filter({ hasText: 'Including Email in exports.' }).first()).toBeVisible()
     await page.getByTestId('features-panel').getByRole('switch', { name: /Export data/ }).uncheck()
     await grid.getByRole('checkbox', { name: 'Export Email' }).hover({ force: true })
-    await expect(page.getByRole('tooltip').filter({ hasText: 'Switch on "Export data" above first.' }).first()).toBeVisible()
+    await expect(page.getByRole('tooltip').filter({ hasText: 'Turn on Export data first.' }).first()).toBeVisible()
     await page.getByTestId('features-panel').getByRole('switch', { name: /Export data/ }).check()
     await page.mouse.move(0, 0)
     await shot(page, 'r6-features')

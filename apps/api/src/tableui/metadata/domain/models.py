@@ -180,7 +180,9 @@ class TableFeatures(_Strict):
     """The classic table features a workspace owner can keep or switch off, per table.
     A table that has never been customised has every feature on (see `features_of`)."""
 
-    sort_filter: bool = True
+    sort_filter: bool = True  # legacy master for both; the two below are the ones Studio sets now
+    sortable: bool = True
+    filterable: bool = True
     unsortable: list[Key] = []  # fields whose header does not sort
     unfilterable: list[Key] = []  # fields whose header offers no filter
     default_sort: "DefaultSort | None" = None

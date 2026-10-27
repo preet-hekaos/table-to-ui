@@ -10,7 +10,7 @@ test('Table features: all on by default, set per table, applied to all, shown in
   await test.step('A table starts with every feature on', async () => {
     await page.goto('/studio?tab=data&table=candidate&part=features')
     const panel = page.getByTestId('features-panel')
-    await expect(panel.getByRole('switch')).toHaveCount(8)
+    await expect(panel.getByRole('switch')).toHaveCount(9)
     for (const sw of await panel.getByRole('switch').all()) await expect(sw).toBeChecked()
     await expect(panel.getByLabel('Bulk actions include')).toHaveValue('view')
     if (process.env.SHOT_DIR) await page.screenshot({ path: `${process.env.SHOT_DIR}/n5a-features.png` })

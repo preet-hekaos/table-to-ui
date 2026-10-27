@@ -58,7 +58,7 @@ test('Field grid: the owner decides what people can do with each field', async (
     await grid.getByRole('checkbox', { name: 'Edit Status in the list' }).uncheck()
     await grid.getByRole('checkbox', { name: 'Change Status for many rows' }).uncheck()
     await grid.getByRole('checkbox', { name: 'Export Phone' }).uncheck()
-    await grid.getByLabel('Row density').selectOption('comfortable')
+    await page.getByTestId('features-panel').getByLabel('Row density').selectOption('comfortable')
     for (const th of await grid.getByRole('columnheader').all()) await expectReadable(page, th)
     await shot(page, 'r5-grid')
     await testInfo.attach('grid', { body: await page.screenshot(), contentType: 'image/png' })
