@@ -38,7 +38,12 @@ export function FeaturesPanel({ table, canEdit }: { table: StudioTable; canEdit:
   const toast = useToast()
   const saved = featuresOf(table)
   const [f, setF] = useState<TableFeatures>(saved)
-  const changes = (Object.keys(f) as (keyof TableFeatures)[]).filter((k) => JSON.stringify(f[k]) !== JSON.stringify(saved[k])).length
+  // A list of keys is the same whatever order it was ticked in; switching something off and on again is no change.
+  const same = (a: unknown, b: unknown) =>
+    Array.isArray(a) && Array.isArray(b) && [...a, ...b].every((x) => typeof x === 'string')
+      ? a.length === b.length && a.every((x) => b.includes(x))
+      : JSON.stringify(a) === JSON.stringify(b)
+  const changes = (Object.keys(f) as (keyof TableFeatures)[]).filter((k) => !same(f[k], saved[k])).length
   const dirty = changes > 0
   const set = <K extends keyof TableFeatures>(k: K, v: TableFeatures[K]) => setF((x) => ({ ...x, [k]: v }))
   const toggle = <V extends string>(list: V[], v: V, on: boolean): V[] => (on ? [...new Set([...list, v])] : list.filter((x) => x !== v))
