@@ -83,7 +83,7 @@ test('Summary strip: cards chosen in Studio, and a whole-table switch', async ({
   await test.step('Whole table: the numbers stop following the search', async () => {
     await page.goto('/studio?tab=data&table=candidate&part=features')
     const panel = page.getByTestId('features-panel')
-    await panel.getByRole('switch', { name: /Whole table/ }).check()
+    await panel.getByRole('checkbox', { name: /Whole table/ }).check()
     await panel.getByRole('button', { name: 'Save features' }).click()
     await expect(page.getByText('Saved features for Candidate').first()).toBeVisible()
     await goLive(page)
@@ -101,7 +101,7 @@ test('Summary strip: cards chosen in Studio, and a whole-table switch', async ({
     await page.goto('/studio?tab=data&table=candidate&part=features')
     const panel = page.getByTestId('features-panel')
     await panel.getByRole('checkbox', { name: 'Choose the summary cards myself' }).uncheck()
-    await panel.getByRole('switch', { name: /Whole table/ }).uncheck()
+    await panel.getByRole('checkbox', { name: /Whole table/ }).uncheck()
     await panel.getByRole('button', { name: 'Save features' }).click()
     await expect(page.getByText('Saved features for Candidate').first()).toBeVisible()
     await goLive(page)

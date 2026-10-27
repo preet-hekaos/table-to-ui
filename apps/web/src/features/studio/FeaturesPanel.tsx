@@ -81,7 +81,7 @@ export function FeaturesPanel({ table, canEdit }: { table: StudioTable; canEdit:
             {it.key === 'statistics' && f.statistics && (
               <div className="flex flex-col gap-3 pl-7">
                 <label className="flex items-center gap-2 text-xs text-body">
-                  <input type="checkbox" role="switch" className="size-4" disabled={!canEdit} checked={f.stat_scope === 'table'} onChange={(e) => set('stat_scope', e.target.checked ? 'table' : 'search')} />
+                  <input type="checkbox" className="size-4" disabled={!canEdit} checked={f.stat_scope === 'table'} onChange={(e) => set('stat_scope', e.target.checked ? 'table' : 'search')} />
                   Whole table: numbers ignore the search and filters
                 </label>
                 <label className="flex items-center gap-2 text-xs text-body">
