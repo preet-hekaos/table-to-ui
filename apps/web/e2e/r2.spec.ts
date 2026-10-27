@@ -46,11 +46,11 @@ test('Table card: numbered pages, page size, columns, density, full screen', asy
 
   await test.step('Hide a column; it stays hidden after reload', async () => {
     await page.getByRole('button', { name: 'Columns' }).click()
-    await page.getByRole('checkbox', { name: 'Email' }).uncheck()
+    await page.getByRole('checkbox', { name: 'Location', exact: true }).uncheck()
     await page.keyboard.press('Escape')
-    await expect(page.getByRole('columnheader', { name: /Email/ })).toHaveCount(0)
+    await expect(page.getByRole('columnheader', { name: /Location/ })).toHaveCount(0)
     await page.reload()
-    await expect(page.getByRole('columnheader', { name: /Email/ })).toHaveCount(0)
+    await expect(page.getByRole('columnheader', { name: /Location/ })).toHaveCount(0)
   })
 
   await test.step('Density and full screen', async () => {
@@ -58,8 +58,8 @@ test('Table card: numbered pages, page size, columns, density, full screen', asy
     const compact = await h()
     await page.getByRole('button', { name: 'Compact' }).click()
     expect(await h()).toBeGreaterThan(compact)
-    await page.getByRole('button', { name: 'Full screen' }).click()
-    await expect(page.locator('aside')).toBeHidden()
+    await page.getByTestId('table-toolbar').getByRole('button', { name: 'Full screen' }).click()
+    await expect(page.locator('[data-sidebar]')).toBeHidden()
     await page.getByRole('button', { name: 'Exit full screen' }).first().click()
     await expect(page.locator('[data-sidebar]')).toBeVisible()
   })
