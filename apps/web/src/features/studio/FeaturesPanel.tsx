@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { studio } from '@/api/endpoints'
 import type { StudioTable } from '@/api/types'
-import { Badge, Button, Input, Select, useToast } from '@/design-system'
+import { Badge, Button, Chip, Input, Select, useToast } from '@/design-system'
 import { FieldGrid } from './FieldGrid'
 import { ACTIVE_FEATURES, DEFAULT_FEATURES, featuresOf, type StatCard, type TableFeatures } from './features'
 
@@ -63,57 +63,49 @@ export function FeaturesPanel({ table, canEdit }: { table: StudioTable; canEdit:
       <p className="text-sm text-muted">
         Every table gets these features. Switch off what this table does not need. Changes stay in Draft until you publish.
       </p>
+      <h3 className="-mb-2 text-sm font-semibold text-ink">Features</h3>
       <ul className="divide-y divide-line rounded-lg border border-line" aria-label={`Features of ${table.label}`}>
         {ITEMS.map((it) => (
           <li key={it.key} className="flex flex-col gap-2 p-3">
-            <label className="flex flex-wrap items-center gap-3">
-              <input
-                type="checkbox"
-                role="switch"
-                className="size-4"
-                checked={f[it.key] as boolean}
-                disabled={!canEdit}
-                onChange={(e) => set(it.key, e.target.checked as never)}
-              />
+            <div className="flex flex-wrap items-center gap-3">
+              <Chip role="switch" label={it.title} checked={f[it.key] as boolean} disabled={!canEdit} onChange={(on) => set(it.key, on as never)} hint={`${f[it.key] ? 'Switch off' : 'Switch on'}: ${it.help}`}>
+                {f[it.key] ? 'On' : 'Off'}
+              </Chip>
               <span className="text-sm font-semibold text-ink">{it.title}</span>
               {!ACTIVE_FEATURES.has(it.key) && <Badge>Takes effect in an upcoming update</Badge>}
-            </label>
-            <p className="pl-7 text-xs text-muted">{it.help}</p>
+            </div>
+            <p className="text-xs text-muted">{it.help}</p>
             {it.key === 'statistics' && f.statistics && (
-              <div className="flex flex-col gap-3 pl-7">
-                <label className="flex items-center gap-2 text-xs text-body">
-                  <input type="checkbox" className="size-4" disabled={!canEdit} checked={f.stat_scope === 'table'} onChange={(e) => set('stat_scope', e.target.checked ? 'table' : 'search')} />
-                  Whole table: numbers ignore the search and filters
-                </label>
-                <label className="flex items-center gap-2 text-xs text-body">
-                  <input
-                    type="checkbox"
-                    className="size-4"
-                    disabled={!canEdit}
-                    checked={f.stat_cards !== null}
-                    onChange={(e) => set('stat_cards', e.target.checked ? [{ kind: 'count' }] : null)}
-                  />
-                  Choose the summary cards myself
-                </label>
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-wrap gap-1.5">
+                  <Chip checked={f.stat_scope === 'table'} disabled={!canEdit} onChange={(on) => set('stat_scope', on ? 'table' : 'search')} hint="The numbers ignore the search and filters and always cover the whole table.">
+                    Whole table: numbers ignore the search and filters
+                  </Chip>
+                  <Chip checked={f.stat_cards !== null} disabled={!canEdit} onChange={(on) => set('stat_cards', on ? [{ kind: 'count' }] : null)} hint="Pick up to six cards yourself instead of the automatic tiles.">
+                    Choose the summary cards myself
+                  </Chip>
+                </div>
                 {f.stat_cards !== null && <CardsEditor table={table} cards={f.stat_cards} canEdit={canEdit} onChange={(c) => set('stat_cards', c)} />}
                 {f.stat_cards === null && (
-                  <fieldset className="flex flex-col gap-1" disabled={!canEdit}>
-                    <legend className="text-xs text-body">Number fields to summarise</legend>
-                    <label className="flex items-center gap-1 text-xs text-body">
-                      <input type="checkbox" checked={f.stat_fields === null} onChange={(e) => set('stat_fields', e.target.checked ? null : [])} /> Choose for me (the first three)
-                    </label>
-                    {f.stat_fields !== null &&
-                      table.fields.filter((x) => ['integer', 'decimal', 'money', 'months'].includes(x.type)).map((x) => (
-                        <label key={x.key} className="flex items-center gap-1 text-xs text-body">
-                          <input type="checkbox" checked={f.stat_fields!.includes(x.key)} onChange={(e) => set('stat_fields', toggle(f.stat_fields!, x.key, e.target.checked))} /> {x.label}
-                        </label>
-                      ))}
+                  <fieldset className="flex flex-col gap-1.5" disabled={!canEdit}>
+                    <legend className="mb-1 text-xs text-body">Number fields to summarise</legend>
+                    <div className="flex flex-wrap gap-1.5">
+                      <Chip checked={f.stat_fields === null} disabled={!canEdit} onChange={(on) => set('stat_fields', on ? null : [])} hint="Use the first three number fields.">
+                        Choose for me (the first three)
+                      </Chip>
+                      {f.stat_fields !== null &&
+                        table.fields.filter((x) => ['integer', 'decimal', 'money', 'months'].includes(x.type)).map((x) => (
+                          <Chip key={x.key} checked={f.stat_fields!.includes(x.key)} disabled={!canEdit} onChange={(on) => set('stat_fields', toggle(f.stat_fields!, x.key, on))}>
+                            {x.label}
+                          </Chip>
+                        ))}
+                    </div>
                   </fieldset>
                 )}
               </div>
             )}
             {it.key === 'sort_filter' && f.sort_filter && (
-              <div className="flex flex-col gap-2 pl-7">
+              <div className="flex flex-col gap-2">
                 <label className="flex items-center gap-2 text-xs text-body">
                   Default order
                   <Select
@@ -136,13 +128,13 @@ export function FeaturesPanel({ table, canEdit }: { table: StudioTable; canEdit:
               </div>
             )}
             {it.key === 'select_bulk' && f.select_bulk && (
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pl-7">
-                <fieldset className="flex flex-wrap gap-x-3" disabled={!canEdit}>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                <fieldset className="flex flex-wrap gap-1.5" disabled={!canEdit}>
                   <legend className="sr-only">Bulk actions allowed</legend>
                   {BULK.map((b) => (
-                    <label key={b.value} className="flex items-center gap-1 text-xs text-body">
-                      <input type="checkbox" checked={f.bulk_actions.includes(b.value)} onChange={(e) => set('bulk_actions', toggle(f.bulk_actions, b.value, e.target.checked))} /> {b.label}
-                    </label>
+                    <Chip key={b.value} checked={f.bulk_actions.includes(b.value)} disabled={!canEdit} onChange={(on) => set('bulk_actions', toggle(f.bulk_actions, b.value, on))}>
+                      {b.label}
+                    </Chip>
                   ))}
                 </fieldset>
                 <label className="flex items-center gap-2 text-xs text-body">
@@ -155,18 +147,18 @@ export function FeaturesPanel({ table, canEdit }: { table: StudioTable; canEdit:
               </div>
             )}
             {it.key === 'export_data' && f.export_data && (
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pl-7">
-                <fieldset className="flex flex-wrap gap-x-3" disabled={!canEdit}>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                <fieldset className="flex flex-wrap gap-1.5" disabled={!canEdit}>
                   <legend className="sr-only">Export formats</legend>
                   {FORMATS.map((b) => (
-                    <label key={b.value} className="flex items-center gap-1 text-xs text-body">
-                      <input type="checkbox" checked={f.export_formats.includes(b.value)} onChange={(e) => set('export_formats', toggle(f.export_formats, b.value, e.target.checked))} /> {b.label}
-                    </label>
+                    <Chip key={b.value} checked={f.export_formats.includes(b.value)} disabled={!canEdit} onChange={(on) => set('export_formats', toggle(f.export_formats, b.value, on))}>
+                      {b.label}
+                    </Chip>
                   ))}
                 </fieldset>
-                <label className="flex items-center gap-1 text-xs text-body">
-                  <input type="checkbox" disabled={!canEdit} checked={f.export_email} onChange={(e) => set('export_email', e.target.checked)} /> Allow sending by email
-                </label>
+                <Chip checked={f.export_email} disabled={!canEdit} onChange={(on) => set('export_email', on)} hint="People can send an export as a link by email.">
+                  Allow sending by email
+                </Chip>
               </div>
             )}
           </li>

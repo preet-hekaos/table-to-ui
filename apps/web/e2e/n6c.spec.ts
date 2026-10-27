@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { run, signUpWithPack } from './helpers'
+import { openTables, run, schemaAction, signUpWithPack } from './helpers'
 
 const tags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 
@@ -16,7 +16,7 @@ test('A PDF that describes the data becomes a proposal in Import schema, checked
   await page.goto('/studio')
 
   await test.step('With AI off, the document is refused plainly and nothing is created', async () => {
-    await page.getByRole('button', { name: 'Import schema' }).click()
+    await schemaAction(page, 'Import schema')
     await page.getByLabel('Schema files').setInputFiles({ name: 'plan.pdf', mimeType: 'application/pdf', buffer: pdf })
     await expect(page.getByRole('alert').filter({ hasText: /AI is switched off/ })).toBeVisible()
     await page.keyboard.press('Escape')
@@ -30,7 +30,7 @@ test('A PDF that describes the data becomes a proposal in Import schema, checked
         body: JSON.stringify({ enabled: true, tables: [] }),
       })
     })
-    await page.getByRole('button', { name: 'Import schema' }).click()
+    await schemaAction(page, 'Import schema')
     await page.getByLabel('Schema files').setInputFiles({ name: 'plan.pdf', mimeType: 'application/pdf', buffer: pdf })
     const dialog = page.getByRole('dialog')
     await expect(dialog.getByText(/Read by AI from plan.pdf/)).toBeVisible()
@@ -44,6 +44,7 @@ test('A PDF that describes the data becomes a proposal in Import schema, checked
 
   await test.step('Nothing exists until the person confirms', async () => {
     await page.keyboard.press('Escape')
-    await expect(page.getByRole('navigation', { name: 'Tables' }).getByRole('button', { name: /Firms/ })).toHaveCount(0)
+    await expect((await openTables(page)).getByRole('button', { name: /Firms/ })).toHaveCount(0)
+    await page.keyboard.press('Escape')
   })
 })

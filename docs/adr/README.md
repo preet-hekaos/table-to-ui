@@ -44,3 +44,4 @@
 | [40](0040-excel-style-column-filter.md) | Excel-style column filter: values with counts, search, select all, sort |
 | [41](0041-summary-strip-cards.md) | Summary strip cards chosen in Studio; whole-table numbers |
 | [42](0042-field-grid.md) | Field grid in Studio: per-field limits, default columns and density |
+| [43](0043-studio-picker-and-chips.md) | Studio table picker, actions menu and chips |

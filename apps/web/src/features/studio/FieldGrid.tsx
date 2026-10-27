@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { studio } from '@/api/endpoints'
 import type { StudioTable } from '@/api/types'
-import { Select } from '@/design-system'
+import { Chip, Select } from '@/design-system'
 import type { TableFeatures } from './features'
 
 const NUMERIC = ['integer', 'decimal', 'money', 'months']
@@ -39,18 +39,10 @@ export function FieldGrid({
   const autoSummary = fields.filter((x) => NUMERIC.includes(x.type)).slice(0, 3).map((x) => x.key)
   const summarised = f.stat_fields ?? autoSummary
 
-  const cell = (label: string, checked: boolean, onChange: (on: boolean) => void, disabled = false, title?: string) => (
-    <td className="px-2 py-1 text-center">
-      <input
-        type="checkbox"
-        className="size-5"
-        aria-label={label}
-        title={title}
-        disabled={!canEdit || disabled}
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-    </td>
+  const chip = (short: string, label: string, hint: string, checked: boolean, onChange: (on: boolean) => void, disabled = false, why?: string) => (
+    <Chip key={short} label={label} hint={disabled && why ? why : hint} checked={checked} onChange={onChange} disabled={!canEdit || disabled}>
+      {short}
+    </Chip>
   )
 
   return (
@@ -58,7 +50,7 @@ export function FieldGrid({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h3 id="field-grid-title" className="text-sm font-semibold text-ink">Fields</h3>
-          <p className="text-xs text-muted">Tick what people may do with each field. The title always shows, because it opens the record.</p>
+          <p className="text-xs text-muted">Switch on what people may do with each field. Hover a chip for details. The title always shows, because it opens the record.</p>
         </div>
         <label className="flex items-center gap-2 text-xs text-body">
           Row density
@@ -69,18 +61,11 @@ export function FieldGrid({
         </label>
       </div>
       <div className="overflow-x-auto rounded-lg border border-line">
-        <table className="w-full text-xs text-body" aria-label="What people can do with each field">
-          <thead className="bg-soft text-ink">
+        <table className="w-full text-sm text-body" aria-label="What people can do with each field">
+          <thead className="bg-soft text-xs text-ink">
             <tr>
               <th scope="col" className="px-3 py-2 text-left font-semibold">Field</th>
-              <th scope="col" className="px-2 py-2 font-semibold">Shown</th>
-              <th scope="col" className="px-2 py-2 font-semibold">Sort</th>
-              <th scope="col" className="px-2 py-2 font-semibold">Filter</th>
-              <th scope="col" className="px-2 py-2 font-semibold">Edit in list</th>
-              <th scope="col" className="px-2 py-2 font-semibold">Group</th>
-              <th scope="col" className="px-2 py-2 font-semibold">Export</th>
-              <th scope="col" className="px-2 py-2 font-semibold">Bulk edit</th>
-              <th scope="col" className="px-2 py-2 font-semibold">In summary</th>
+              <th scope="col" className="px-3 py-2 text-left font-semibold">What people can do with it</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
@@ -90,25 +75,19 @@ export function FieldGrid({
               const numeric = NUMERIC.includes(x.type)
               return (
                 <tr key={x.key}>
-                  <th scope="row" className="px-3 py-1 text-left font-medium text-ink">{x.label}</th>
-                  {cell(`Show ${x.label} by default`, isTitle || shown.includes(x.key), (on) => set('default_columns', toggle(shown, x.key, on)), isTitle, isTitle ? 'The title always shows' : undefined)}
-                  {cell(`Sort by ${x.label}`, !long && !f.unsortable.includes(x.key), (on) => set('unsortable', toggle(f.unsortable, x.key, !on)), long)}
-                  {cell(`Filter by ${x.label}`, !f.unfilterable.includes(x.key), (on) => set('unfilterable', toggle(f.unfilterable, x.key, !on)))}
-                  {cell(`Edit ${x.label} in the list`, !f.uneditable.includes(x.key), (on) => set('uneditable', toggle(f.uneditable, x.key, !on)), !f.inline_edit)}
-                  {cell(`Group by ${x.label}`, !long && !f.ungroupable.includes(x.key), (on) => set('ungroupable', toggle(f.ungroupable, x.key, !on)), long || !f.grouping)}
-                  {cell(`Export ${x.label}`, !f.unexported.includes(x.key), (on) => set('unexported', toggle(f.unexported, x.key, !on)), !f.export_data)}
-                  {cell(`Change ${x.label} for many rows`, !f.nobulk.includes(x.key), (on) => set('nobulk', toggle(f.nobulk, x.key, !on)), !f.select_bulk || long)}
-                  {numeric ? (
-                    cell(
-                      `Summarise ${x.label}`,
-                      summarised.includes(x.key),
-                      (on) => set('stat_fields', toggle(summarised, x.key, on)),
-                      !f.statistics || cardsChosen,
-                      cardsChosen ? 'Summary cards are chosen by hand' : f.stat_fields === null ? 'Automatic: the first three number fields' : undefined,
-                    )
-                  ) : (
-                    <td className="px-2 py-1 text-center text-muted" aria-hidden>–</td>
-                  )}
+                  <th scope="row" className="w-48 px-3 py-2 text-left align-top font-medium text-ink">{x.label}</th>
+                  <td className="px-3 py-2">
+                    <div className="flex flex-wrap gap-1.5" role="group" aria-label={`${x.label}: what people can do`}>
+                      {chip('Shown', `Show ${x.label} by default`, 'Show this column in the list from the start. People can still add or hide it for themselves.', isTitle || shown.includes(x.key), (on) => set('default_columns', toggle(shown, x.key, on)), isTitle, 'The title always shows, because it opens the record.')}
+                      {chip('Sort', `Sort by ${x.label}`, 'Let people sort the list by this field.', !long && !f.unsortable.includes(x.key), (on) => set('unsortable', toggle(f.unsortable, x.key, !on)), long, 'Long text cannot be sorted.')}
+                      {chip('Filter', `Filter by ${x.label}`, 'Let people filter the list by this field.', !f.unfilterable.includes(x.key), (on) => set('unfilterable', toggle(f.unfilterable, x.key, !on)))}
+                      {chip('Edit', `Edit ${x.label} in the list`, 'Allow changing this field by double-clicking its cell.', !f.uneditable.includes(x.key), (on) => set('uneditable', toggle(f.uneditable, x.key, !on)), !f.inline_edit, 'Switch on "Edit in the list" above first.')}
+                      {chip('Group', `Group by ${x.label}`, 'Allow grouping the list by this field.', !long && !f.ungroupable.includes(x.key), (on) => set('ungroupable', toggle(f.ungroupable, x.key, !on)), long || !f.grouping, long ? 'Long text cannot be grouped.' : 'Switch on "Group rows" above first.')}
+                      {chip('Export', `Export ${x.label}`, 'Include this field when people export rows.', !f.unexported.includes(x.key), (on) => set('unexported', toggle(f.unexported, x.key, !on)), !f.export_data, 'Switch on "Export data" above first.')}
+                      {chip('Bulk', `Change ${x.label} for many rows`, 'Allow changing this field on many selected rows at once.', !f.nobulk.includes(x.key), (on) => set('nobulk', toggle(f.nobulk, x.key, !on)), !f.select_bulk || long, long ? 'Long text cannot be changed in bulk.' : 'Switch on "Select rows and act on many" above first.')}
+                      {numeric && chip('Summary', `Summarise ${x.label}`, 'Include this number in the summary tiles above the table.', summarised.includes(x.key), (on) => set('stat_fields', toggle(summarised, x.key, on)), !f.statistics || cardsChosen, cardsChosen ? 'Summary cards are chosen by hand.' : 'Switch on "Numbers above the table" above first.')}
+                    </div>
+                  </td>
                 </tr>
               )
             })}

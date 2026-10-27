@@ -52,3 +52,22 @@ export async function expectReadable(page: Page, locator: Locator, states: Array
     expect(ratio, `${state} contrast`).toBeGreaterThanOrEqual(min)
   }
 }
+
+/** Open the Studio table picker and return its list of tables. */
+export async function openTables(page: Page) {
+  await page.getByRole('button', { name: /Change table/ }).click()
+  return page.getByRole('navigation', { name: 'Tables' })
+}
+
+/** Run one of the schema actions from the Studio "More" menu. */
+export async function schemaAction(page: Page, name: 'Import schema' | 'Export schema') {
+  const more = page.getByRole('button', { name: 'More table actions' })
+  const direct = page.getByRole('button', { name, exact: true })
+  await more.or(direct).first().waitFor()
+  if (await more.count()) {
+    await more.click()
+    await page.getByRole('menuitem', { name }).click()
+  } else {
+    await page.getByRole('button', { name }).click() // the Canvas tab keeps its own buttons
+  }
+}
