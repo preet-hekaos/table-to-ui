@@ -40,6 +40,10 @@ export function SchemaImportDialog({ open, onOpenChange, onCreated }: { open: bo
   const [fromAi, setFromAi] = useState<{ name: string; tables: number; fields: number; dropped: number }[]>([])
 
   const read = useMutation({
+    onMutate: () => {
+      setProblems([])
+      setError('')
+    },
     mutationFn: async (files: File[]) => {
       const ready: File[] = []
       const proposals: typeof fromAi = []
@@ -60,7 +64,7 @@ export function SchemaImportDialog({ open, onOpenChange, onCreated }: { open: bo
       setRows(p.tables.length ? toRows(p) : null)
       setError('')
     },
-    onError: (e) => setError(e instanceof ApiError ? e.message : 'The files could not be read.'),
+    onError: (e) => setError(e instanceof ApiError ? (e.errors[0]?.message ?? e.message) : 'The files could not be read.'),
   })
 
   const chosen = (rows ?? []).filter((r) => r.include)

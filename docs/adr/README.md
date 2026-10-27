@@ -29,3 +29,13 @@
 | [25](0025-screens-in-tables.md) | Screens are managed inside each table; the Screens tab is gone |
 | [26](0026-schema-import.md) | Schema import: readers for CSV, Excel, JSON and SQL; preview first, Draft tables after confirmation |
 | [27](0027-table-features.md) | Table features: one settings block per table, all on by default, kept in the table definition |
+| [28](0028-sort-and-filter.md) | Sort and filter in the list |
+| [29](0029-select-and-bulk-actions.md) | Select rows and bulk actions |
+| [30](0030-import-and-export.md) | Import and export |
+| [31](0031-edit-in-the-list.md) | Edit in the list |
+| [32](0032-group-rows.md) | Group rows |
+| [33](0033-numbers-above-the-table.md) | Numbers above the table |
+| [34](0034-drag-to-reorder.md) | Drag to reorder |
+| [35](0035-export-schema.md) | Export schema |
+| [36](0036-links-from-matching-values.md) | Links from matching values |
+| [37](0037-schema-from-documents.md) | Schema from a document (PDF, Word, text), read by AI |
