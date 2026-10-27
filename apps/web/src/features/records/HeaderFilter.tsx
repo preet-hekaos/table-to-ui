@@ -113,17 +113,17 @@ function ValueList({
       {list.isLoading && <p className="text-xs text-muted">Loading values…</p>}
       {data && values.length === 0 && <p className="text-xs text-muted">{typed ? 'No value matches.' : 'No values yet.'}</p>}
       {values.length > 0 && (
-        <fieldset className="flex max-h-56 flex-col overflow-y-auto rounded-md border border-line">
+        <fieldset className="flex max-h-56 min-w-0 flex-col overflow-x-hidden overflow-y-auto rounded-md border border-line">
           <legend className="sr-only">Values in {f.label}</legend>
           <label className="flex min-h-8 items-center gap-2 border-b border-line px-2 text-sm font-semibold text-ink">
             <input ref={all} type="checkbox" className="size-4" checked={ticked === values.length} onChange={(e) => flipAll(e.target.checked)} />
             {typed ? 'Select all results' : 'Select all'}
           </label>
           {values.map((v) => (
-            <label key={v.value} className="flex min-h-8 items-center gap-2 px-2 text-sm text-body hover:bg-soft">
-              <input type="checkbox" className="size-4" checked={on(v.value)} onChange={(e) => flip(v.value, e.target.checked)} />
+            <label key={v.value} title={v.label} className="flex min-h-8 min-w-0 items-center gap-2 px-2 text-sm text-body hover:bg-soft">
+              <input type="checkbox" className="size-4 shrink-0" checked={on(v.value)} onChange={(e) => flip(v.value, e.target.checked)} />
               <span className="min-w-0 flex-1 truncate">{v.label}</span>
-              <span className="text-xs text-muted">{v.count}</span>
+              <span className="shrink-0 text-xs text-muted">{v.count}</span>
             </label>
           ))}
         </fieldset>

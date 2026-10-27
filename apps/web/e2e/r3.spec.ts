@@ -98,3 +98,31 @@ test('Excel-style column filter: values with counts, search, select all, sort, C
     await expect(page.getByLabel('Active filters')).toContainText('contains “test”')
   })
 })
+
+test('Filter menu: a very long value stays inside the box', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await signUpWithPack(page, `Long Co ${run}`, `long-${run}@long.test`)
+  const res = await page.evaluate(async () => {
+    const r = await fetch('/v1/records/candidate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionStorage.getItem('tableui.token')}` },
+      body: JSON.stringify({ data: { full_name: 'Esha Nair', current_title: 'Based Project Financial Tracking Suites And Other Very Long Titles', email: 'e@example.in', phone: '+91 98450 22349', status: 'Active' } }),
+    })
+    return r.status
+  })
+  expect(res).toBe(201)
+  await page.goto('/s/candidates')
+  await page.getByRole('button', { name: 'Filter Current title' }).click()
+  const panel = page.getByRole('dialog', { name: /^Filter / })
+  const row = panel.getByRole('checkbox', { name: /^Based Project/ })
+  await expect(row).toBeVisible()
+  const inside = await panel.evaluate((box) => {
+    const b = box.getBoundingClientRect()
+    return [...box.querySelectorAll('input[type=checkbox], span')].every((el) => {
+      const r = el.getBoundingClientRect()
+      return r.width === 0 || (r.left >= b.left - 1 && r.right <= b.right + 1)
+    })
+  })
+  expect(inside, 'every checkbox and count sits inside the filter box').toBe(true)
+  expect(await panel.evaluate((box) => box.scrollWidth <= box.clientWidth + 1)).toBe(true)
+})
