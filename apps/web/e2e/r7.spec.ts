@@ -72,3 +72,57 @@ test('Features tab: whole-table switches, defaults, and field options headed by 
     expect(bad.map((v) => `${v.id}: ${v.nodes.slice(0, 4).map((n) => `${n.target.join(' ')} ${n.any[0]?.message ?? ''}`).join(' | ')}`)).toEqual([])
   })
 })
+
+test('The unsaved-changes count is honest: turning something off and on again is no change', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await signUpWithPack(page, `Count Co ${run}`, `count-${run}@count.test`)
+  await page.goto('/studio?tab=data&table=candidate&part=features')
+  const panel = page.getByTestId('features-panel')
+  const clean = panel.getByText('No unsaved changes')
+  await expect(clean).toBeVisible()
+
+  const flips: [string, () => ReturnType<typeof panel.getByRole>, string][] = [
+    ['a switch', () => panel.getByRole('switch', { name: 'Group rows' }), 'Group rows'],
+    ['a Shown chip', () => panel.getByRole('checkbox', { name: 'Show Email by default' }), 'Show Email'],
+    ['a Sort chip', () => panel.getByRole('checkbox', { name: 'Sort by Email' }), 'Sort Email'],
+    ['a Filter chip', () => panel.getByRole('checkbox', { name: 'Filter by Phone' }), 'Filter Phone'],
+    ['a Summary chip', () => panel.getByRole('checkbox', { name: 'Summarise Total experience' }), 'Summary'],
+    ['a bulk action chip', () => panel.getByRole('checkbox', { name: 'Delete (with Undo)' }), 'Bulk action'],
+    ['an export format chip', () => panel.getByRole('checkbox', { name: 'CSV' }), 'Format'],
+    ['a Whole table chip', () => panel.getByRole('checkbox', { name: 'Whole table' }), 'Whole table'],
+  ]
+  for (const [what, el] of flips) {
+    await test.step(`Flipping ${what} counts as one change, and flipping it back as none`, async () => {
+      await el().click()
+      await expect(panel.getByText('1 unsaved change', { exact: true }), what).toBeVisible()
+      await el().click()
+      await expect(clean, `${what} back`).toBeVisible()
+    })
+  }
+
+  await test.step('A select that returns to its value is no change either', async () => {
+    await panel.getByLabel('Row density').selectOption('comfortable')
+    await expect(panel.getByText('1 unsaved change', { exact: true })).toBeVisible()
+    await panel.getByLabel('Row density').selectOption('compact')
+    await expect(clean).toBeVisible()
+  })
+
+  await test.step('Several chips of one column, undone in a different order, leave nothing behind', async () => {
+    const email = panel.getByRole('checkbox', { name: 'Sort by Email' })
+    const phone = panel.getByRole('checkbox', { name: 'Sort by Phone' })
+    await email.click()
+    await phone.click()
+    await expect(panel.getByText('1 unsaved change', { exact: true })).toBeVisible() // one setting, two fields
+    await email.click()
+    await phone.click()
+    await expect(clean).toBeVisible()
+  })
+
+  await test.step('Saving brings the count back to none', async () => {
+    await panel.getByRole('switch', { name: 'Group rows' }).click()
+    await panel.getByRole('button', { name: 'Save features' }).click()
+    await expect(page.getByText('Saved features for Candidate').first()).toBeVisible()
+    await expect(clean).toBeVisible()
+    await expect(panel.getByRole('button', { name: 'Save features' })).toBeDisabled()
+  })
+})

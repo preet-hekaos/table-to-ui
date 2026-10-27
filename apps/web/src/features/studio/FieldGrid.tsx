@@ -15,6 +15,7 @@ function automaticColumns(table: StudioTable, screenColumns: string[] | undefine
 }
 
 const toggle = (list: string[], v: string, on: boolean) => (on ? [...new Set([...list, v])] : list.filter((x) => x !== v))
+const sameSet = (a: string[], b: string[]) => a.length === b.length && a.every((x) => b.includes(x))
 
 type Master = 'sortable' | 'filterable' | 'inline_edit' | 'grouping' | 'statistics'
 
@@ -54,7 +55,8 @@ export function FieldGrid({
 }) {
   const screens = useQuery({ queryKey: ['studio-screens'], queryFn: studio.screens, retry: false })
   const own = screens.data?.find((x) => x.table === table.key && x.pattern === 'searchable_table')
-  const shown = f.default_columns ?? automaticColumns(table, (own?.config.columns as string[] | undefined) ?? undefined)
+  const automatic = automaticColumns(table, (own?.config.columns as string[] | undefined) ?? undefined)
+  const shown = f.default_columns ?? automatic
   const fields = table.fields.filter((x) => !x.hidden)
   const cardsChosen = f.stat_cards !== null
   const autoSummary = fields.filter((x) => NUMERIC.includes(x.type)).slice(0, 3).map((x) => x.key)
@@ -120,7 +122,7 @@ export function FieldGrid({
               <div key={x.key} role="row" className={cn(rowGrid, 'h-[3.25rem] border-b border-line/60 last:border-b-0')} aria-label={x.label}>
                 <span role="rowheader" className="text-sm font-medium text-ink">{x.label}</span>
                 <span role="cell" className="flex justify-center">
-                  {chip(col('Shown'), `Show ${x.label} by default`, 'Show this column in the list from the start. Each user can still add or hide it for themselves.', isTitle || shown.includes(x.key), (on) => set('default_columns', toggle(shown, x.key, on)), { disabled: isTitle, why: 'The title always shows, because it opens the record.' })}
+                  {chip(col('Shown'), `Show ${x.label} by default`, 'Show this column in the list from the start. Each user can still add or hide it for themselves.', isTitle || shown.includes(x.key), (on) => { const next = toggle(shown, x.key, on); set('default_columns', sameSet(next, automatic) ? null : next) }, { disabled: isTitle, why: 'The title always shows, because it opens the record.' })}
                 </span>
                 <span role="cell" className="flex justify-center">
                   {chip(col('Sort'), `Sort by ${x.label}`, `Sorting the list by ${x.label}.`, !long && !f.unsortable.includes(x.key), (on) => set('unsortable', toggle(f.unsortable, x.key, !on)), { disabled: long, why: 'Long text cannot be sorted.' })}
@@ -142,7 +144,7 @@ export function FieldGrid({
                 </span>
                 <span role="cell" className="flex justify-center">
                   {numeric ? (
-                    chip(col('Summary'), `Summarise ${x.label}`, `Including ${x.label} in the numbers above the table.`, summarised.includes(x.key), (on) => set('stat_fields', toggle(summarised, x.key, on)), { disabled: cardsChosen, why: 'Summary cards are chosen by hand.' })
+                    chip(col('Summary'), `Summarise ${x.label}`, `Including ${x.label} in the numbers above the table.`, summarised.includes(x.key), (on) => { const next = toggle(summarised, x.key, on); set('stat_fields', sameSet(next, autoSummary) ? null : next) }, { disabled: cardsChosen, why: 'Summary cards are chosen by hand.' })
                   ) : (
                     <span className="text-sm text-muted" aria-label="Not available">–</span>
                   )}
