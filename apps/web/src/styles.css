@@ -120,3 +120,49 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Quiet scrollbars: a slim rounded thumb with no arrows and no track, darker on hover.
+   Lists that scroll also fade at the edge that has more (see ScrollArea). */
+:root {
+  --scroll-thumb: #b6c0cf;
+  --scroll-thumb-hover: #8c99ad;
+}
+.bg-nav {
+  --scroll-thumb: rgb(255 255 255 / 0.22);
+  --scroll-thumb-hover: rgb(255 255 255 / 0.45);
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  background-clip: content-box;
+  border: 3px solid transparent;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scroll-thumb-hover);
+  background-clip: content-box;
+}
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scroll-thumb) transparent;
+  }
+}
+[data-fade='y'][data-fading] {
+  mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade-a, 0px), #000 calc(100% - var(--fade-b, 0px)), transparent 100%);
+}
+[data-fade='x'][data-fading] {
+  mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-a, 0px), #000 calc(100% - var(--fade-b, 0px)), transparent 100%);
+}

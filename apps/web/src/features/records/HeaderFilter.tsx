@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useDebounced } from '@/lib/useDebounced'
 import { app } from '@/api/endpoints'
 import type { FieldDef } from '@/api/types'
-import { Button, Input, cn } from '@/design-system'
+import { Button, Input, ScrollArea, cn } from '@/design-system'
 
 export const VALUE_LIST_MAX = 200
 
@@ -113,7 +113,7 @@ function ValueList({
       {list.isLoading && <p className="text-xs text-muted">Loading values…</p>}
       {data && values.length === 0 && <p className="text-xs text-muted">{typed ? 'No value matches.' : 'No values yet.'}</p>}
       {values.length > 0 && (
-        <fieldset className="flex max-h-56 min-w-0 flex-col overflow-x-hidden overflow-y-auto rounded-md border border-line">
+        <ScrollArea as="fieldset" className="flex max-h-56 min-w-0 flex-col overflow-x-hidden rounded-md border border-line">
           <legend className="sr-only">Values in {f.label}</legend>
           <label className="flex min-h-8 items-center gap-2 border-b border-line px-2 text-sm font-semibold text-ink">
             <input ref={all} type="checkbox" className="size-4" checked={ticked === values.length} onChange={(e) => flipAll(e.target.checked)} />
@@ -126,7 +126,7 @@ function ValueList({
               <span className="shrink-0 text-xs text-muted">{v.count}</span>
             </label>
           ))}
-        </fieldset>
+        </ScrollArea>
       )}
       {data?.truncated && <p className="text-xs text-muted">Showing the first {VALUE_LIST_MAX} values. Type to narrow the list{f.type === 'select' || f.type === 'tags' || f.type === 'reference' ? '.' : ', or use Contains.'}</p>}
     </div>

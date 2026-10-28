@@ -1,12 +1,13 @@
 import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react'
 import type { HTMLAttributes, ReactNode, TdHTMLAttributes, ThHTMLAttributes } from 'react'
 import { cn } from './cn'
+import { ScrollArea } from './ScrollArea'
 
 export function Table({ className, wrapperClassName, ...props }: HTMLAttributes<HTMLTableElement> & { wrapperClassName?: string }) {
   return (
-    <div className={cn('relative overflow-x-auto rounded-lg border border-line bg-surface', wrapperClassName)}>
+    <ScrollArea axis="x" className={cn('relative rounded-lg border border-line bg-surface', wrapperClassName)}>
       <table className={cn('w-full border-collapse text-sm', className)} {...props} />
-    </div>
+    </ScrollArea>
   )
 }
 

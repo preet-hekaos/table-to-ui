@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { ApiError } from '@/api/client'
 import { app } from '@/api/endpoints'
 import type { RecordRow, ScreenConfig, TableDef } from '@/api/types'
-import { Button, EmptyState, ErrorState, Input, LoadingState, Select, cn } from '@/design-system'
+import { Button, EmptyState, ErrorState, Input, LoadingState, ScrollArea, Select, cn } from '@/design-system'
 import { useDebounced } from '@/lib/useDebounced'
 import { can, useMe } from '@/features/auth/useMe'
 import { RecordDetail } from '@/features/records/RecordDetail'
@@ -81,7 +81,7 @@ export function MasterDetail({
           {rows.length === 0 ? (
             <EmptyState title={`No ${table.plural_label.toLowerCase()} yet`}>{config.empty_text || 'Add one to see it here.'}</EmptyState>
           ) : (
-            <ul className="flex max-h-[70vh] flex-col gap-0.5 overflow-y-auto" aria-label={table.plural_label}>
+            <ScrollArea as="ul" className="flex max-h-[70vh] flex-col gap-0.5" aria-label={table.plural_label}>
               {rows.map((r) => (
                 <li key={r.id}>
                   <button
@@ -104,7 +104,7 @@ export function MasterDetail({
                   </button>
                 </li>
               ))}
-            </ul>
+            </ScrollArea>
           )}
         </div>
         <div>{current && !preview ? <RecordDetail key={current} tableKey={tableKey} id={current} embedded /> : current ? <p className="text-sm text-muted">The chosen record opens here.</p> : null}</div>

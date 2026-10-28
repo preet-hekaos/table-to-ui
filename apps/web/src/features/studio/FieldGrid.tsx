@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { studio } from '@/api/endpoints'
 import type { StudioTable } from '@/api/types'
-import { Chip, cn } from '@/design-system'
+import { Chip, ScrollArea, cn } from '@/design-system'
 import type { TableFeatures } from './features'
 
 const NUMERIC = ['integer', 'decimal', 'money', 'months']
@@ -89,7 +89,7 @@ export function FieldGrid({
           Each heading turns that option on or off for the whole table. Hover a chip for details. The title always shows, because it opens the record.
         </p>
       </div>
-      <div className="overflow-x-auto rounded-xl border border-line bg-surface">
+      <ScrollArea axis="x" className="rounded-xl border border-line bg-surface">
         <div className="min-w-[60rem]" role="table" aria-label="Field options">
           <div role="row" className={cn(rowGrid, 'h-[4.5rem] border-b border-line bg-soft')}>
             <span role="columnheader" className="text-xs font-semibold text-ink">Field</span>
@@ -153,7 +153,7 @@ export function FieldGrid({
             )
           })}
         </div>
-      </div>
+      </ScrollArea>
       {f.default_columns !== null && (
         <button type="button" className="self-start text-xs font-medium text-accent underline" disabled={!canEdit} onClick={() => set('default_columns', null)}>
           Go back to the automatic columns
