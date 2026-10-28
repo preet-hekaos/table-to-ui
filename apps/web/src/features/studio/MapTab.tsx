@@ -36,9 +36,6 @@ import { AddLink, AddMany, EditLink, LinkHealth } from './RelationshipsTab'
 const nodeTypes = { table: TableCard, dot: TableDot }
 const edgeTypes = { route: RouteEdge }
 
-/** One colour for every line that leaves a table, so a line can be followed by its colour. */
-const LINE_COLOURS = ['#2563eb', '#db2777', '#0d9488', '#d97706', '#7c3aed', '#dc2626', '#0891b2', '#65a30d']
-
 type View = 'cards' | 'graph'
 const VIEW_KEY = 'tableui.canvas.view'
 const readView = (): View => {
@@ -192,7 +189,6 @@ function Canvas({
       }
     })
   const visible = new Set(nodes.map((n) => n.id))
-  const colourOf = useMemo(() => new Map(all.map((t) => t.key).sort().map((k, i) => [k, LINE_COLOURS[i % LINE_COLOURS.length]!])), [all])
   // The routes follow the cards, including while one is being dragged; a few dozen lines are quick to place.
   const routes = graph ? null : routeLinks(merged.map((m) => ({ id: m.id, from: m.from, to: m.to })), positions)
   const edges: Edge[] = merged
@@ -202,7 +198,8 @@ function Canvas({
       const many = m.links.length > 1
       const first = m.links[0]!
       const route = routes?.get(m.id)
-      const colour = graph ? undefined : colourOf.get(m.from)
+      const lit = !!active && touches
+      const colour = graph ? undefined : lit ? 'var(--color-accent)' : '#94a3b8'
       return {
         id: m.id,
         source: m.from,
@@ -215,10 +212,10 @@ function Canvas({
         label: many ? `${m.links.length} links` : active && touches ? `${first.label}${first.source === 'pack' ? '' : ' •'}` : undefined,
         markerEnd: graph ? undefined : { type: MarkerType.ArrowClosed, color: colour },
         style: {
-          strokeWidth: many ? 3 : active && touches ? 2.25 : 1.75,
-          strokeDasharray: !many && first.source === 'pack' ? '6 4' : undefined,
+          strokeWidth: many ? 3 : lit ? 2.5 : 1.5,
+          strokeDasharray: !route && !many && first.source === 'pack' ? '6 4' : undefined,
           opacity: touches ? 1 : 0.12,
-          stroke: colour ?? (active && touches ? 'var(--color-accent)' : undefined),
+          stroke: colour,
         },
         labelBgPadding: [6, 3] as [number, number],
         labelStyle: { fontSize: 11 },

@@ -21,8 +21,8 @@ export type Route = {
 }
 
 const STUB = 14
-const LANE = 12
-const HOP = 6
+const LANE = 20
+const HOP = 9
 const CORNER = 5
 
 type Seg = { id: string; from: string; a: Point; b: Point }

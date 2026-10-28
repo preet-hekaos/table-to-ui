@@ -19,7 +19,7 @@ describe('routeLinks', () => {
         { id: 'x', from: 'c', to: 'b' }, // goes down-left
         { id: 'y', from: 'd', to: 'a' }, // goes up-left, so they cross
       ],
-      { ...pos, c: { x: 400, y: 50 }, d: { x: 400, y: 170 } },
+      { ...pos, c: { x: 400, y: 50 }, d: { x: 400, y: 260 } },
     )
     expect(hopCount(routes)).toBe(1)
     expect([...routes.values()].filter((r) => r.d.includes(' A')).length).toBe(1)
