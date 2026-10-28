@@ -59,7 +59,7 @@ function EnvironmentSwitch({ releases }: { releases: ReleaseRow[] }) {
                 {s.stage === 'draft' && waiting > 0 && (
                   <span aria-hidden className="absolute -top-1.5 left-1/2 ml-3 rounded-full bg-bad px-1.5 text-[10px] leading-4 font-bold text-white">{waiting}</span>
                 )}
-                <b className="text-[13px] leading-tight text-ink">{def.label}</b>
+                <b className="text-[13px] leading-tight text-ink">{def.label}</b>{' '}
                 <span className="-mt-0.5 text-[11px] leading-tight text-muted">
                   {s.value}
                   {s.note ? ` \u00b7 ${s.note}` : ''}
