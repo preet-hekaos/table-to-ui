@@ -117,7 +117,7 @@ test('Chart: chosen in Studio, drawn above the table, changed on the screen, cli
 
   await test.step('Anyone can change the chart on the screen, and it is remembered', async () => {
     await card.getByLabel('Group by').selectOption({ label: 'Status' })
-    await expect(card.getByRole('heading', { name: 'Candidates by status' })).toBeVisible()
+    await expect(card.getByRole('heading', { name: 'Candidates by status', includeHidden: true })).toBeAttached()
     await expect(card.getByRole('button', { name: /^Active:/ })).toBeVisible()
     for (const type of ['Bars', 'Horizontal bars', 'Line', 'Area', 'Share', 'Bars and line']) {
       await card.getByRole('radio', { name: type, exact: true }).click()

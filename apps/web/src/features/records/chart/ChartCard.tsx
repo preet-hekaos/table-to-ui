@@ -188,28 +188,15 @@ export function ChartCard({
 
   return (
     <section aria-label={title} data-testid="chart-card" className="overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_8px_24px_-14px_rgb(79_70_229/0.25)]">
-      <div className="flex flex-wrap items-start gap-x-6 gap-y-2 px-6 pt-5">
-        <div className="min-w-0">
-          <h2 className="text-base font-bold text-ink">{title}</h2>
-          <p className="mt-0.5 text-sm text-muted">
-            {data ? `${shown.map((m) => m.label).join(' and ')} · ${data.total.toLocaleString('en-IN')} ${data.scope === 'table' ? 'in the whole table' : 'matching'}` : 'Loading'}
-          </p>
+      <h2 className="sr-only">{title}</h2>
+      {closed && (
+        <div className="flex items-center justify-between px-5 py-2">
+          <span className="text-sm font-semibold text-body">{title}</span>
+          <Button variant="ghost" size="sm" aria-expanded={false} aria-label="Show the chart" onClick={() => setPrefs({ closed: false })}>
+            <ChevronDown className="size-4" aria-hidden />
+          </Button>
         </div>
-        <dl className="ml-auto flex gap-7">
-          {data && shown.map((m, i) => (
-            <div key={m.key}>
-              <dd className="text-2xl leading-tight font-bold text-ink" style={{ textShadow: 'none' }}>{fmt(m, data.overall[m.key] ?? null)}</dd>
-              <dt className="flex items-center gap-1.5 text-xs text-muted">
-                <span className="size-2 rounded-full" style={{ background: i === 0 ? 'var(--color-accent)' : SECOND }} aria-hidden />
-                {m.label}
-              </dt>
-            </div>
-          ))}
-        </dl>
-        <Button variant="ghost" size="sm" aria-expanded={!closed} aria-label={closed ? 'Show the chart' : 'Hide the chart'} onClick={() => setPrefs({ closed: !closed })}>
-          {closed ? <ChevronDown className="size-4" aria-hidden /> : <ChevronUp className="size-4" aria-hidden />}
-        </Button>
-      </div>
+      )}
       {!closed && (
         <>
           <div className="flex flex-wrap items-center gap-2 px-6 pt-4">
@@ -281,6 +268,9 @@ export function ChartCard({
                   </button>
                 ))}
               </div>
+              <Button variant="ghost" size="sm" aria-expanded aria-label="Hide the chart" onClick={() => setPrefs({ closed: true })}>
+                <ChevronUp className="size-4" aria-hidden />
+              </Button>
             </div>
           </div>
           <div className="pt-3">
