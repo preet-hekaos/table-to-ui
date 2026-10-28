@@ -82,3 +82,12 @@ export async function openSection(page: Page, name: 'Tables' | 'Canvas' | 'Stage
 export async function expectSection(page: Page, name: string) {
   await expect(page.getByRole('button', { name: new RegExp(`^Section: ${name}\\.`) })).toBeVisible()
 }
+
+/** Set a table's features through the API, the way an older Studio screen or an integration would. */
+export async function putFeatures(page: Page, table: string, body: Record<string, unknown>) {
+  const status = await page.evaluate(
+    async ([t, b]) => (await fetch(`/v1/studio/tables/${t}/features`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionStorage.getItem('tableui.token')}` }, body: JSON.stringify(b) })).status,
+    [table, body] as [string, Record<string, unknown>],
+  )
+  expect(status).toBe(200)
+}

@@ -66,15 +66,17 @@ async def table_chart(
     principal.require(f"record.{table_key}.read")
     table = app.table(table_key)
     feat = features_of(table)
-    if not feat.statistics or feat.stat_view != "chart":
-        raise PermissionDenied("A chart is not switched on for this table.")
+    if not feat.statistics:
+        raise PermissionDenied("Numbers above the table are switched off for this table.")
     denied = {f for (t, f) in principal.field_denies if t == table.key}
     offered = {f.key: f for f in table.fields if not f.hidden and f.key not in denied and f.key not in feat.nochart}  # fmt: skip
     groupable = [f for f in offered.values() if f.type in CHART_X_TYPES]
     if x is None:
         if not groupable:
             raise _bad("x", "no field can be grouped on this table")
-        xf = groupable[0]
+        # A choice field says more at a glance than a name: prefer it, then yes/no, dates, and text last.
+        rank = {"select": 0, "boolean": 1, "date": 2, "text": 3}
+        xf = min(groupable, key=lambda f: rank.get(f.type, 9))
     else:
         xf = offered.get(x)  # type: ignore[assignment]
         if xf is None or xf.type not in CHART_X_TYPES:

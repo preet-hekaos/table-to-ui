@@ -32,9 +32,8 @@ test('Features tab: whole-table switches, defaults, and field options headed by 
   await page.goto('/studio?tab=data&table=candidate&part=features')
   const panel = page.getByTestId('features-panel')
 
-  await test.step('Three sections, in this order', async () => {
+  await test.step('Two sections, in this order', async () => {
     await expect(panel.getByRole('heading', { name: 'For the whole table' })).toBeVisible()
-    await expect(panel.getByRole('heading', { name: 'Defaults' })).toBeVisible()
     await expect(panel.getByRole('heading', { name: 'Field options' })).toBeVisible()
     await expect(panel.getByText('No unsaved changes')).toBeVisible()
     await shot(page, 'r7-features-on')
@@ -89,7 +88,6 @@ test('The unsaved-changes count is honest: turning something off and on again is
     ['a Summary chip', () => panel.getByRole('checkbox', { name: 'Summarise Total experience' }), 'Summary'],
     ['a bulk action chip', () => page.getByRole('checkbox', { name: 'Delete (with Undo)' }), 'Bulk action', 'Bulk action options'],
     ['an export format chip', () => page.getByRole('checkbox', { name: 'CSV' }), 'Format', 'Export options'],
-    ['a Whole table chip', () => panel.getByRole('checkbox', { name: 'Whole table' }), 'Whole table'],
   ]
   for (const [what, el, , opener] of flips) {
     await test.step(`Flipping ${what} counts as one change, and flipping it back as none`, async () => {
@@ -105,13 +103,6 @@ test('The unsaved-changes count is honest: turning something off and on again is
       await expect(clean, `${what} back`).toBeVisible()
     })
   }
-
-  await test.step('A select that returns to its value is no change either', async () => {
-    await panel.getByLabel('Row density').selectOption('comfortable')
-    await expect(panel.getByText('1 unsaved change', { exact: true })).toBeVisible()
-    await panel.getByLabel('Row density').selectOption('compact')
-    await expect(clean).toBeVisible()
-  })
 
   await test.step('Several chips of one column, undone in a different order, leave nothing behind', async () => {
     const email = panel.getByRole('checkbox', { name: 'Sort by Email' })

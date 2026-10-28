@@ -48,7 +48,6 @@ test('Sort and filter: header filters, chips, per-field settings, switch off', a
     const panel = page.getByTestId('features-panel')
     await panel.getByLabel('Filter by Email').uncheck()
     await panel.getByLabel('Sort by Email').uncheck()
-    await panel.getByLabel('Default order').selectOption({ index: 1 })
     await panel.getByRole('button', { name: 'Save features' }).click()
     await expect(page.getByText('Saved features for Candidate').first()).toBeVisible()
     await page.reload()

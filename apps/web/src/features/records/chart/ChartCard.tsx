@@ -7,6 +7,7 @@ import { Button, ErrorState, Table, Td, Th, cn } from '@/design-system'
 import { DEFAULT_CHART, type ChartConfig, type ChartType, type TableFeatures } from '@/features/studio/features'
 import { formatMoney, formatMonths } from '@/patterns/format'
 import { ChartCanvas, SECOND } from './ChartCanvas'
+import { NumbersMode, type NumbersState } from '../NumbersMode'
 
 type Criteria = { q: string; filters: Record<string, string>; ranges: Record<string, string>; contains: Record<string, string>; anyof: Record<string, string> }
 
@@ -86,11 +87,13 @@ export function ChartCard({
   feat,
   criteria,
   setCriteria,
+  numbers,
 }: {
   table: TableDef
   feat: TableFeatures
   criteria: Criteria
   setCriteria: (c: Criteria) => void
+  numbers: NumbersState
 }) {
   const [prefs, setPrefs] = useChartPrefs(table.key)
   const owner = feat.chart ?? DEFAULT_CHART
@@ -107,7 +110,9 @@ export function ChartCard({
   const xKey = cfg.x ?? lastX
   // The chart ignores the filter its own bars make, so the other bars stay in view while one is chosen.
   const without = (o: Record<string, string>) => Object.fromEntries(Object.entries(o).filter(([k]) => k !== xKey))
-  const query = { q: criteria.q, filters: without(criteria.filters), ranges: without(criteria.ranges), contains: criteria.contains, anyof: criteria.anyof }
+  const query = numbers.whole
+    ? { q: '', filters: {}, ranges: {}, contains: {}, anyof: {} }
+    : { q: criteria.q, filters: without(criteria.filters), ranges: without(criteria.ranges), contains: criteria.contains, anyof: criteria.anyof }
   const chart = useQuery<ChartResult>({
     queryKey: ['chart', table.key, query, cfg.x, cfg.bucket, measuresParam, cfg.top],
     queryFn: async () => {
@@ -159,10 +164,10 @@ export function ChartCard({
   const all = data?.measures ?? []
   const shown = all.filter((m) => !off.has(m.key))
   const groupBy = data?.groupable ?? []
-  const numbers = data?.numbers ?? []
+  const numberFields = data?.numbers ?? []
   const options = [
     { key: 'count', label: `Count of ${table.plural_label.toLowerCase()}` },
-    ...numbers.flatMap((n) => [
+    ...numberFields.flatMap((n) => [
       { key: `sum:${n.key}`, label: `Total ${n.label.toLowerCase()}` },
       { key: `avg:${n.key}`, label: `Average ${n.label.toLowerCase()}` },
     ]),
@@ -268,6 +273,7 @@ export function ChartCard({
                   </button>
                 ))}
               </div>
+              <NumbersMode n={numbers} />
               <Button variant="ghost" size="sm" aria-expanded aria-label="Hide the chart" onClick={() => setPrefs({ closed: true })}>
                 <ChevronUp className="size-4" aria-hidden />
               </Button>

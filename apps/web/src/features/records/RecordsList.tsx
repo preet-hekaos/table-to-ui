@@ -20,6 +20,7 @@ import { featuresOf } from '@/features/studio/features'
 import { BulkBar } from './BulkBar'
 import { ExportDialog } from './ExportDialog'
 import { ChartCard } from './chart/ChartCard'
+import { NumbersMode, useNumbersPrefs } from './NumbersMode'
 import { StatsStrip } from './StatsStrip'
 import { InlineCell, InlineEditContext, inlineEditable } from './InlineCell'
 import { HeaderFilter, describe, filterKind } from './HeaderFilter'
@@ -212,6 +213,7 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
   const def = useQuery({ queryKey: ['table', tableKey], queryFn: () => app.table(tableKey), retry: false })
   const table = tableOverride ?? def.data?.table
   const feat = featuresOf(table)
+  const numbers = useNumbersPrefs(tableKey, feat)
   const density = prefs.density ?? feat.density // a person's own choice wins over the owner's default
   // The screen can start the list grouped; the person can change or clear it while it is open.
   const groupBy = feat.grouping && !(custom && feat.row_order) ? (groupChoice ?? config.group_by) || undefined : undefined
@@ -328,11 +330,14 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
       <EmptyState title="Nothing matches">Try fewer filters or other words.</EmptyState>
     ) : (
       <>
-      {feat.statistics && !preview && feat.stat_view === 'chart' && (total > 0 || Object.values(criteria).some(Boolean)) && (
-        <ChartCard table={table} feat={feat} criteria={criteria} setCriteria={setCriteria} />
+      {feat.statistics && !preview && numbers.view === 'chart' && (total > 0 || Object.values(criteria).some(Boolean)) && (
+        <ChartCard table={table} feat={feat} criteria={criteria} setCriteria={setCriteria} numbers={numbers} />
       )}
-      {feat.statistics && !preview && feat.stat_view !== 'chart' && rows.length > 0 && (
-        <StatsStrip table={table} query={{ q: debouncedQ, filters: keepSet(filters), ranges: keepSet(ranges), contains: keepSet(contains), anyof: keepSet(anyof) }} />
+      {feat.statistics && !preview && numbers.view !== 'chart' && rows.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <div className="flex justify-end"><NumbersMode n={numbers} /></div>
+          <StatsStrip table={table} whole={numbers.whole} query={numbers.whole ? {} : { q: debouncedQ, filters: keepSet(filters), ranges: keepSet(ranges), contains: keepSet(contains), anyof: keepSet(anyof) }} />
+        </div>
       )}
       <div className="overflow-hidden rounded-lg border border-line bg-surface" data-testid="table-card">
       <div className="border-b border-line px-3 py-2">

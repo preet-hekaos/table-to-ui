@@ -12,3 +12,7 @@ Status: accepted
 
 ## Consequences
 No new dependency and no extra weight on tables that use cards. A second measure is drawn as a line on its own axis in bars-and-line, line and area charts; bars, horizontal bars and donut show the first measure only.
+
+## Update (R11): numbers settings moved to the table screen
+
+The Studio Features tab no longer has the Defaults row or the chart/card editors. Each person chooses cards or a chart, "Whole table", chart type, group by, measures and groups shown on the table screen itself (remembered per browser). The chart endpoint is available whenever Numbers above the table is on in the field options; it no longer needs `stat_view = chart`. Values already saved by an owner (`stat_view`, `chart`, `stat_cards`, `stat_scope`, `density`, `default_sort`) still apply as the starting point. With no saved chart, it groups by a choice field first, not by name.

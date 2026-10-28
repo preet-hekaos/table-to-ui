@@ -28,22 +28,23 @@ function CardGrid({ count, label, children, note }: { count: number; label: stri
 }
 
 /** Numbers above the table: each card is a name and one number. */
-export function StatsStrip({ table, query }: { table: TableDef; query: ListQuery }) {
+export function StatsStrip({ table, query, whole = false }: { table: TableDef; query: ListQuery; whole?: boolean }) {
   const stats = useQuery({ queryKey: ['stats', table.key, query], queryFn: () => app.stats(table.key, query), placeholderData: (p) => p, retry: false })
   const s = stats.data
+  const wholeTable = whole || s?.scope === 'table'
   const by = new Map(table.fields.map((f) => [f.key, f]))
   if (s?.cards) {
     if (s.cards.length === 0) return null
     return (
       <CardGrid
         count={s.cards.length}
-        label={s.scope === 'table' ? 'Numbers for the whole table' : 'Numbers for the current search'}
-        note={s.scope === 'table' ? 'Whole table, not narrowed by search or filters.' : undefined}
+        label={wholeTable ? 'Numbers for the whole table' : 'Numbers for the current search'}
+        note={wholeTable ? 'Whole table, not narrowed by search or filters.' : undefined}
       >
         {s.cards.map((c, i) => {
           const f = c.field ? by.get(c.field) : undefined
           const shown = c.number === null ? '—' : c.kind === 'number' && f ? formatField(f, c.number) : c.number.toLocaleString('en-IN')
-          return <Card key={`${c.label}-${i}`} label={c.label} value={shown} testid="stat-card" />
+          return <Card key={`${c.label}-${i}`} label={wholeTable && c.label === 'Matching' ? 'Total' : c.label} value={shown} testid="stat-card" />
         })}
       </CardGrid>
     )
@@ -51,8 +52,8 @@ export function StatsStrip({ table, query }: { table: TableDef; query: ListQuery
   if (!s || s.fields.length === 0) return null
   const tiles = s.fields.filter((x) => x.avg !== null || x.sum !== null)
   return (
-    <CardGrid count={tiles.length + 1} label="Numbers for the current search">
-      <Card label="Matching" value={s.total.toLocaleString('en-IN')} />
+    <CardGrid count={tiles.length + 1} label={wholeTable ? 'Numbers for the whole table' : 'Numbers for the current search'} note={wholeTable ? 'Whole table, not narrowed by search or filters.' : undefined}>
+      <Card label={wholeTable ? 'Total' : 'Matching'} value={s.total.toLocaleString('en-IN')} />
       {tiles.map((x) => {
         const f = by.get(x.key)
         return <Card key={x.key} label={`Average ${x.label}`} value={x.avg === null ? '—' : formatField(f, x.avg)} testid="stat-tile" />

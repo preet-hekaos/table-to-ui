@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
-import { expectReadable, run, signUpWithPack } from './helpers'
+import { expectReadable, putFeatures, run, signUpWithPack } from './helpers'
 
 const token = (page: Page) => page.evaluate(() => sessionStorage.getItem('tableui.token'))
 
@@ -66,21 +66,22 @@ test('Chart: chosen in Studio, drawn above the table, changed on the screen, cli
   await signUpWithPack(page, `Chart Co ${run}`, `chart-${run}@chart.test`)
   await seed(page)
 
-  await test.step('The owner chooses a chart in the Features tab', async () => {
+  await test.step('The Features tab no longer has chart or default settings; they are on the table screen', async () => {
     await page.goto('/studio?tab=data&table=candidate&part=features')
     const panel = page.getByTestId('features-panel')
-    await panel.getByLabel('Show numbers as').selectOption('chart')
-    const editor = panel.getByTestId('chart-editor')
-    await expect(editor).toBeVisible()
-    await editor.getByRole('checkbox', { name: 'Bars and line' }).check()
-    await editor.getByLabel('Chart group by').selectOption({ label: 'Location' })
-    await editor.getByLabel('Chart second measure').selectOption({ label: 'Average notice period (days)' })
-    await expect(panel.getByRole('checkbox', { name: 'Choose the summary cards myself' })).toHaveCount(0)
-    await expect(panel.getByText(/unsaved change/)).toBeVisible()
-    await shot(page, 'r10-features-chart')
-    await panel.getByRole('button', { name: 'Save features' }).click()
-    await expect(page.getByText('Saved features for Candidate').first()).toBeVisible()
+    await expect(panel.getByLabel('Show numbers as')).toHaveCount(0)
+    await expect(panel.getByTestId('chart-editor')).toHaveCount(0)
+    await expect(panel.getByLabel('Row density')).toHaveCount(0)
+    await putFeatures(page, 'candidate', { chart: { type: 'combo', x: 'location', bucket: 'month', measures: [{ agg: 'count' }, { agg: 'avg', field: 'notice_period_days' }], top: 8 } })
     await goLive(page)
+  })
+
+  await test.step('A person switches the numbers from cards to a chart, and it is remembered', async () => {
+    await page.goto('/s/candidates')
+    await expect(page.getByTestId('stats-strip')).toBeVisible()
+    await page.getByRole('radio', { name: 'Chart', exact: true }).click()
+    await page.reload()
+    await expect(page.getByTestId('chart-card')).toBeVisible()
   })
 
   const card = page.getByTestId('chart-card')
@@ -88,7 +89,7 @@ test('Chart: chosen in Studio, drawn above the table, changed on the screen, cli
     await page.goto('/s/candidates')
     await expect(card).toBeVisible()
     await expect(page.getByTestId('stats-strip')).toHaveCount(0)
-    await expect(card.getByRole('heading', { name: 'Candidates by location' })).toBeVisible()
+    await expect(card.getByRole('heading', { name: 'Candidates by location', includeHidden: true })).toBeAttached()
     await expect(card.getByRole('button', { name: /^Kochi: Candidates 3/ })).toBeVisible()
     await expect(card.getByLabel('Group by')).toHaveValue('location')
     await expect(card.getByRole('group', { name: 'Series' }).or(card.getByRole('list', { name: 'Series' }))).toContainText('Average notice period')
@@ -164,7 +165,7 @@ test('A refused save says so instead of doing nothing', async ({ page }) => {
   )
   await page.goto('/studio?tab=data&table=candidate&part=features')
   const panel = page.getByTestId('features-panel')
-  await panel.getByLabel('Show numbers as').selectOption('chart')
+  await panel.getByRole('switch', { name: 'Drag to reorder' }).uncheck()
   await panel.getByRole('button', { name: 'Save features' }).click()
   await expect(page.getByText('Could not save features').first()).toBeVisible()
   await expect(page.getByText(/restart the API/).first()).toBeVisible()

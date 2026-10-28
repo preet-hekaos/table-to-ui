@@ -23,12 +23,15 @@ async def _on(
     await a.publish_live()
 
 
-async def test_chart_is_refused_until_the_owner_chooses_it(
+async def test_chart_is_available_unless_numbers_are_switched_off(
     client: httpx.AsyncClient, agency: Agency
 ) -> None:
     await _people(agency)
+    assert (await _chart(client, agency, x="status")).status_code == 200
+    assert (await _put(client, agency, "candidate", {"statistics": False})).status_code == 200
+    await agency.publish_live()
     assert (await _chart(client, agency, x="status")).status_code == 403
-    await _on(client, agency)
+    await _on(client, agency, statistics=True)
     assert (await _chart(client, agency, x="status")).status_code == 200
 
 
