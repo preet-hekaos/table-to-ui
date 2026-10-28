@@ -48,8 +48,8 @@ export function SectionSwitcher({ current, onSelect }: { current: SectionKey; on
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger asChild>
-        <Button variant="secondary" size="sm" aria-label={`Section: ${sectionLabel(current)}. Change section`} className="gap-2 bg-accent-soft font-semibold text-accent-ink">
-          {sectionLabel(current)}
+        <Button variant="secondary" size="sm" aria-label={current === 'chat' ? 'Sections. Change section' : `Section: ${sectionLabel(current)}. Change section`} className="gap-2 bg-accent-soft font-semibold text-accent-ink">
+          {current === 'chat' ? 'Sections' : sectionLabel(current)}
           <ChevronDown className="size-4" aria-hidden />
         </Button>
       </Popover.Trigger>
@@ -83,11 +83,24 @@ export function SectionSwitcher({ current, onSelect }: { current: SectionKey; on
   )
 }
 
-/** The two things that sit apart from the sections: set up by chat, and the less used links. */
-export function HeaderActions({ chat, onChat, chatActive }: { chat: boolean; onChat: () => void; chatActive: boolean }) {
+/** Everything that is about the Studio as a whole, in the header: the section switcher, set up by chat and the less used links. */
+export function HeaderActions({
+  current,
+  onSection,
+  chat,
+  onChat,
+  chatActive,
+}: {
+  current: SectionKey
+  onSection: (k: SectionKey) => void
+  chat: boolean
+  onChat: () => void
+  chatActive: boolean
+}) {
   const [open, setOpen] = useState(false)
   return (
     <div className="flex items-center gap-2">
+      <SectionSwitcher current={current} onSelect={onSection} />
       {chat && (
         <Button variant={chatActive ? 'primary' : 'secondary'} size="sm" aria-pressed={chatActive} onClick={onChat}>
           <Sparkles className="size-4" aria-hidden /> Set up by chat

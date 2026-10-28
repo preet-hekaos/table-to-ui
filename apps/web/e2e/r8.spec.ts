@@ -49,23 +49,31 @@ test('Studio header: one toolbar, a section switcher, and the pipeline strip', a
     await page.keyboard.press('Escape')
   })
 
-  await test.step('Tables: switcher, table and parts share one row', async () => {
+  await test.step('Tables: the switcher sits in the header; the table and its parts share one row below', async () => {
     await openSection(page, 'Tables')
     const switcher = page.getByRole('button', { name: /Change section/ })
+    const chat = page.getByRole('button', { name: 'Set up by chat', exact: true })
     const picker = page.getByRole('button', { name: /Change table/ })
     const parts = page.getByRole('tablist', { name: /parts/ })
     await expect(parts).toBeVisible()
     await expect(picker).toBeVisible()
-    const [a, b, c] = await Promise.all([switcher.boundingBox(), picker.boundingBox(), parts.boundingBox()])
-    expect(Math.abs(a!.y - b!.y)).toBeLessThan(8)
-    expect(Math.abs(b!.y - c!.y)).toBeLessThan(8)
+    const [a, b, c, d] = await Promise.all([switcher.boundingBox(), chat.boundingBox(), picker.boundingBox(), parts.boundingBox()])
+    expect(Math.abs(a!.y - b!.y)).toBeLessThan(8) // switcher and chat button share the header row
     expect(a!.x).toBeLessThan(b!.x)
-    expect(b!.x).toBeLessThan(c!.x)
+    expect(a!.y).toBeLessThan(c!.y) // the toolbar below holds only the table's own controls
+    expect(Math.abs(c!.y - d!.y)).toBeLessThan(8)
+    expect(c!.x).toBeLessThan(d!.x)
+    await expect(page.getByRole('button', { name: 'Add field' })).toBeVisible()
+    const rows = page.getByRole('table', { name: /fields/ }).locator('tbody tr')
+    const h = (await rows.first().boundingBox())!.height
+    expect(h, 'a compact field row').toBeLessThan(40)
     await page.getByRole('tab', { name: 'Features' }).click()
     await expect(page.getByTestId('features-panel')).toBeVisible()
     await expectReadable(page, page.getByRole('tab', { name: 'Fields' }), ['rest', 'hover'])
     await expectReadable(page, page.getByRole('tab', { name: 'Features' }), ['rest'])
     await expectReadable(page, switcher, ['rest', 'hover', 'focus'])
+    await page.getByRole('tab', { name: 'Fields' }).click()
+    await shot(page, 'r8-fields')
     await shot(page, 'r8-tables')
   })
 

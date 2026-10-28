@@ -20,7 +20,7 @@ import {
 import { can, useMe } from '@/features/auth/useMe'
 import { DataTab, type TablePart } from './DataTab'
 import { useStages } from './useStages'
-import { HeaderActions, SectionSwitcher, sectionLabel } from './StudioToolbar'
+import { HeaderActions, sectionLabel } from './StudioToolbar'
 import { FlowTab } from './FlowTab'
 import { AutomationsTab } from './AutomationsTab'
 import { InsightsTab } from './InsightsTab'
@@ -353,17 +353,12 @@ export function Studio({ tab = 'data', table, part }: { tab?: StudioTab; table?:
         <h1 className="text-xl font-bold text-ink">Studio</h1>
         <EnvironmentSwitch releases={releases.data ?? []} />
         <div className="ml-auto">
-          <HeaderActions chat={can(perms, 'ai.setup')} chatActive={tab === 'chat'} onChat={() => go({ tab: 'chat' })} />
+          <HeaderActions current={tab} onSection={(k) => go({ tab: k })} chat={can(perms, 'ai.setup')} chatActive={tab === 'chat'} onChat={() => go({ tab: 'chat' })} />
         </div>
       </div>
       <DraftBanner canPublish={canPublish} onReview={() => go({ tab: 'versions' })} />
       {!can(perms, 'ai.setup') && (
         <p className="text-xs text-muted" data-testid="chat-setup-hint">Ask an owner for setup access to build with chat.</p>
-      )}
-      {tab !== 'data' && (
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-line bg-surface p-3">
-          <SectionSwitcher current={tab} onSelect={(k) => go({ tab: k })} />
-        </div>
       )}
       <section aria-label={sectionLabel(tab)} className="flex flex-col gap-4">
         {tab === 'chat' && <SetupChat />}
@@ -375,7 +370,6 @@ export function Studio({ tab = 'data', table, part }: { tab?: StudioTab; table?:
             canEdit={canEdit}
             part={part}
             onPart={(p) => go({ part: p })}
-            lead={<SectionSwitcher current="data" onSelect={(k) => go({ tab: k })} />}
           />
         )}
         {tab === 'map' && <MapTab canEdit={canEdit} onOpen={(k, p) => go({ tab: 'data', table: k, part: p ?? 'fields' })} />}
