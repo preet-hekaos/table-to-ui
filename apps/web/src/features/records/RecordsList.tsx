@@ -19,6 +19,7 @@ import { ColumnsMenu } from './ColumnsMenu'
 import { featuresOf } from '@/features/studio/features'
 import { BulkBar } from './BulkBar'
 import { ExportDialog } from './ExportDialog'
+import { ChartCard } from './chart/ChartCard'
 import { StatsStrip } from './StatsStrip'
 import { InlineCell, InlineEditContext, inlineEditable } from './InlineCell'
 import { HeaderFilter, describe, filterKind } from './HeaderFilter'
@@ -327,7 +328,10 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
       <EmptyState title="Nothing matches">Try fewer filters or other words.</EmptyState>
     ) : (
       <>
-      {feat.statistics && !preview && rows.length > 0 && (
+      {feat.statistics && !preview && feat.stat_view === 'chart' && (total > 0 || Object.values(criteria).some(Boolean)) && (
+        <ChartCard table={table} feat={feat} criteria={criteria} setCriteria={setCriteria} />
+      )}
+      {feat.statistics && !preview && feat.stat_view !== 'chart' && rows.length > 0 && (
         <StatsStrip table={table} query={{ q: debouncedQ, filters: keepSet(filters), ranges: keepSet(ranges), contains: keepSet(contains), anyof: keepSet(anyof) }} />
       )}
       <div className="overflow-hidden rounded-lg border border-line bg-surface" data-testid="table-card">

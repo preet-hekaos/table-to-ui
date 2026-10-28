@@ -176,6 +176,36 @@ class StatCard(_Strict):
         return self
 
 
+CHART_TYPES = ("combo", "bar", "hbar", "line", "area", "donut")
+CHART_X_TYPES = ("select", "text", "boolean", "date")  # what a chart can group by
+CHART_NUMBER_TYPES = ("integer", "decimal", "money", "months")
+
+
+class ChartMeasure(_Strict):
+    """What one series of the chart shows: how many records, or a number over a field."""
+
+    agg: Literal["count", "sum", "avg", "min", "max"] = "count"
+    field: Key | None = None
+
+    @model_validator(mode="after")
+    def _complete(self) -> "ChartMeasure":
+        if self.agg != "count" and not self.field:
+            raise ValueError("a measure other than count needs a field")
+        return self
+
+
+class ChartConfig(_Strict):
+    """The chart shown above the table: its type, what it groups by and what it measures."""
+
+    type: Literal["combo", "bar", "hbar", "line", "area", "donut"] = "combo"
+    x: Key | None = None  # None: the first field a chart can group by
+    bucket: Literal["day", "week", "month"] = "month"  # for a date field
+    measures: list[ChartMeasure] = Field(
+        default_factory=lambda: [ChartMeasure()], min_length=1, max_length=2
+    )
+    top: int = Field(default=8, ge=1, le=20)  # groups shown; the rest are folded into "Others"
+
+
 class TableFeatures(_Strict):
     """The classic table features a workspace owner can keep or switch off, per table.
     A table that has never been customised has every feature on (see `features_of`)."""
@@ -203,6 +233,9 @@ class TableFeatures(_Strict):
     stat_scope: Literal["search", "table"] = (
         "search"  # numbers follow the search, or always count the whole table
     )
+    stat_view: Literal["cards", "chart"] = "cards"  # numbers above the table as cards or as a chart
+    chart: ChartConfig | None = None  # the owner's starting chart; None: the automatic one
+    nochart: list[Key] = []  # fields not offered to group or measure a chart
     default_columns: list[Key] | None = (
         None  # columns everyone sees first; None: the first few fields
     )

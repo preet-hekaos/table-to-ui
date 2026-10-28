@@ -166,3 +166,41 @@ body {
 [data-fade='x'][data-fading] {
   mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-a, 0px), #000 calc(100% - var(--fade-b, 0px)), transparent 100%);
 }
+
+/* Charts: bars grow, lines draw themselves; both are off for people who ask for less motion. */
+@keyframes chart-grow {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+@keyframes chart-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes chart-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.chart-bar {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: chart-grow 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.chart-hbar {
+  transform-box: fill-box;
+  transform-origin: 0 50%;
+  animation: chart-grow-x 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes chart-grow-x {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.chart-line {
+  stroke-dasharray: 1;
+  animation: chart-draw 0.9s ease-out both;
+}
+.chart-fade {
+  animation: chart-fade 0.7s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .chart-bar, .chart-hbar, .chart-line, .chart-fade { animation: none; }
+}

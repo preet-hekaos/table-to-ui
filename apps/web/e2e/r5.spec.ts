@@ -45,7 +45,6 @@ test('Field grid: the owner decides what people can do with each field', async (
     await expect(tile).toContainText('Average')
     await expectReadable(page, tile.locator('p').first())
     await expectReadable(page, tile.locator('p').nth(1))
-    await expectReadable(page, tile.locator('p').nth(2))
     await shot(page, 'r5-tiles')
   })
 

@@ -29,6 +29,8 @@ from tableui.metadata.domain.ddl import (
 )
 from tableui.metadata.domain.measures import problems as measure_problems
 from tableui.metadata.domain.models import (
+    CHART_NUMBER_TYPES,
+    CHART_X_TYPES,
     AutomationDef,
     ContextLoader,
     EffectDef,
@@ -92,6 +94,8 @@ __all__ = [
     "StageDef",
     "TableDef",
     "StatCard",
+    "CHART_NUMBER_TYPES",
+    "CHART_X_TYPES",
     "TableFeatures",
     "WorkflowDef",
     "build_manifest",

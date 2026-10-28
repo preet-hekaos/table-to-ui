@@ -18,6 +18,7 @@ from tableui.audit.public import write_audit
 from tableui.metadata.domain.ddl import add_field_index_sql, add_shadow_column_sql, table_ddl_sql
 from tableui.metadata.domain.links import describe_cycle, required_cycle
 from tableui.metadata.domain.models import (
+    CHART_X_TYPES,
     FieldDef,
     NavItem,
     RuleDef,
@@ -693,6 +694,7 @@ def _fit_features(f: TableFeatures, table: TableDef, *, strict: bool) -> TableFe
         *f.ungroupable,
         *f.unexported,
         *f.nobulk,
+        *f.nochart,
         *(f.default_columns or []),
     ]
     bad = [k for k in per_field if k not in have]
@@ -707,6 +709,18 @@ def _fit_features(f: TableFeatures, table: TableDef, *, strict: bool) -> TableFe
             return c.field in numeric
         return by_type.get(c.field or "") in ("select", "boolean", "text")
 
+    def _chart_ok(c: Any) -> bool:
+        if c is None:
+            return True
+        if c.x is not None and by_type.get(c.x) not in CHART_X_TYPES:
+            return False
+        return all(m.agg == "count" or m.field in numeric for m in c.measures)
+
+    chart_bad = not _chart_ok(f.chart)
+    if chart_bad and f.chart is not None:
+        bad.append(
+            f.chart.x or next((m.field for m in f.chart.measures if m.field), None) or "chart"
+        )
     bad_cards = [c for c in (f.stat_cards or []) if not _card_ok(c)]
     bad += [c.field for c in bad_cards if c.field]
     if (
@@ -731,6 +745,8 @@ def _fit_features(f: TableFeatures, table: TableDef, *, strict: bool) -> TableFe
             "ungroupable": [k for k in f.ungroupable if k in have],
             "unexported": [k for k in f.unexported if k in have],
             "nobulk": [k for k in f.nobulk if k in have],
+            "nochart": [k for k in f.nochart if k in have],
+            "chart": None if chart_bad else f.chart,
             "default_columns": [k for k in f.default_columns if k in have]
             if f.default_columns is not None
             else None,

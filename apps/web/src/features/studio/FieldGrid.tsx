@@ -5,6 +5,7 @@ import { Chip, ScrollArea, cn } from '@/design-system'
 import type { TableFeatures } from './features'
 
 const NUMERIC = ['integer', 'decimal', 'money', 'months']
+const CHARTABLE = ['select', 'text', 'boolean', 'date', ...NUMERIC]
 
 /** The fields shown when the owner has not chosen: the table screen's own columns, else the first six. */
 function automaticColumns(table: StudioTable, screenColumns: string[] | undefined): string[] {
@@ -36,6 +37,7 @@ const COLUMNS: Column[] = [
   { short: 'Export', follows: { flag: 'export_data', label: 'Export data' } },
   { short: 'Bulk', follows: { flag: 'select_bulk', label: 'Select rows' } },
   { short: 'Summary', master: { flag: 'statistics', label: 'Numbers above the table' } },
+  { short: 'Chart' },
 ]
 
 /**
@@ -66,6 +68,7 @@ export function FieldGrid({
   const blocked = (c: Column): string | null => {
     if (c.master && !f[c.master.flag]) return `Turn on ${c.master.label} first.`
     if (c.follows && !f[c.follows.flag]) return `Turn on ${c.follows.label} first.`
+    if (c.short === 'Chart' && (!f.statistics || f.stat_view !== 'chart')) return 'Show the numbers as a chart first.'
     return null
   }
 
@@ -79,7 +82,7 @@ export function FieldGrid({
   }
   const col = (short: string) => COLUMNS.find((c) => c.short === short)!
 
-  const rowGrid = 'grid grid-cols-[13rem_repeat(8,minmax(0,1fr))] items-center px-5'
+  const rowGrid = 'grid grid-cols-[13rem_repeat(9,minmax(0,1fr))] items-center px-5'
 
   return (
     <section className="flex flex-col gap-4" aria-labelledby="field-grid-title" data-testid="field-grid">
@@ -90,7 +93,7 @@ export function FieldGrid({
         </p>
       </div>
       <ScrollArea axis="x" className="rounded-xl border border-line bg-surface">
-        <div className="min-w-[60rem]" role="table" aria-label="Field options">
+        <div className="min-w-[66rem]" role="table" aria-label="Field options">
           <div role="row" className={cn(rowGrid, 'h-[4.5rem] border-b border-line bg-soft')}>
             <span role="columnheader" className="text-xs font-semibold text-ink">Field</span>
             {COLUMNS.map((c) => (
@@ -109,7 +112,7 @@ export function FieldGrid({
                     {f[c.master.flag] ? 'On' : 'Off'}
                   </Chip>
                 ) : (
-                  <span className="text-center text-[11px] leading-tight text-body">{c.follows ? `Follows ${c.follows.label}` : 'Default columns'}</span>
+                  <span className="text-center text-[11px] leading-tight text-body">{c.follows ? `Follows ${c.follows.label}` : c.short === 'Chart' ? 'Follows the chart' : 'Default columns'}</span>
                 )}
               </span>
             ))}
@@ -145,6 +148,13 @@ export function FieldGrid({
                 <span role="cell" className="flex justify-center">
                   {numeric ? (
                     chip(col('Summary'), `Summarise ${x.label}`, `Including ${x.label} in the numbers above the table.`, summarised.includes(x.key), (on) => { const next = toggle(summarised, x.key, on); set('stat_fields', sameSet(next, autoSummary) ? null : next) }, { disabled: cardsChosen, why: 'Summary cards are chosen by hand.' })
+                  ) : (
+                    <span className="text-sm text-muted" aria-label="Not available">–</span>
+                  )}
+                </span>
+                <span role="cell" className="flex justify-center">
+                  {CHARTABLE.includes(x.type) ? (
+                    chip(col('Chart'), `Chart ${x.label}`, `Offering ${x.label} to ${numeric ? 'measure' : 'group'} the chart.`, !f.nochart.includes(x.key), (on) => set('nochart', toggle(f.nochart, x.key, !on)))
                   ) : (
                     <span className="text-sm text-muted" aria-label="Not available">–</span>
                   )}

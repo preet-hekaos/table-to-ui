@@ -4,7 +4,7 @@ import { studio } from '@/api/endpoints'
 import type { StudioTable } from '@/api/types'
 import { Button, Chip, Input, Select, cn, useToast } from '@/design-system'
 import { FieldGrid } from './FieldGrid'
-import { DEFAULT_FEATURES, featuresOf, type StatCard, type TableFeatures } from './features'
+import { DEFAULT_CHART, DEFAULT_FEATURES, featuresOf, type ChartConfig, type ChartType, type StatCard, type TableFeatures } from './features'
 
 type Group<K extends keyof TableFeatures> = { value: TableFeatures[K] extends (infer U)[] ? U : never; label: string }
 
@@ -176,18 +176,29 @@ export function FeaturesPanel({ table, canEdit }: { table: StudioTable; canEdit:
           </label>
           <div className="flex flex-col gap-2">
             <span className="text-sm font-semibold text-ink">Numbers above the table</span>
+            <Select aria-label="Show numbers as" disabled={!canEdit || !f.statistics} value={f.stat_view} onChange={(e) => set('stat_view', e.target.value as TableFeatures['stat_view'])}>
+              <option value="cards">Summary cards</option>
+              <option value="chart">A chart</option>
+            </Select>
             <div className="flex flex-wrap gap-2">
               <Chip checked={f.stat_scope === 'table'} disabled={!canEdit || !f.statistics} onChange={(on) => set('stat_scope', on ? 'table' : 'search')} hint="The numbers ignore the search and filters and always cover the whole table.">
                 Whole table
               </Chip>
-              <Chip checked={f.stat_cards !== null} disabled={!canEdit || !f.statistics} onChange={(on) => set('stat_cards', on ? [{ kind: 'count' }] : null)} hint="Pick up to six cards yourself instead of the automatic tiles.">
-                Choose the summary cards myself
-              </Chip>
+              {f.stat_view === 'cards' && (
+                <Chip checked={f.stat_cards !== null} disabled={!canEdit || !f.statistics} onChange={(on) => set('stat_cards', on ? [{ kind: 'count' }] : null)} hint="Pick up to six cards yourself instead of the automatic tiles.">
+                  Choose the summary cards myself
+                </Chip>
+              )}
             </div>
-            <span className="text-xs text-muted">{f.statistics ? 'Whole table ignores search and filters. Fields to summarise are set in the field options below.' : 'Turn on Numbers above the table in the field options first.'}</span>
+            <span className="text-xs text-muted">{f.statistics ? (f.stat_view === 'chart' ? 'The chart starts as set below. Each user can still change what it shows.' : 'Whole table ignores search and filters. Fields to summarise are set in the field options below.') : 'Turn on Numbers above the table in the field options first.'}</span>
           </div>
         </div>
-        {f.statistics && f.stat_cards !== null && (
+        {f.statistics && f.stat_view === 'chart' && (
+          <div className="rounded-xl border border-line bg-surface p-5">
+            <ChartEditor table={table} f={f} canEdit={canEdit} onChange={(c) => set('chart', c)} />
+          </div>
+        )}
+        {f.statistics && f.stat_view === 'cards' && f.stat_cards !== null && (
           <div className="rounded-xl border border-line bg-surface p-5">
             <CardsEditor table={table} cards={f.stat_cards} canEdit={canEdit} onChange={(c) => set('stat_cards', c)} />
           </div>
@@ -214,6 +225,81 @@ export function FeaturesPanel({ table, canEdit }: { table: StudioTable; canEdit:
         </div>
       )}
     </div>
+  )
+}
+
+const CHART_TYPES: [ChartType, string][] = [['combo', 'Bars and line'], ['bar', 'Bars'], ['hbar', 'Horizontal bars'], ['line', 'Line'], ['area', 'Area'], ['donut', 'Share (donut)']]
+const GROUP_TYPES = ['select', 'text', 'boolean', 'date']
+
+/** The chart a table starts with: its type, what it groups by and what it measures. Each user can still change these on the screen. */
+function ChartEditor({ table, f, canEdit, onChange }: { table: StudioTable; f: TableFeatures; canEdit: boolean; onChange: (c: ChartConfig) => void }) {
+  const c = f.chart ?? DEFAULT_CHART
+  const free = (x: { key: string }) => !f.nochart.includes(x.key)
+  const groups = table.fields.filter((x) => GROUP_TYPES.includes(x.type) && !x.hidden && free(x))
+  const numbers = table.fields.filter((x) => NUMBER_TYPES.includes(x.type) && !x.hidden && free(x))
+  const x = groups.find((g) => g.key === c.x) ?? groups[0]
+  const options = [
+    { key: 'count', label: `Count of ${table.plural_label.toLowerCase()}` },
+    ...numbers.flatMap((n) => [{ key: `sum:${n.key}`, label: `Total ${n.label.toLowerCase()}` }, { key: `avg:${n.key}`, label: `Average ${n.label.toLowerCase()}` }]),
+  ]
+  const mk = (m?: ChartConfig['measures'][number]) => (!m ? '' : m.agg === 'count' ? 'count' : `${m.agg}:${m.field}`)
+  const parse = (k: string): ChartConfig['measures'][number] => { const [agg, field] = k.split(':'); return agg === 'count' || !field ? { agg: 'count' } : { agg: agg as 'sum' | 'avg', field } }
+  const setM = (i: number, k: string) => {
+    const next = [...c.measures]
+    if (k === '') next.splice(i, 1)
+    else next[i] = parse(k)
+    onChange({ ...c, measures: next.slice(0, 2) })
+  }
+  return (
+    <fieldset className="flex flex-col gap-3" disabled={!canEdit} data-testid="chart-editor">
+      <legend className="text-sm font-semibold text-ink">The chart</legend>
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Chart type">
+        {CHART_TYPES.map(([k, l]) => (
+          <Chip key={k} checked={c.type === k} disabled={!canEdit} onChange={() => onChange({ ...c, type: k })} hint={`Start with ${l.toLowerCase()}.`}>
+            {l}
+          </Chip>
+        ))}
+      </div>
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="flex flex-col gap-0.5 text-xs text-body">
+          Group by
+          <Select aria-label="Chart group by" className="w-48" value={x?.key ?? ''} onChange={(e) => onChange({ ...c, x: e.target.value })}>
+            {groups.map((g) => <option key={g.key} value={g.key}>{g.label}</option>)}
+          </Select>
+        </label>
+        {x?.type === 'date' ? (
+          <label className="flex flex-col gap-0.5 text-xs text-body">
+            Period
+            <Select aria-label="Chart period" className="w-32" value={c.bucket} onChange={(e) => onChange({ ...c, bucket: e.target.value as ChartConfig['bucket'] })}>
+              <option value="day">Day</option>
+              <option value="week">Week</option>
+              <option value="month">Month</option>
+            </Select>
+          </label>
+        ) : (
+          <label className="flex flex-col gap-0.5 text-xs text-body">
+            Groups shown
+            <Select aria-label="Chart groups shown" className="w-28" value={c.top} onChange={(e) => onChange({ ...c, top: Number(e.target.value) })}>
+              {[5, 8, 10, 15, 20].map((n) => <option key={n} value={n}>{n}</option>)}
+            </Select>
+          </label>
+        )}
+        <label className="flex flex-col gap-0.5 text-xs text-body">
+          Measure
+          <Select aria-label="Chart measure" className="w-56" value={mk(c.measures[0])} onChange={(e) => setM(0, e.target.value)}>
+            {options.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
+          </Select>
+        </label>
+        <label className="flex flex-col gap-0.5 text-xs text-body">
+          Line (second measure)
+          <Select aria-label="Chart second measure" className="w-56" value={mk(c.measures[1])} onChange={(e) => setM(1, e.target.value)}>
+            <option value="">None</option>
+            {options.filter((o) => o.key !== mk(c.measures[0])).map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
+          </Select>
+        </label>
+      </div>
+      <p className="text-xs text-muted">Which fields can be grouped or measured is set in the Chart column of the field options below.</p>
+    </fieldset>
   )
 }
 
