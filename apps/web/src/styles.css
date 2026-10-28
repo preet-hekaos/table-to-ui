@@ -215,3 +215,31 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .env-pulse { animation: none; }
 }
+
+/* Canvas: a hovered table lifts a little, and the lines that touch it flow in the direction they point. */
+.map-card {
+  transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.22s ease;
+  transform-origin: 50% 100%;
+  will-change: transform;
+}
+.map-card:hover {
+  transform: perspective(700px) translateY(-4px) rotateX(4deg);
+  box-shadow: 0 16px 24px -12px rgb(15 23 42 / 0.35), 0 4px 8px -4px rgb(15 23 42 / 0.15);
+}
+.map-dot { transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.map-dot:hover { transform: scale(1.12); }
+@keyframes map-flow {
+  from { stroke-dashoffset: 10; }
+  to { stroke-dashoffset: 0; }
+}
+.react-flow__edge.map-flow .react-flow__edge-path {
+  stroke-dasharray: 6 4;
+  stroke-linecap: round;
+  animation: map-flow 0.9s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .map-card, .map-dot { transition: none; }
+  .map-card:hover { transform: none; }
+  .map-dot:hover { transform: none; }
+  .react-flow__edge.map-flow .react-flow__edge-path { animation: none; }
+}

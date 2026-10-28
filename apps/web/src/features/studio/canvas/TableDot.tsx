@@ -17,7 +17,7 @@ export function TableDot({ data, selected }: NodeProps<Node<CardData>>) {
         type="button"
         onClick={() => data.onSelect(t.key)}
         className={cn(
-          'relative rounded-full border-4 bg-accent-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+          'map-dot relative rounded-full border-4 bg-accent-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
           stage ? ring[stage] : 'border-accent',
           selected && 'ring-2 ring-accent ring-offset-2',
           data.related && 'bg-accent',

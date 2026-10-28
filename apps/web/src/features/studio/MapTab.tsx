@@ -197,6 +197,8 @@ function Canvas({
         source: m.from,
         target: m.to,
         type: graph ? 'straight' : 'smoothstep',
+        // While a card is hovered, the lines that touch it flow from the table that links to the one it points at.
+        className: hovered && touches ? 'map-flow' : undefined,
         // Names only appear on the lines you are looking at, so a busy map stays quiet.
         label: many ? `${m.links.length} links` : active && touches ? `${first.label}${first.source === 'pack' ? '' : ' •'}` : undefined,
         markerEnd: graph ? undefined : { type: MarkerType.ArrowClosed },

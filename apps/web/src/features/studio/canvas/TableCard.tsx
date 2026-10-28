@@ -25,7 +25,7 @@ export function TableCard({ data, selected }: NodeProps<Node<CardData>>) {
   return (
     <div
       className={cn(
-        'rounded-lg border bg-surface text-left shadow-sm',
+        'map-card rounded-lg border bg-surface text-left shadow-sm',
         stageStripe(stage),
         selected ? 'border-accent ring-2 ring-accent' : data.related ? 'border-accent' : 'border-line',
       )}
