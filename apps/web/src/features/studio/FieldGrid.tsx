@@ -68,7 +68,7 @@ export function FieldGrid({
   const blocked = (c: Column): string | null => {
     if (c.master && !f[c.master.flag]) return `Turn on ${c.master.label} first.`
     if (c.follows && !f[c.follows.flag]) return `Turn on ${c.follows.label} first.`
-    if (c.short === 'Chart' && (!f.statistics || f.stat_view !== 'chart')) return 'Show the numbers as a chart first.'
+    if (c.short === 'Chart' && !f.statistics) return 'Turn on Numbers above the table first.'
     return null
   }
 
@@ -112,7 +112,7 @@ export function FieldGrid({
                     {f[c.master.flag] ? 'On' : 'Off'}
                   </Chip>
                 ) : (
-                  <span className="text-center text-[11px] leading-tight text-body">{c.follows ? `Follows ${c.follows.label}` : c.short === 'Chart' ? 'Follows the chart' : 'Default columns'}</span>
+                  <span className="text-center text-[11px] leading-tight text-body">{c.follows ? `Follows ${c.follows.label}` : c.short === 'Chart' ? 'Chart axes' : 'Default columns'}</span>
                 )}
               </span>
             ))}

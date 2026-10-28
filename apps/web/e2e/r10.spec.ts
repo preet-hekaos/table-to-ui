@@ -171,3 +171,18 @@ test('A refused save says so instead of doing nothing', async ({ page }) => {
   await expect(page.getByText(/restart the API/).first()).toBeVisible()
   await expect(panel.getByRole('button', { name: 'Save features' })).toBeEnabled()
 })
+
+test('Chart: also on a master-detail screen, and the Features chart chips are never greyed out by an old setting', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await signUpWithPack(page, `Md Co ${run}`, `md-${run}@md.test`)
+  await page.evaluate(async () => {
+    const h = { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionStorage.getItem('tableui.token')}` }
+    for (let i = 0; i < 4; i++) await fetch('/v1/records/client', { method: 'POST', headers: h, body: JSON.stringify({ data: { name: `Client ${i}`, status: i % 2 ? 'Active' : 'Prospect' } }) })
+  })
+  await page.goto('/s/clients')
+  await expect(page.getByTestId('stats-strip')).toBeVisible()
+  await page.getByRole('radio', { name: 'Chart', exact: true }).click()
+  await expect(page.getByTestId('chart-card')).toBeVisible()
+  await page.goto('/studio?tab=data&table=candidate&part=features')
+  await expect(page.getByRole('button', { name: 'Chart Location' }).or(page.getByRole('checkbox', { name: 'Chart Location' })).first()).toBeEnabled()
+})

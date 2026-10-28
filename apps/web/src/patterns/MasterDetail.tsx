@@ -9,7 +9,28 @@ import { Button, EmptyState, ErrorState, Input, LoadingState, ScrollArea, Select
 import { useDebounced } from '@/lib/useDebounced'
 import { can, useMe } from '@/features/auth/useMe'
 import { RecordDetail } from '@/features/records/RecordDetail'
+import { ChartCard } from '@/features/records/chart/ChartCard'
+import { NumbersMode, useNumbersPrefs } from '@/features/records/NumbersMode'
+import { StatsStrip } from '@/features/records/StatsStrip'
+import { featuresOf } from '@/features/studio/features'
 import { formatField } from './format'
+
+/** The numbers above the list, as on a table screen: summary cards or a chart, whole table or what the search matches. */
+function MdNumbers({ table, q, filters, setFilters }: { table: TableDef; q: string; filters: Record<string, string>; setFilters: (f: Record<string, string>) => void }) {
+  const feat = featuresOf(table)
+  const numbers = useNumbersPrefs(table.key, feat)
+  const kept = Object.fromEntries(Object.entries(filters).filter(([, v]) => v))
+  if (!feat.statistics) return null
+  if (numbers.view === 'chart') {
+    return <ChartCard table={table} feat={feat} criteria={{ q, filters, ranges: {}, contains: {}, anyof: {} }} setCriteria={(c) => setFilters(c.filters)} numbers={numbers} />
+  }
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex justify-end"><NumbersMode n={numbers} /></div>
+      <StatsStrip table={table} whole={numbers.whole} query={numbers.whole ? {} : { q, filters: kept, ranges: {}, contains: {}, anyof: {} }} />
+    </div>
+  )
+}
 
 /** Pattern "master-detail": a list on the left, the chosen record (with its related tabs) on the right. */
 export function MasterDetail({
@@ -58,6 +79,7 @@ export function MasterDetail({
           </Button>
         )}
       </div>
+      {!preview && rows.length > 0 && <MdNumbers table={table} q={dq} filters={filters} setFilters={setFilters} />}
       <div className="grid gap-4 md:grid-cols-[18rem_1fr]">
         <div className="flex flex-col gap-2">
           <label htmlFor={`md-q-${tableKey}`} className="sr-only">
