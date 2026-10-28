@@ -153,3 +153,20 @@ test('Chart: chosen in Studio, drawn above the table, changed on the screen, cli
     expect(r.violations).toEqual([])
   })
 })
+
+test('A refused save says so instead of doing nothing', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await signUpWithPack(page, `Refuse Co ${run}`, `refuse-${run}@refuse.test`)
+  await page.route('**/v1/studio/tables/candidate/features', (route) =>
+    route.request().method() === 'PUT'
+      ? route.fulfill({ status: 422, contentType: 'application/problem+json', body: JSON.stringify({ type: 'x/validation', title: 'Invalid', status: 422, detail: 'Extra inputs are not permitted', errors: [{ field: 'chart', code: 'extra', message: 'Extra inputs are not permitted' }] }) })
+      : route.continue(),
+  )
+  await page.goto('/studio?tab=data&table=candidate&part=features')
+  const panel = page.getByTestId('features-panel')
+  await panel.getByLabel('Show numbers as').selectOption('chart')
+  await panel.getByRole('button', { name: 'Save features' }).click()
+  await expect(page.getByText('Could not save features').first()).toBeVisible()
+  await expect(page.getByText(/restart the API/).first()).toBeVisible()
+  await expect(panel.getByRole('button', { name: 'Save features' })).toBeEnabled()
+})

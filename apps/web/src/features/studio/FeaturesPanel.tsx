@@ -1,3 +1,4 @@
+import { ApiError } from '@/api/client'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { studio } from '@/api/endpoints'
@@ -52,13 +53,21 @@ export function FeaturesPanel({ table, canEdit }: { table: StudioTable; canEdit:
     toast({ title, description, tone: 'ok' })
     await Promise.all(['studio-tables', 'studio-status'].map((k) => qc.invalidateQueries({ queryKey: [k] })))
   }
+  const failed = (e: unknown) => {
+    const first = e instanceof ApiError ? e.errors[0] : undefined
+    const why = first ? `${first.field ? `${first.field}: ` : ''}${first.message}` : (e as Error).message
+    const stale = e instanceof ApiError && e.status === 422 ? ' If you just updated the code, restart the API and try again.' : ''
+    toast({ title: 'Could not save features', description: `${why}.${stale}`.replace(/\.\./g, '.'), tone: 'bad' })
+  }
   const save = useMutation({
     mutationFn: () => studio.setFeatures(table.key, f),
     onSuccess: () => done(`Saved features for ${table.label}`, 'Saved in Draft. Publish to make it live.'),
+    onError: failed,
   })
   const all = useMutation({
     mutationFn: () => studio.setAllFeatures(f),
     onSuccess: (r) => done('Applied to every table', `${r.tables.length} ${r.tables.length === 1 ? 'table' : 'tables'} changed in Draft.`),
+    onError: failed,
   })
 
   return (
