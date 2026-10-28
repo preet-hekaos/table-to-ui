@@ -49,3 +49,26 @@ test('Quiet scrollbars, and lists fade where there is more', async ({ page }) =>
     expect(r.violations).toEqual([])
   })
 })
+
+test('A table shows every row of the page without an inner scroller', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 800 })
+  await signUpWithPack(page, `Rows Co ${run}`, `rows-${run}@rows.test`)
+  await page.evaluate(async () => {
+    for (let i = 0; i < 43; i++) {
+      await fetch('/v1/records/candidate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionStorage.getItem('tableui.token')}` },
+        body: JSON.stringify({ data: { full_name: `Person ${String(i).padStart(2, '0')}`, email: `r${i}@example.in`, status: 'Active' } }),
+      })
+    }
+  })
+  await page.goto('/s/candidates')
+  await page.getByLabel('Rows per page').selectOption('50')
+  await expect(page.getByTestId('page-range')).toContainText('Showing 1 to 43 of 43')
+  const box = page.getByRole('table').first().locator('xpath=..')
+  const scrolls = await box.evaluate((el) => el.scrollHeight > el.clientHeight + 1)
+  expect(scrolls, 'no vertical scroller inside the table').toBe(false)
+  await page.getByText('Person 42').scrollIntoViewIfNeeded()
+  await expect(page.getByText('Person 42')).toBeInViewport()
+  await expect(page.getByTestId('pagination')).toBeVisible()
+})
