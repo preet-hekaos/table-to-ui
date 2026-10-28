@@ -216,18 +216,41 @@ body {
   .env-pulse { animation: none; }
 }
 
-/* Canvas: a hovered table lifts a little, and the lines that touch it flow in the direction they point. */
+/* Canvas: a table that is hovered or chosen lifts a little, glows in the accent colour, and the lines that touch it flow in the direction they point. */
 .map-card {
-  transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.22s ease;
+  transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.22s ease, border-color 0.22s ease;
   transform-origin: 50% 100%;
   will-change: transform;
 }
-.map-card:hover {
+.map-card:hover,
+.map-card[data-lit='true'] {
   transform: perspective(700px) translateY(-4px) rotateX(4deg);
-  box-shadow: 0 16px 24px -12px rgb(15 23 42 / 0.35), 0 4px 8px -4px rgb(15 23 42 / 0.15);
+  border-color: var(--color-accent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--color-accent) 55%, transparent),
+    0 0 20px 2px color-mix(in srgb, var(--color-accent) 38%, transparent),
+    0 16px 24px -12px rgb(15 23 42 / 0.35);
 }
-.map-dot { transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
-.map-dot:hover { transform: scale(1.12); }
+.map-card[data-lit='true'] {
+  box-shadow:
+    0 0 0 2px var(--color-accent),
+    0 0 24px 4px color-mix(in srgb, var(--color-accent) 42%, transparent),
+    0 16px 24px -12px rgb(15 23 42 / 0.35);
+}
+.map-dot { transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.22s ease; }
+.map-dot:hover,
+.map-dot[data-lit='true'] {
+  transform: scale(1.14);
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--color-accent) 22%, transparent),
+    0 0 20px 4px color-mix(in srgb, var(--color-accent) 55%, transparent);
+}
+.map-dot[data-lit='true'] {
+  box-shadow:
+    0 0 0 2px var(--color-surface),
+    0 0 0 4px var(--color-accent),
+    0 0 24px 6px color-mix(in srgb, var(--color-accent) 55%, transparent);
+}
 @keyframes map-flow {
   from { stroke-dashoffset: 10; }
   to { stroke-dashoffset: 0; }
@@ -239,7 +262,6 @@ body {
 }
 @media (prefers-reduced-motion: reduce) {
   .map-card, .map-dot { transition: none; }
-  .map-card:hover { transform: none; }
-  .map-dot:hover { transform: none; }
+  .map-card:hover, .map-card[data-lit='true'], .map-dot:hover, .map-dot[data-lit='true'] { transform: none; }
   .react-flow__edge.map-flow .react-flow__edge-path { animation: none; }
 }

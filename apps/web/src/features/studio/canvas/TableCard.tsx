@@ -27,11 +27,12 @@ export function TableCard({ data, selected }: NodeProps<Node<CardData>>) {
       className={cn(
         'map-card rounded-lg border bg-surface text-left shadow-sm',
         stageStripe(stage),
-        selected ? 'border-accent ring-2 ring-accent' : data.related ? 'border-accent' : 'border-line',
+        selected ? 'border-accent' : data.related ? 'border-accent' : 'border-line',
       )}
       style={{ width: 176, height: 64 }}
       data-testid={`box-${t.key}`}
       data-stage={stage}
+      data-lit={selected || undefined}
     >
       <Handle type="source" position={Position.Left} className="!size-3 !border-2 !border-accent !bg-accent" />
       <button
