@@ -136,19 +136,17 @@ export function FeaturesPanel({ table, canEdit }: { table: StudioTable; canEdit:
           </Options>
           <Master title="Import data" label="Import" on={f.import_data} canEdit={canEdit} onChange={(on) => set('import_data', on)} help="CSV, JSON or Excel from the toolbar." />
           <Master title="Drag to reorder" label="Reorder" on={f.row_order} canEdit={canEdit} onChange={(on) => set('row_order', on)} help="rows can be moved up or down; the order is shared across all users." />
-        </section>
-
-        <section className="flex flex-wrap items-center gap-x-2 gap-y-2 border-t border-line px-4 py-3" aria-labelledby="feat-cards">
-          <h3 id="feat-cards" className={rowLabel}>Summary cards</h3>
           <Chip
+            label="Choose the summary cards myself"
             checked={f.stat_cards !== null}
             disabled={!canEdit || !f.statistics}
             onChange={(on) => set('stat_cards', on ? [{ kind: 'count' }] : null)}
-            hint={f.statistics ? 'Pick up to six cards yourself. Left off, the cards are automatic: how many, plus the average of each number field. Each person can still switch to a chart on the table screen.' : 'Turn on Numbers above the table in the field options first.'}
+            hint={f.statistics ? 'Choose the summary cards myself: pick up to six. Left off, the cards are automatic (how many, plus the average of each number field). Each person can still switch to a chart on the table screen.' : 'Turn on Numbers above the table in the field options first.'}
           >
-            Choose the summary cards myself
+            Custom cards
           </Chip>
         </section>
+
         {f.statistics && f.stat_cards !== null && (
           <div className="border-t border-line px-4 py-3">
             <CardsEditor table={table} cards={f.stat_cards} canEdit={canEdit} onChange={(c) => set('stat_cards', c)} />
