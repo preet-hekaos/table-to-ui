@@ -1,6 +1,8 @@
 import { ApiError } from '@/api/client'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import * as Popover from '@radix-ui/react-popover'
+import { SlidersHorizontal } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
 import { studio } from '@/api/endpoints'
 import type { StudioTable } from '@/api/types'
 import { Button, Chip, Input, Select, cn, useToast } from '@/design-system'
@@ -20,17 +22,41 @@ const FORMATS: Group<'export_formats'>[] = [
   { value: 'xlsx', label: 'Excel' },
 ]
 
-/** Switch at the top right of a card. */
-function Master({ title, on, canEdit, onChange, help }: { title: string; on: boolean; canEdit: boolean; onChange: (on: boolean) => void; help: string }) {
+/** A feature switch in the bar: it is on when it carries the tick. `title` is its accessible name. */
+function Master({ title, label, on, canEdit, onChange, help }: { title: string; label: string; on: boolean; canEdit: boolean; onChange: (on: boolean) => void; help: string }) {
   return (
     <Chip role="switch" label={title} checked={on} disabled={!canEdit} onChange={onChange} hint={`${on ? 'Turn off' : 'Turn on'}: ${help}`}>
-      {on ? 'On' : 'Off'}
+      {label}
     </Chip>
   )
 }
 
-const card = 'flex flex-col gap-4 rounded-xl border border-line bg-surface p-5'
-const cardHead = 'flex items-start justify-between gap-4'
+/** The extra choices of a feature, in a small pop-over so the bar stays one line. */
+function Options({ label, disabled, children }: { label: string; disabled: boolean; children: ReactNode }) {
+  return (
+    <Popover.Root>
+      <Popover.Trigger asChild>
+        <button
+          type="button"
+          aria-label={label}
+          disabled={disabled}
+          title={disabled ? 'Turn the feature on first.' : label}
+          className="-ml-1.5 inline-flex size-7 items-center justify-center rounded-full text-muted hover:bg-soft hover:text-ink disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          <SlidersHorizontal className="size-3.5" aria-hidden />
+        </button>
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content align="start" sideOffset={6} aria-label={label} className="z-50 flex w-72 flex-col gap-2 rounded-lg border border-line bg-surface p-3 shadow-lg">
+          {children}
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
+  )
+}
+
+const rowLabel = 'mr-1 w-40 shrink-0 text-xs font-bold tracking-wide text-muted uppercase'
+const inlineLabel = 'flex items-center gap-2 text-[13px] font-semibold text-ink'
 const smallLabel = 'text-xs font-semibold text-muted'
 
 /** Per-table features: switches for the whole table, defaults, and the field options grid. */
@@ -70,96 +96,57 @@ export function FeaturesPanel({ table, canEdit }: { table: StudioTable; canEdit:
     onError: failed,
   })
 
+  const off = !canEdit || !f.statistics
   return (
-    <div className="flex flex-col gap-6" data-testid="features-panel">
-      <section className="flex flex-col gap-4" aria-labelledby="feat-table">
-        <div>
-          <h3 id="feat-table" className="text-base font-bold text-ink">For the whole table</h3>
-          <p className="mt-1 text-sm text-muted">Turn off the features this table doesn&apos;t use. Changes stay in Draft until you publish.</p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className={card}>
-            <div className={cardHead}>
-              <div>
-                <h4 className="text-[15px] font-semibold text-ink">Select rows, act on many</h4>
-                <p className="mt-1 text-sm text-muted">Select rows on a page or every match, then act on them.</p>
-              </div>
-              <Master title="Select rows and act on many" on={f.select_bulk} canEdit={canEdit} onChange={(on) => set('select_bulk', on)} help="select rows on a page or every match, then act on them." />
-            </div>
-            {f.select_bulk && (
-              <div className="mt-auto flex flex-col gap-2">
-                <span className={smallLabel}>Actions</span>
-                <fieldset className="flex flex-wrap gap-2" disabled={!canEdit}>
-                  <legend className="sr-only">Bulk actions allowed</legend>
-                  {BULK.map((b) => (
-                    <Chip key={b.value} checked={f.bulk_actions.includes(b.value)} disabled={!canEdit} onChange={(on) => set('bulk_actions', toggle(f.bulk_actions, b.value, on))}>
-                      {b.label}
-                    </Chip>
-                  ))}
-                </fieldset>
-                <label className="mt-1 flex flex-col gap-1.5 text-xs font-semibold text-muted">
-                  Bulk actions include
-                  <Select aria-label="Bulk actions include" disabled={!canEdit} value={f.bulk_scope} onChange={(e) => set('bulk_scope', e.target.value as TableFeatures['bulk_scope'])}>
-                    <option value="view">Shown columns only</option>
-                    <option value="all">Every field</option>
-                  </Select>
-                </label>
-              </div>
-            )}
-          </div>
+    <div className="flex flex-col gap-5" data-testid="features-panel">
+      <div className="overflow-hidden rounded-xl border border-line bg-surface">
+        <section className="flex flex-wrap items-center gap-2 px-4 py-3" aria-labelledby="feat-table">
+          <h3 id="feat-table" className={rowLabel}>For the whole table</h3>
+          <Master title="Select rows and act on many" label="Select and bulk" on={f.select_bulk} canEdit={canEdit} onChange={(on) => set('select_bulk', on)} help="select rows on a page or every match, then act on them." />
+          <Options label="Bulk action options" disabled={!f.select_bulk}>
+            <span className={smallLabel}>Actions</span>
+            <fieldset className="flex flex-wrap gap-2" disabled={!canEdit}>
+              <legend className="sr-only">Bulk actions allowed</legend>
+              {BULK.map((b) => (
+                <Chip key={b.value} checked={f.bulk_actions.includes(b.value)} disabled={!canEdit} onChange={(on) => set('bulk_actions', toggle(f.bulk_actions, b.value, on))}>
+                  {b.label}
+                </Chip>
+              ))}
+            </fieldset>
+            <label className="flex flex-col gap-1 text-xs font-semibold text-muted">
+              Bulk actions include
+              <Select aria-label="Bulk actions include" disabled={!canEdit} value={f.bulk_scope} onChange={(e) => set('bulk_scope', e.target.value as TableFeatures['bulk_scope'])}>
+                <option value="view">Shown columns only</option>
+                <option value="all">Every field</option>
+              </Select>
+            </label>
+          </Options>
+          <Master title="Export data" label="Export" on={f.export_data} canEdit={canEdit} onChange={(on) => set('export_data', on)} help="download rows or share them as an email link." />
+          <Options label="Export options" disabled={!f.export_data}>
+            <span className={smallLabel}>Formats</span>
+            <fieldset className="flex flex-wrap gap-2" disabled={!canEdit}>
+              <legend className="sr-only">Export formats</legend>
+              {FORMATS.map((b) => (
+                <Chip key={b.value} checked={f.export_formats.includes(b.value)} disabled={!canEdit} onChange={(on) => set('export_formats', toggle(f.export_formats, b.value, on))}>
+                  {b.label}
+                </Chip>
+              ))}
+              <Chip checked={f.export_email} disabled={!canEdit} onChange={(on) => set('export_email', on)} hint="Share an export as a link by email.">
+                Allow sending by email
+              </Chip>
+            </fieldset>
+          </Options>
+          <Master title="Import data" label="Import" on={f.import_data} canEdit={canEdit} onChange={(on) => set('import_data', on)} help="CSV, JSON or Excel from the toolbar." />
+          <Master title="Drag to reorder" label="Reorder" on={f.row_order} canEdit={canEdit} onChange={(on) => set('row_order', on)} help="rows can be moved up or down; the order is shared across all users." />
+        </section>
 
-          <div className={card}>
-            <div className={cardHead}>
-              <div>
-                <h4 className="text-[15px] font-semibold text-ink">Export data</h4>
-                <p className="mt-1 text-sm text-muted">Download rows or share them as an email link.</p>
-              </div>
-              <Master title="Export data" on={f.export_data} canEdit={canEdit} onChange={(on) => set('export_data', on)} help="download rows or share them as an email link." />
-            </div>
-            {f.export_data && (
-              <div className="mt-auto flex flex-col gap-2">
-                <span className={smallLabel}>Formats</span>
-                <fieldset className="flex flex-wrap gap-2" disabled={!canEdit}>
-                  <legend className="sr-only">Export formats</legend>
-                  {FORMATS.map((b) => (
-                    <Chip key={b.value} checked={f.export_formats.includes(b.value)} disabled={!canEdit} onChange={(on) => set('export_formats', toggle(f.export_formats, b.value, on))}>
-                      {b.label}
-                    </Chip>
-                  ))}
-                  <Chip checked={f.export_email} disabled={!canEdit} onChange={(on) => set('export_email', on)} hint="Share an export as a link by email.">
-                    Allow sending by email
-                  </Chip>
-                </fieldset>
-              </div>
-            )}
-          </div>
-
-          <div className="flex flex-col divide-y divide-line rounded-xl border border-line bg-surface">
-            <div className={cn(cardHead, 'flex-1 p-5')}>
-              <div>
-                <h4 className="text-[15px] font-semibold text-ink">Import data</h4>
-                <p className="mt-1 text-sm text-muted">CSV, JSON or Excel from the toolbar.</p>
-              </div>
-              <Master title="Import data" on={f.import_data} canEdit={canEdit} onChange={(on) => set('import_data', on)} help="CSV, JSON or Excel from the toolbar." />
-            </div>
-            <div className={cn(cardHead, 'flex-1 p-5')}>
-              <div>
-                <h4 className="text-[15px] font-semibold text-ink">Drag to reorder</h4>
-                <p className="mt-1 text-sm text-muted">The order is shared across all users.</p>
-              </div>
-              <Master title="Drag to reorder" on={f.row_order} canEdit={canEdit} onChange={(on) => set('row_order', on)} help="rows can be moved up or down; the order is shared across all users." />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="flex flex-col gap-4" aria-labelledby="feat-defaults">
-        <h3 id="feat-defaults" className="text-base font-bold text-ink">Defaults</h3>
-        <div className="grid gap-6 rounded-xl border border-line bg-surface p-5 md:grid-cols-3">
-          <label className="flex flex-col gap-2 text-sm font-semibold text-ink">
-            Default order
+        <section className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-line px-4 py-3" aria-labelledby="feat-defaults">
+          <h3 id="feat-defaults" className={rowLabel}>Defaults</h3>
+          <label className={inlineLabel} title={f.sortable ? 'Row order before any column is sorted.' : 'Turn on Sorting in the field options first.'}>
+            Order
             <Select
               aria-label="Default order"
+              className="w-56 !h-8 !text-[13px]"
               disabled={!canEdit || !f.sortable}
               value={f.default_sort ? `${f.default_sort.field}:${f.default_sort.direction}` : ''}
               onChange={(e) => {
@@ -173,46 +160,43 @@ export function FeaturesPanel({ table, canEdit }: { table: StudioTable; canEdit:
                 <option key={`${x.key}:desc`} value={`${x.key}:desc`}>{x.label}, Z to A / high to low</option>,
               ])}
             </Select>
-            <span className="text-xs font-normal text-muted">{f.sortable ? 'Row order before any column is sorted.' : 'Turn on Sorting in the field options first.'}</span>
           </label>
-          <label className="flex flex-col gap-2 text-sm font-semibold text-ink">
-            Row density
-            <Select aria-label="Row density" disabled={!canEdit} value={f.density} onChange={(e) => set('density', e.target.value as TableFeatures['density'])}>
+          <label className={inlineLabel} title="Each user can still choose their own.">
+            Density
+            <Select aria-label="Row density" className="w-36 !h-8 !text-[13px]" disabled={!canEdit} value={f.density} onChange={(e) => set('density', e.target.value as TableFeatures['density'])}>
               <option value="compact">Compact</option>
               <option value="comfortable">Comfortable</option>
             </Select>
-            <span className="text-xs font-normal text-muted">Each user can still choose their own.</span>
           </label>
-          <div className="flex flex-col gap-2">
-            <span className="text-sm font-semibold text-ink">Numbers above the table</span>
-            <Select aria-label="Show numbers as" disabled={!canEdit || !f.statistics} value={f.stat_view} onChange={(e) => set('stat_view', e.target.value as TableFeatures['stat_view'])}>
+          <label className={inlineLabel} title={f.statistics ? 'What sits above the table.' : 'Turn on Numbers above the table in the field options first.'}>
+            Numbers above
+            <Select aria-label="Show numbers as" className="w-40 !h-8 !text-[13px]" disabled={off} value={f.stat_view} onChange={(e) => set('stat_view', e.target.value as TableFeatures['stat_view'])}>
               <option value="cards">Summary cards</option>
               <option value="chart">A chart</option>
             </Select>
-            <div className="flex flex-wrap gap-2">
-              <Chip checked={f.stat_scope === 'table'} disabled={!canEdit || !f.statistics} onChange={(on) => set('stat_scope', on ? 'table' : 'search')} hint="The numbers ignore the search and filters and always cover the whole table.">
-                Whole table
-              </Chip>
-              {f.stat_view === 'cards' && (
-                <Chip checked={f.stat_cards !== null} disabled={!canEdit || !f.statistics} onChange={(on) => set('stat_cards', on ? [{ kind: 'count' }] : null)} hint="Pick up to six cards yourself instead of the automatic tiles.">
-                  Choose the summary cards myself
-                </Chip>
-              )}
-            </div>
-            <span className="text-xs text-muted">{f.statistics ? (f.stat_view === 'chart' ? 'The chart starts as set below. Each user can still change what it shows.' : 'Whole table ignores search and filters. Fields to summarise are set in the field options below.') : 'Turn on Numbers above the table in the field options first.'}</span>
-          </div>
-        </div>
+          </label>
+          <Chip checked={f.stat_scope === 'table'} disabled={off} onChange={(on) => set('stat_scope', on ? 'table' : 'search')} hint="The numbers ignore the search and filters and always cover the whole table.">
+            Whole table
+          </Chip>
+          {f.stat_view === 'cards' && (
+            <Chip checked={f.stat_cards !== null} disabled={off} onChange={(on) => set('stat_cards', on ? [{ kind: 'count' }] : null)} hint="Pick up to six cards yourself instead of the automatic tiles.">
+              Choose the summary cards myself
+            </Chip>
+          )}
+          {!f.statistics && <span className="text-xs text-muted">Turn on Numbers above the table in the field options first.</span>}
+        </section>
+
         {f.statistics && f.stat_view === 'chart' && (
-          <div className="rounded-xl border border-line bg-surface p-5">
+          <div className="border-t border-line px-4 py-3">
             <ChartEditor table={table} f={f} canEdit={canEdit} onChange={(c) => set('chart', c)} />
           </div>
         )}
         {f.statistics && f.stat_view === 'cards' && f.stat_cards !== null && (
-          <div className="rounded-xl border border-line bg-surface p-5">
+          <div className="border-t border-line px-4 py-3">
             <CardsEditor table={table} cards={f.stat_cards} canEdit={canEdit} onChange={(c) => set('stat_cards', c)} />
           </div>
         )}
-      </section>
+      </div>
 
       <FieldGrid table={table} f={f} set={set} canEdit={canEdit} />
 
@@ -260,54 +244,54 @@ function ChartEditor({ table, f, canEdit, onChange }: { table: StudioTable; f: T
     onChange({ ...c, measures: next.slice(0, 2) })
   }
   return (
-    <fieldset className="flex flex-col gap-3" disabled={!canEdit} data-testid="chart-editor">
-      <legend className="text-sm font-semibold text-ink">The chart</legend>
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Chart type">
+    <fieldset className="flex flex-wrap items-center gap-x-5 gap-y-2" disabled={!canEdit} data-testid="chart-editor" title="Which fields can be grouped or measured is set in the Chart column of the field options below.">
+      <legend className="sr-only">The chart</legend>
+      <span className={rowLabel} aria-hidden>The chart</span>
+      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Chart type">
         {CHART_TYPES.map(([k, l]) => (
           <Chip key={k} checked={c.type === k} disabled={!canEdit} onChange={() => onChange({ ...c, type: k })} hint={`Start with ${l.toLowerCase()}.`}>
             {l}
           </Chip>
         ))}
       </div>
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-0.5 text-xs text-body">
+      <div className="contents">
+        <label className={inlineLabel}>
           Group by
-          <Select aria-label="Chart group by" className="w-48" value={x?.key ?? ''} onChange={(e) => onChange({ ...c, x: e.target.value })}>
+          <Select aria-label="Chart group by" className="w-36 !h-8 !text-[13px]" value={x?.key ?? ''} onChange={(e) => onChange({ ...c, x: e.target.value })}>
             {groups.map((g) => <option key={g.key} value={g.key}>{g.label}</option>)}
           </Select>
         </label>
         {x?.type === 'date' ? (
-          <label className="flex flex-col gap-0.5 text-xs text-body">
+          <label className={inlineLabel}>
             Period
-            <Select aria-label="Chart period" className="w-32" value={c.bucket} onChange={(e) => onChange({ ...c, bucket: e.target.value as ChartConfig['bucket'] })}>
+            <Select aria-label="Chart period" className="w-28 !h-8 !text-[13px]" value={c.bucket} onChange={(e) => onChange({ ...c, bucket: e.target.value as ChartConfig['bucket'] })}>
               <option value="day">Day</option>
               <option value="week">Week</option>
               <option value="month">Month</option>
             </Select>
           </label>
         ) : (
-          <label className="flex flex-col gap-0.5 text-xs text-body">
+          <label className={inlineLabel}>
             Groups shown
-            <Select aria-label="Chart groups shown" className="w-28" value={c.top} onChange={(e) => onChange({ ...c, top: Number(e.target.value) })}>
+            <Select aria-label="Chart groups shown" className="w-20 !h-8 !text-[13px]" value={c.top} onChange={(e) => onChange({ ...c, top: Number(e.target.value) })}>
               {[5, 8, 10, 15, 20].map((n) => <option key={n} value={n}>{n}</option>)}
             </Select>
           </label>
         )}
-        <label className="flex flex-col gap-0.5 text-xs text-body">
+        <label className={inlineLabel}>
           Measure
-          <Select aria-label="Chart measure" className="w-56" value={mk(c.measures[0])} onChange={(e) => setM(0, e.target.value)}>
+          <Select aria-label="Chart measure" className="w-48 !h-8 !text-[13px]" value={mk(c.measures[0])} onChange={(e) => setM(0, e.target.value)}>
             {options.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
           </Select>
         </label>
-        <label className="flex flex-col gap-0.5 text-xs text-body">
-          Line (second measure)
-          <Select aria-label="Chart second measure" className="w-56" value={mk(c.measures[1])} onChange={(e) => setM(1, e.target.value)}>
+        <label className={inlineLabel}>
+          Line
+          <Select aria-label="Chart second measure" className="w-40 !h-8 !text-[13px]" value={mk(c.measures[1])} onChange={(e) => setM(1, e.target.value)}>
             <option value="">None</option>
             {options.filter((o) => o.key !== mk(c.measures[0])).map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
           </Select>
         </label>
       </div>
-      <p className="text-xs text-muted">Which fields can be grouped or measured is set in the Chart column of the field options below.</p>
     </fieldset>
   )
 }
