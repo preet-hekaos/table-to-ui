@@ -55,7 +55,7 @@ function Options({ label, disabled, children }: { label: string; disabled: boole
   )
 }
 
-const rowLabel = 'mr-1 w-40 shrink-0 text-xs font-bold tracking-wide text-muted uppercase'
+const rowLabel = 'w-44 shrink-0 text-xs font-bold tracking-wide text-muted uppercase'
 const smallLabel = 'text-xs font-semibold text-muted'
 
 /** Per-table features: switches for the whole table, defaults, and the field options grid. */
@@ -98,7 +98,7 @@ export function FeaturesPanel({ table, canEdit }: { table: StudioTable; canEdit:
   return (
     <div className="flex flex-col gap-5" data-testid="features-panel">
       <div className="overflow-hidden rounded-xl border border-line bg-surface">
-        <section className="flex flex-wrap items-center gap-2 px-4 py-3" aria-labelledby="feat-table">
+        <section className="flex flex-wrap items-center gap-x-2 gap-y-2 px-4 py-3" aria-labelledby="feat-table">
           <h3 id="feat-table" className={rowLabel}>For the whole table</h3>
           <Master title="Select rows and act on many" label="Select and bulk" on={f.select_bulk} canEdit={canEdit} onChange={(on) => set('select_bulk', on)} help="select rows on a page or every match, then act on them." />
           <Options label="Bulk action options" disabled={!f.select_bulk}>
@@ -138,18 +138,16 @@ export function FeaturesPanel({ table, canEdit }: { table: StudioTable; canEdit:
           <Master title="Drag to reorder" label="Reorder" on={f.row_order} canEdit={canEdit} onChange={(on) => set('row_order', on)} help="rows can be moved up or down; the order is shared across all users." />
         </section>
 
-        <section className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line px-4 py-3" aria-labelledby="feat-cards">
+        <section className="flex flex-wrap items-center gap-x-2 gap-y-2 border-t border-line px-4 py-3" aria-labelledby="feat-cards">
           <h3 id="feat-cards" className={rowLabel}>Summary cards</h3>
           <Chip
             checked={f.stat_cards !== null}
             disabled={!canEdit || !f.statistics}
             onChange={(on) => set('stat_cards', on ? [{ kind: 'count' }] : null)}
-            hint="Pick up to six cards yourself instead of the automatic tiles. Each person can still switch to a chart on the table screen."
+            hint={f.statistics ? 'Pick up to six cards yourself. Left off, the cards are automatic: how many, plus the average of each number field. Each person can still switch to a chart on the table screen.' : 'Turn on Numbers above the table in the field options first.'}
           >
             Choose the summary cards myself
           </Chip>
-          {!f.statistics && <span className="text-xs text-muted">Turn on Numbers above the table in the field options first.</span>}
-          {f.statistics && f.stat_cards === null && <span className="text-xs text-muted">Automatic: how many, plus the average of the number fields.</span>}
         </section>
         {f.statistics && f.stat_cards !== null && (
           <div className="border-t border-line px-4 py-3">
