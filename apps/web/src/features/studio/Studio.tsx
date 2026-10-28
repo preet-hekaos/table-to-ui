@@ -32,39 +32,49 @@ import { SetupChat } from '@/features/ai/SetupChat'
 
 export type StudioTab = 'data' | 'map' | 'flow' | 'insights' | 'automations' | 'menu' | 'preview' | 'versions' | 'chat'
 
-/** The three environments as a strip. Each step has its own colour, its version and how many items wait there. */
+/** The three environments as a stepper: a track from Draft to Live, a node for each, its version and what waits there. */
 function EnvironmentSwitch({ releases }: { releases: ReleaseRow[] }) {
   const test = releases.find((r) => r.is_test)
   const live = releases.find((r) => r.is_live)
   const { report } = useStages()
   const c = report?.counts
+  const waiting = c ? c.draft + c.removed : 0
   const steps = [
-    { stage: 'draft' as const, value: 'editing', note: c ? `${c.draft + c.removed} waiting` : '' },
-    { stage: 'test' as const, value: test ? `v${test.version}` : 'empty', note: c && c.test ? `${c.test} not yet Live` : '' },
-    { stage: 'live' as const, value: live ? `v${live.version}` : 'not published', note: '' },
+    { stage: 'draft' as const, value: 'editing', note: c ? `${waiting} waiting` : '', ring: 'ring-stage-draft', fill: 'bg-stage-draft-soft text-stage-draft-ink' },
+    { stage: 'test' as const, value: test ? `v${test.version}` : 'empty', note: c && c.test ? `${c.test} not yet Live` : '', ring: 'ring-stage-test', fill: 'bg-stage-test-soft text-stage-test-ink' },
+    { stage: 'live' as const, value: live ? `v${live.version}` : 'not published', note: '', ring: 'ring-stage-live', fill: 'bg-stage-live text-white' },
   ]
   return (
-    <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Environments">
-      <div className="flex max-w-full overflow-x-auto rounded-lg border border-line">
-        {steps.map((s, i) => {
-          const def = STAGES[s.stage]
-          return (
-            <span
-              key={s.stage}
-              className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap px-3 py-1.5 text-sm ${def.badge} ${i > 0 ? 'border-l border-line' : ''}`}
-              data-stage={s.stage}
-              data-testid={`env-${s.stage}`}
-            >
-              <def.Icon className="size-4" aria-hidden />
-              <b>{def.label}</b> {s.value}
-              {s.note && <span className="text-xs">· {s.note}</span>}
-            </span>
-          )
-        })}
+    <div className="group relative max-w-full [--w:6.5rem] sm:[--w:8.5rem]" role="group" aria-label="Environments" aria-describedby="env-key" tabIndex={0}>
+      <div className="relative">
+        <span aria-hidden className="absolute top-[17px] left-[calc(var(--w)/2)] right-[calc(var(--w)/2)] h-1 rounded-full bg-gradient-to-r from-stage-draft via-stage-test to-stage-live opacity-80" />
+        <ol className="relative flex items-start justify-between gap-2 sm:gap-4">
+          {steps.map((s) => {
+            const def = STAGES[s.stage]
+            return (
+              <li key={s.stage} className="relative flex w-[var(--w)] flex-col items-center gap-1 text-center" data-stage={s.stage} data-testid={`env-${s.stage}`}>
+                <span className={`grid size-9 place-items-center rounded-full ring-2 ring-offset-2 ring-offset-surface ${s.ring} ${s.fill} ${s.stage === 'draft' && waiting > 0 ? 'env-pulse' : ''}`}>
+                  <def.Icon className="size-4" aria-hidden />
+                </span>
+                {s.stage === 'draft' && waiting > 0 && (
+                  <span aria-hidden className="absolute -top-1.5 left-1/2 ml-3 rounded-full bg-bad px-1.5 text-[10px] leading-4 font-bold text-white">{waiting}</span>
+                )}
+                <b className="text-[13px] leading-tight text-ink">{def.label}</b>
+                <span className="-mt-0.5 text-[11px] leading-tight text-muted">
+                  {s.value}
+                  {s.note ? ` \u00b7 ${s.note}` : ''}
+                </span>
+              </li>
+            )
+          })}
+        </ol>
       </div>
-      <details className="relative">
-        <summary className="cursor-pointer rounded-md px-2 py-1.5 text-xs font-semibold text-accent-ink hover:bg-soft">Colour key</summary>
-        <ul className="absolute z-10 mt-1 flex w-72 flex-col gap-2 rounded-lg border border-line bg-surface p-3 text-xs shadow-md" aria-label="What the colours mean">
+      <div
+        id="env-key"
+        role="tooltip"
+        className="invisible absolute top-full left-1/2 z-20 mt-2 w-80 max-w-[90vw] -translate-x-1/2 rounded-xl border border-line bg-surface p-3 text-xs opacity-0 shadow-lg transition-opacity group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100"
+      >
+        <ul className="flex flex-col gap-2" aria-label="What the colours mean">
           {(['draft', 'test', 'live', 'removed'] as const).map((k) => (
             <li key={k} className="flex flex-col gap-1">
               <StageBadge stage={k} className="self-start" />
@@ -72,7 +82,7 @@ function EnvironmentSwitch({ releases }: { releases: ReleaseRow[] }) {
             </li>
           ))}
         </ul>
-      </details>
+      </div>
     </div>
   )
 }
@@ -349,10 +359,12 @@ export function Studio({ tab = 'data', table, part }: { tab?: StudioTab; table?:
   const isOwner = perms.includes('*')
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-4 lg:grid lg:grid-cols-[1fr_auto_1fr]">
         <h1 className="text-xl font-bold text-ink">Studio</h1>
-        <EnvironmentSwitch releases={releases.data ?? []} />
-        <div className="ml-auto">
+        <div className="order-last flex w-full justify-center lg:order-none lg:w-auto">
+          <EnvironmentSwitch releases={releases.data ?? []} />
+        </div>
+        <div className="justify-self-end">
           <HeaderActions current={tab} onSection={(k) => go({ tab: k })} chat={can(perms, 'ai.setup')} chatActive={tab === 'chat'} onChat={() => go({ tab: 'chat' })} />
         </div>
       </div>

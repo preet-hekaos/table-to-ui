@@ -204,3 +204,14 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .chart-bar, .chart-hbar, .chart-line, .chart-fade { animation: none; }
 }
+
+/* The Draft node breathes while changes wait in it. */
+@keyframes env-pulse {
+  0% { box-shadow: 0 0 0 0 rgb(245 158 11 / 0.45); }
+  70% { box-shadow: 0 0 0 10px rgb(245 158 11 / 0); }
+  100% { box-shadow: 0 0 0 0 rgb(245 158 11 / 0); }
+}
+.env-pulse { animation: env-pulse 2.2s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .env-pulse { animation: none; }
+}

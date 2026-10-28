@@ -25,10 +25,11 @@ test('Stage colours follow a field from Draft to Test to Live', async ({ page })
   })
 
   await test.step('The colour key explains all four colours', async () => {
-    await page.getByText('Colour key').click()
+    await page.getByRole('group', { name: 'Environments' }).hover()
     const key = page.getByRole('list', { name: 'What the colours mean' })
     for (const w of ['Draft', 'Test', 'Live', 'Removed']) await expect(key.getByText(w, { exact: true })).toBeVisible()
-    await page.getByText('Colour key').click()
+    await page.mouse.move(0, 0)
+    await expect(key).toBeHidden()
   })
 
   await test.step('Published to Test it turns blue', async () => {
