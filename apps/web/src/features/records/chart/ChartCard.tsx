@@ -79,7 +79,7 @@ function Pill({ label, children }: { label: string; children: React.ReactNode })
     </label>
   )
 }
-const pillSelect = 'max-w-60 cursor-pointer bg-transparent py-1 font-semibold text-ink outline-none'
+const pillSelect = 'max-w-60 [field-sizing:content] cursor-pointer bg-transparent py-1 font-semibold text-ink outline-none'
 
 /** The chart that stands in for the cards above a table: group by a field, measure one or two things, click to filter. */
 export function ChartCard({
@@ -192,7 +192,7 @@ export function ChartCard({
     : title
 
   return (
-    <section aria-label={title} data-testid="chart-card" className="overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_8px_24px_-14px_rgb(79_70_229/0.25)]">
+    <section aria-label={title} data-testid="chart-card" className="overflow-hidden rounded-xl border border-line bg-surface shadow-[0_1px_2px_rgb(11_18_32/0.04)]">
       <h2 className="sr-only">{title}</h2>
       {closed && (
         <div className="flex items-center justify-between px-5 py-2">
@@ -204,7 +204,7 @@ export function ChartCard({
       )}
       {!closed && (
         <>
-          <div className="flex flex-wrap items-center gap-2 px-6 pt-4">
+          <div className="flex flex-wrap items-center gap-1.5 px-4 pt-3">
             {groupBy.length > 0 && (
               <Pill label="Group by">
                 <select aria-label="Group by" className={pillSelect} value={data?.x.key ?? ''} onChange={(e) => setPrefs({ x: e.target.value })}>
@@ -248,7 +248,7 @@ export function ChartCard({
                 </li>
               ))}
             </ul>
-            <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-1.5">
               <button
                 type="button"
                 aria-pressed={view === 'table'}
@@ -267,7 +267,7 @@ export function ChartCard({
                     aria-label={label}
                     title={label}
                     onClick={() => setPrefs({ type: key })}
-                    className={cn('flex h-7 w-9 items-center justify-center rounded-lg', cfg.type === key ? 'bg-surface text-accent-ink shadow-sm' : 'text-body hover:bg-surface')}
+                    className={cn('flex h-7 w-8 items-center justify-center rounded-lg', cfg.type === key ? 'bg-surface text-accent-ink shadow-sm' : 'text-body hover:bg-surface')}
                   >
                     <Icon className="size-[18px]" aria-hidden />
                   </button>

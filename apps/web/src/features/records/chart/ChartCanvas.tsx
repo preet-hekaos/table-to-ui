@@ -197,7 +197,7 @@ export function ChartCanvas(props: CanvasProps) {
   }
 
   // ---- bars, lines and areas on a grid ----
-  const H = 320
+  const H = 240
   const L = 56
   const R = m1 && type !== 'bar' ? 56 : 24
   const T = 24
