@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { formatDateTime } from '@/patterns/format'
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { ApiError } from '@/api/client'
@@ -304,7 +305,7 @@ function VersionsTab({ releases, canPublish, isOwner }: { releases: ReleaseRow[]
               <h2 className="text-base font-bold text-ink">Version {r.version}</h2>
               {r.is_test && <Badge tone="warn">Test</Badge>}
               {r.is_live && <Badge tone="ok">Live</Badge>}
-              <span className="text-xs text-muted">{new Date(r.created_at).toLocaleString()}</span>
+              <span className="text-xs text-muted">{formatDateTime(r.created_at)}</span>
               {canPublish && !r.is_live && (
                 <Button className="ml-auto" size="sm" variant="primary" onClick={() => promote.mutate(r.version)} loading={promote.isPending && promote.variables === r.version}>
                   {isOwner ? 'Make Live' : 'Ask an owner to make Live'}

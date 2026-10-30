@@ -6,6 +6,10 @@ import { Badge } from '@/design-system'
 let regional = { currency: 'INR', locale: 'en-IN' }
 let money = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })
 let date = new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+const when = (locale: string, seconds: boolean) =>
+  new Intl.DateTimeFormat(locale, { day: '2-digit', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', ...(seconds ? { second: '2-digit' as const } : {}) })
+let dateTime = when('en-IN', false)
+let dateTimeSec = when('en-IN', true)
 
 /** The workspace's regional settings (S07). Called by the app frame once they load. */
 export function setRegional(r: { currency?: string; locale?: string }) {
@@ -15,6 +19,8 @@ export function setRegional(r: { currency?: string; locale?: string }) {
   try {
     money = new Intl.NumberFormat(next.locale, { style: 'currency', currency: next.currency, maximumFractionDigits: 0 })
     date = new Intl.DateTimeFormat(next.locale, { day: '2-digit', month: 'short', year: 'numeric' })
+    dateTime = when(next.locale, false)
+    dateTimeSec = when(next.locale, true)
   } catch {
     /* an unknown locale keeps the previous formats */
   }
@@ -37,6 +43,13 @@ export function formatMoney(n: number): string {
 export function formatDate(s: string): string {
   const d = new Date(s)
   return Number.isNaN(d.getTime()) ? s : date.format(d)
+}
+
+/** 30 Oct 2026, 11:25 AM in the workspace's format; pass seconds for audit-style lists. */
+export function formatDateTime(s: string, seconds = false): string {
+  const d = new Date(s)
+  if (Number.isNaN(d.getTime())) return s
+  return (seconds ? dateTimeSec : dateTime).format(d).replace(/\b(am|pm)\b/g, (m) => m.toUpperCase())
 }
 
 const empty = <span className="text-muted">Not set</span>

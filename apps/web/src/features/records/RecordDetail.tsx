@@ -7,7 +7,7 @@ import { app } from '@/api/endpoints'
 import { Badge, Button, Card, ErrorState, LoadingState, NotFound, PermissionDenied, Table, Tabs, TabsContent, TabsList, TabsTrigger, Td, Th } from '@/design-system'
 import { DraftButton, SummaryButton } from '@/features/ai/Ai'
 import { can, useMe } from '@/features/auth/useMe'
-import { formatField } from '@/patterns/format'
+import { formatField, formatDateTime } from '@/patterns/format'
 import { ProfileFields } from '@/patterns/ProfilePage'
 import { ProfileSide, useProfile, useTimeline } from '@/patterns/ProfileSide'
 
@@ -48,7 +48,7 @@ export function RecordDetail({ tableKey, id, embedded = false }: { tableKey: str
       <div className="flex flex-wrap items-center gap-3">
         {embedded ? <h2 className="text-lg font-bold text-ink">{title}</h2> : <h1 className="text-xl font-bold text-ink">{title}</h1>}
         <Badge tone="accent">Version {rec.data.version}</Badge>
-        <span className="text-xs text-muted">Updated {new Date(rec.data.updated_at).toLocaleString()}</span>
+        <span className="text-xs text-muted">Updated {formatDateTime(rec.data.updated_at)}</span>
         {rec.data.owner?.name && <span className="text-xs text-muted">Owner: {rec.data.owner.name}</span>}
         <span className="ml-auto hidden gap-2 md:flex">
           {matches.data?.map((m) => (
@@ -112,7 +112,7 @@ export function RecordDetail({ tableKey, id, embedded = false }: { tableKey: str
                   {timeline.length
                     ? timeline.map((t) => (
                         <tr key={t.key}>
-                          <Td>{new Date(t.at).toLocaleString('en-IN')}</Td>
+                          <Td>{formatDateTime(t.at)}</Td>
                           <Td>{t.who ?? 'Unknown'}</Td>
                           <Td>{t.link ? <Link to="/records/$table/$id" params={t.link} className="text-accent-ink hover:underline">{t.what}</Link> : t.what}</Td>
                           <Td>{t.version ?? ''}</Td>
@@ -120,7 +120,7 @@ export function RecordDetail({ tableKey, id, embedded = false }: { tableKey: str
                       ))
                     : [...(hist.data ?? [])].reverse().map((h) => (
                         <tr key={h.seq}>
-                          <Td>{new Date(h.at).toLocaleString('en-IN')}</Td>
+                          <Td>{formatDateTime(h.at)}</Td>
                           <Td>{h.actor_name ?? 'Unknown'}</Td>
                           <Td>{describe(h.before, h.after)}</Td>
                           <Td>{h.app_version}</Td>

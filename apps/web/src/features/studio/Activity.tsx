@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { formatDateTime } from '@/patterns/format'
 import { ApiError } from '@/api/client'
 import { app } from '@/api/endpoints'
 import { EmptyState, ErrorState, LoadingState, PermissionDenied, Table, Td, Th } from '@/design-system'
@@ -13,7 +14,7 @@ export function Activity() {
     <div className="flex flex-col gap-4">
       <h1 className="text-xl font-bold text-ink">Activity</h1>
       {log.data?.length ? (
-        <Table aria-label="Activity">
+        <Table aria-label="Activity" className="text-[13px]">
           <thead>
             <tr>
               <Th>When</Th>
@@ -24,9 +25,9 @@ export function Activity() {
           <tbody>
             {log.data.map((r) => (
               <tr key={r.id}>
-                <Td>{new Date(r.at).toLocaleString()}</Td>
+                <Td>{formatDateTime(r.at, true)}</Td>
                 <Td>{r.actor ?? 'System'}</Td>
-                <Td>{r.action}</Td>
+                <Td className="font-mono text-xs">{r.action}</Td>
               </tr>
             ))}
           </tbody>

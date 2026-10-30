@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { formatDateTime } from '@/patterns/format'
 import { useState } from 'react'
 import { ApiError } from '@/api/client'
 import { duplicates } from '@/api/endpoints'
@@ -72,7 +73,7 @@ export function DuplicateReview({ tableKey, title }: { tableKey: string; title: 
               {merges.data!.map((m) => (
                 <tr key={m.id}>
                   <Td>{show(m.merged_label)}</Td>
-                  <Td>{new Date(m.merged_at).toLocaleString()}</Td>
+                  <Td>{formatDateTime(m.merged_at)}</Td>
                   <Td>{m.relinked}</Td>
                   <Td>{m.undone ? <Badge>Undone</Badge> : m.can_undo ? <Badge tone="ok">Can undo</Badge> : <Badge>Final</Badge>}</Td>
                   <Td>{m.can_undo && mayMerge && <Button size="sm" loading={undo.isPending} onClick={() => undo.mutate(m.id)}>Undo merge</Button>}</Td>

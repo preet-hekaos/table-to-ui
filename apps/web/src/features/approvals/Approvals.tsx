@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { formatDate } from '@/patterns/format'
 import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import { ApiError } from '@/api/client'
@@ -98,7 +99,7 @@ export function Approvals() {
                     </ul>
                     <p className="text-xs text-muted break-words">{describe(a)}</p>
                     <p className="text-xs text-muted">
-                      Asked by {a.requested_by_name ?? 'someone'} on {new Date(a.requested_at).toLocaleDateString()}
+                      Asked by {a.requested_by_name ?? 'someone'} on {formatDate(a.requested_at)}
                       {a.note ? ` — “${a.note}”` : ''}
                     </p>
                     {a.decided_by_name && (

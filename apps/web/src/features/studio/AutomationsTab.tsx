@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { formatDateTime } from '@/patterns/format'
 import { useState, type FormEvent } from 'react'
 import { ApiError } from '@/api/client'
 import { admin, automations, studio, type AutomationAction, type AutomationDraft } from '@/api/endpoints'
@@ -126,7 +127,7 @@ export function AutomationsTab({ canEdit }: { canEdit: boolean }) {
                 <Badge tone={r.status === 'done' ? 'ok' : r.status === 'failed' ? 'bad' : 'warn'}>{r.status === 'retrying' ? 'trying again' : r.status}</Badge>
                 <span className="font-medium text-ink">{r.label}</span>
                 <span className="min-w-0 flex-1 text-xs text-muted">{r.status === 'done' ? r.did.join('; ') : r.error ?? ''}</span>
-                <time className="text-xs text-muted" dateTime={r.at}>{new Date(r.at).toLocaleString()}</time>
+                <time className="text-xs text-muted" dateTime={r.at}>{formatDateTime(r.at)}</time>
                 {r.status === 'failed' && canEdit && (
                   <Button size="sm" variant="secondary" onClick={() => retry.mutate(r.id)} disabled={retry.isPending} aria-label={`Retry ${r.label}`}>Retry</Button>
                 )}
