@@ -97,7 +97,7 @@ export function AppShell() {
         if (!items.length) return null
         const title = section.charAt(0).toUpperCase() + section.slice(1).replace(/_/g, ' ')
         return (
-          <div key={section} className="flex flex-col gap-0.5" role="group" aria-label={section === 'main' ? undefined : title}>
+          <div key={section} className="flex flex-col gap-0.5" role="group" aria-label={section === 'main' ? undefined : section === 'more' ? 'More' : `Menu section: ${title}`}>
             {section !== 'main' && <p className="px-2.5 pt-3 pb-1 text-[11px] font-semibold tracking-wide text-nav-text uppercase">{title}</p>}
             {items.map((n) => (
               <NavLink rail={rail} onTip={setTip} key={n.key} to="/s/$screen" params={{ screen: n.screen }} icon={rail ? <span className="flex size-5 items-center justify-center text-[11px] font-bold" aria-hidden>{monogram(n.label)}</span> : <Users className="size-4" aria-hidden />} onNavigate={close} label={n.label}>
