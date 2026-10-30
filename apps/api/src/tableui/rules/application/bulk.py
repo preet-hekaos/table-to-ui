@@ -13,10 +13,59 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from tableui.metadata.public import RuleDef, TableDef, shadow_columns
 from tableui.rules.domain.engine import compile_rule, evaluate
+from tableui.rules.domain.workflow import full, transition_outcomes
 
 
 def _label(table: TableDef, data: dict[str, Any]) -> Any:
     return data.get(table.title_field)
+
+
+def _count_key(loader: Any, row: dict[str, Any]) -> tuple[str, ...] | None:
+    """The values a row must share with counted records; None when one is missing (then the count is 0)."""
+    vals: list[str] = []
+    for mine in loader.match.values():
+        v = None if mine == "$id" else row.get(mine)
+        if v is None or v == "":
+            return None
+        vals.append(str(v))
+    return tuple(vals)
+
+
+def _fits(loader: Any, row: dict[str, Any]) -> bool:
+    """Would this row itself be counted by the loader's fixed ``where`` values."""
+    return all(
+        str(row.get(k)).lower() == (str(w).lower() if isinstance(w, bool) else str(w).lower())
+        for k, w in loader.where.items()
+    )
+
+
+async def _prefetch_counts(
+    s: AsyncSession, loader: Any, rows: list[dict[str, Any] | None]
+) -> dict[tuple[str, ...], int]:
+    """How many saved records match each row's values, for the whole file in one grouped query."""
+    keys = {k for r in rows if r and (k := _count_key(loader, r)) is not None}
+    if not keys:
+        return {}
+    others = list(loader.match.keys())
+    conds = [f"data ->> '{others[0]}' = ANY(:first)"]
+    params: dict[str, Any] = {"first": sorted({k[0] for k in keys})}
+    for j, (key, wanted) in enumerate(loader.where.items()):
+        conds.append(f"data ->> '{key}' = :w{j}")
+        params[f"w{j}"] = str(wanted).lower() if isinstance(wanted, bool) else str(wanted)
+    cols = ", ".join(f"data ->> '{o}'" for o in others)
+    res = await s.execute(
+        text(
+            f'SELECT {cols}, count(*) AS n FROM "{loader.table}" '  # noqa: S608 - identifiers are validated metadata keys
+            f"WHERE {' AND '.join(conds)} GROUP BY {cols}"
+        ),
+        params,
+    )
+    out: dict[tuple[str, ...], int] = {}
+    for r in res:
+        key = tuple(str(v) for v in r[:-1])
+        if key in keys:
+            out[key] = int(r[-1])
+    return out
 
 
 async def bulk_outcomes(
@@ -91,7 +140,9 @@ async def bulk_outcomes(
                     )
                     values = {r.id: (r.data or {}).get(loader.field or "") for r in res}
                 pre[name] = values
-        seen: dict[str, dict[str, Any]] = {name: {} for name in rule.context}
+            elif loader.kind == "count":
+                pre[name] = await _prefetch_counts(s, loader, rows)
+        seen: dict[str, dict[Any, Any]] = {name: {} for name in rule.context}
         for idx, row in enumerate(rows):
             if row is None:
                 continue
@@ -138,7 +189,23 @@ async def bulk_outcomes(
                             )
                         )
                     ctx[name] = best
+                elif loader.kind == "count":
+                    key = _count_key(loader, row)
+                    earlier = seen[name].get(key, 0) if key is not None else 0
+                    ctx[name] = (pre[name].get(key, 0) if key is not None else 0) + earlier
+                    if key is not None and loader.table == table.key and _fits(loader, row):
+                        seen[name][key] = earlier + 1
                 else:
                     ctx[name] = pre[name].get(str(row.get(loader.ref_field or "")))
-            out[idx] += [o.as_dict() for o in evaluate(checks, row, ctx)]
+            out[idx] += [
+                o.as_dict() for o in evaluate(checks, full(table, row), ctx, full(table, None))
+            ]
+    if (
+        table.workflow is not None
+    ):  # a new record may only start at the first stage, as when saved one by one
+        for idx, row in enumerate(rows):
+            if row is not None:
+                out[idx] += [
+                    o.as_dict() for o in transition_outcomes(table, None, full(table, row), True)
+                ]
     return out

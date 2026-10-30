@@ -1,39 +1,33 @@
 # Recruitment demo data
 
-A believable recruitment agency in one set of files, so every screen shows what the product looks like in real use.
+A believable recruitment agency, so every screen shows what the product looks like in real use:
+8 clients, 11 contacts, 14 requirements, 62 candidates, 68 submissions across every pipeline stage,
+25 interviews, 7 offers, 3 placements, 24 tasks, 36 interactions, consent records and 37 skills.
+All names, companies and addresses are made up.
 
-| Order | File | Table | Rows |
-|---|---|---|---|
-| 1 | `01-skills.csv` | Skills | 37 |
-| 2 | `02-clients.csv` | Clients | 8 |
-| 3 | `03-contacts.csv` | Contacts | 11 |
-| 4 | `04-requirements.csv` | Requirements | 14 |
-| 5 | `05-candidates.csv` | Candidates | 62 |
-| 6 | `06-consent-records.csv` | Consent records | 96 |
-| 7 | `08-submissions.csv` | Submissions | 67 |
-| 8 | `09-interviews.csv` | Interviews | 24 |
-| 9 | `10-offers.csv` | Offers | 6 |
-| 10 | `11-placements.csv` | Placements | 3 |
-| 11 | `12-tasks.csv` | Tasks | 24 |
-| 12 | `13-interactions.csv` | Interactions | 36 |
+## Load it (recommended): one command
 
-## How to load
+Use a **new** Recruitment workspace (the script stops if clients already exist).
 
-Use **Import** in the left menu, once per file, **in the order above** (a record can only link to something that already exists: contacts need clients, submissions need candidates and consent).
+```
+cd apps/api
+uv run python ../../samples/recruitment-demo/seed.py --email you@company.com --password "your password"
+```
 
-1. Pick the table in *Import into*, then drop the file in.
-2. Every column should already be matched (headers use the field names). Click **Check the data**.
-3. On Candidates you will see two possible duplicates. That is on purpose, it gives the *Duplicate candidates* screen something to show. Choose **Create** for both, with any reason, then **Load**.
-4. Click **Load**.
+- The API must be running (default `http://127.0.0.1:8000`; use `--api` for another address).
+- If your account has two-step sign-in on, add `--code 123456` with the current code.
 
-If a file fails on a link ("no client called ..."), the earlier file was skipped; load that one first.
+It goes through the app's own API and follows the business rules in order, so the data looks like real
+use: submissions start at Sourced and move stage by stage, interviews come before offers, a placement
+closes its submission and fills the requirement, and filled or closed requirements are marked last.
 
-## What is in it
+## Or upload the simple tables by hand
 
-- 8 clients in every status, 11 contacts, 14 requirements (open, on hold, filled, closed) with budgets, notice limits and target dates.
-- 60 candidates across backend, frontend, data, DevOps, QA, product and sales, with skills, experience, notice, current and expected pay, and sources; 6 archived.
-- 67 submissions spread over every pipeline stage, with client feedback and rejection reasons; interviews, offers and placements follow from them.
-- Overdue, due-today and upcoming tasks; calls, emails and meetings on candidates and clients; consent for everyone.
-- 2 near-duplicate candidates (same person, new email and phone).
+Use **Import** in the left menu, once per file, in this order (a record can only link to something that
+already exists): `01-skills.csv`, `02-clients.csv`, `03-contacts.csv`, `04-requirements.csv`,
+`05-candidates.csv` (two possible duplicates are flagged on purpose: choose **Create** for both),
+`06-consent-records.csv`. Then stop: the pipeline files (`08` to `11`) are for the script. The app only
+lets a new submission start at Sourced, so Import will refuse later stages. Tasks (`12`) and
+interactions (`13`) can be uploaded after the pipeline exists.
 
-All names, companies and addresses are made up. `generate.py` rebuilds the files (`python3 generate.py`); change the seed or counts there.
+`generate.py` rebuilds all the files (`python3 generate.py`); change the seed or counts there.

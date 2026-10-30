@@ -288,17 +288,22 @@ async def test_preview_as_a_role_hides_what_that_role_cannot_see_and_is_read_onl
     assert "metadata.write" not in me["permissions"] and "*" not in me["permissions"]
     assert "expected_ctc" not in {
         f["key"]
-        for f in (await client.get("/v1/app/tables/candidate", headers=as_sourcer)).json()["table"]["fields"]
+        for f in (await client.get("/v1/app/tables/candidate", headers=as_sourcer)).json()["table"][
+            "fields"
+        ]
         if not f["hidden"]
     }
     assert any(
         f["key"] == "expected_ctc" and not f["hidden"]
-        for f in (await client.get("/v1/app/tables/candidate", headers=a.h())).json()["table"]["fields"]
+        for f in (await client.get("/v1/app/tables/candidate", headers=a.h())).json()["table"][
+            "fields"
+        ]
     )
     # A role that cannot add documents is not offered the CV screen; one that can, is.
     viewer = a.h(**{"X-Preview-Role": "viewer"})
     assert "cv_intake" not in {
-        i["screen"] for i in (await client.get("/v1/app/navigation", headers=viewer)).json()["items"]
+        i["screen"]
+        for i in (await client.get("/v1/app/navigation", headers=viewer)).json()["items"]
     }
     assert "cv_intake" in {
         i["screen"] for i in (await client.get("/v1/app/navigation", headers=a.h())).json()["items"]
@@ -423,9 +428,7 @@ async def test_switches_for_sorting_and_filtering_hold_in_the_api_and_charts_tak
         await client.get("/v1/records/candidate", headers=h, params={"sort": "updated_at"})
     ).status_code == 200
     assert (
-        await client.get(
-            "/v1/records/candidate", headers=h, params={"c.current_employer": "inf"}
-        )
+        await client.get("/v1/records/candidate", headers=h, params={"c.current_employer": "inf"})
     ).status_code == 422
     chart = await client.get("/v1/records/candidate/chart", headers=h, params={"x": "created_at"})
     assert chart.status_code == 200, chart.text

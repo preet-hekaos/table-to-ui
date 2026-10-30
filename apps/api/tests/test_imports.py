@@ -284,3 +284,50 @@ async def test_unmatched_column_becomes_a_new_field_and_loads(
         )
     ).json()["items"][0]
     assert rec["data"]["joined_on"] == "2024-02-01"
+
+
+async def test_submissions_file_is_checked_against_consent_and_repeat_entries(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    """Rules that count other records (consent on record, one entry per candidate per requirement)
+    run over a whole file: they used to crash the check with a server error."""
+
+    async def make(table: str, data: dict[str, Any]) -> dict[str, Any]:
+        r = await client.post(f"/v1/records/{table}", headers=agency.h(), json={"data": data})
+        assert r.status_code == 201, r.text
+        return r.json()  # type: ignore[no-any-return]
+
+    cl = await make("client", {"name": "Aurora Fintech"})
+    await make("requirement", {"title": "Java Lead", "client": cl["id"], "status": "Open"})
+    for name, email in (("Asha Rao", "asha@gmail.com"), ("Ravi Kumar", "ravi@gmail.com")):
+        c = await make("candidate", candidate(full_name=name, email=email, phone=None))
+        if name == "Asha Rao":  # only Asha has agreed to be shared
+            await make(
+                "consent_record",
+                {"candidate": c["id"], "purpose": "Share with clients", "status": "Given"},
+            )
+    csv = (
+        "Summary,Candidate,Requirement,Stage\n"
+        "Asha for Java Lead,Asha Rao,Java Lead,Sourced\n"
+        "Ravi for Java Lead,Ravi Kumar,Java Lead,Submitted\n"
+        "Asha again,Asha Rao,Java Lead,Sourced\n"
+    )
+    fid = await _upload(client, agency, csv.encode(), "subs.csv")
+    r = await client.post(
+        "/v1/imports", headers=agency.h(), json={"file_id": fid, "table": "submission"}
+    )
+    assert r.status_code == 201, r.text
+    job = r.json()
+    await client.put(
+        f"/v1/imports/{job['id']}/mapping", headers=agency.h(), json={"mapping": job["mapping"]}
+    )
+    v = await client.post(f"/v1/imports/{job['id']}/validate", headers=agency.h())
+    assert v.status_code == 200, v.text
+    assert "R-02.consent" in v.text  # Ravi has no consent on record
+    assert "R-03.duplicate" in v.text  # Asha is listed on the same requirement twice
+    assert "starts at Sourced" in v.text  # a new entry cannot start further along
+    await client.post(f"/v1/imports/{job['id']}/start", headers=agency.h())
+    done = await _finish(client, agency, job["id"])
+    assert done["counts"]["loaded"] == 1
+    subs = (await client.get("/v1/records/submission", headers=agency.h())).json()["items"]
+    assert [x["data"]["summary"] for x in subs] == ["Asha for Java Lead"]
