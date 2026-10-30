@@ -4,6 +4,7 @@ import { ApiError } from '@/api/client'
 import { admin, app, me as meApi, studio } from '@/api/endpoints'
 import { Badge, Button, Card, CardTitle, EmptyState, ErrorState, LoadingState, useToast } from '@/design-system'
 import { useState } from 'react'
+import type { Measure } from '@/api/types'
 import { CheckCircle2, Circle } from 'lucide-react'
 import { can, useMe } from '@/features/auth/useMe'
 import { FirstSteps, SampleData, WhatNeedsMe } from './WhatNeedsMe'
@@ -130,7 +131,7 @@ function Change({ now, before }: { now: number | null; before?: number | null })
 }
 
 /** Pipeline by stage: one bar per stage with its count, and a way into the board. */
-function StageBars({ series, board }: { series: { label: string; value: number | null }[]; board?: string }) {
+function StageBars({ series, board, stats }: { series: { label: string; value: number | null }[]; board?: string; stats?: Measure[] }) {
   const max = Math.max(1, ...series.map((p) => p.value ?? 0))
   if (!series.some((p) => p.value)) return null
   return (
@@ -153,6 +154,65 @@ function StageBars({ series, board }: { series: { label: string; value: number |
           </li>
         ))}
       </ul>
+      {!!stats?.length && (
+        <dl className="mt-4 flex flex-wrap gap-x-8 gap-y-2 border-t border-line pt-3" data-testid="ratio-stats">
+          {stats.map((m) => (
+            <div key={m.key} data-testid={`measure-${m.key}`}>
+              <dt className="text-xs text-muted">{m.label}</dt>
+              <dd className="text-xl font-semibold text-ink">{m.value == null ? '–' : `${m.value}${m.unit === '%' ? '%' : ` ${m.value === 1 ? 'day' : 'days'}`}`}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </Card>
+  )
+}
+
+/** Interviews on today's date, soonest first, each with a Join button when a meeting link is saved. */
+function TodaysInterviews() {
+  const me = useMe()
+  const today = new Date().toLocaleDateString('en-CA')
+  const q = useQuery({
+    queryKey: ['interviews-today', today],
+    queryFn: () => app.list('interview', { limit: 20, ranges: { scheduled_on: `${today}..${today}` } } as never),
+    enabled: !!me.data && can(me.data.permissions, 'record.interview.read'),
+    retry: false,
+    refetchInterval: 60_000,
+  })
+  const items = (q.data?.items ?? [])
+    .filter((r) => !['Cancelled', 'No show'].includes(String(r.data.status ?? '')))
+    .sort((a, b) => String(a.data.scheduled_time ?? '99').localeCompare(String(b.data.scheduled_time ?? '99'), undefined, { numeric: true }))
+  if (!q.isSuccess) return null
+  return (
+    <Card data-testid="todays-interviews">
+      <div className="flex items-center gap-2">
+        <CardTitle>Today’s interviews</CardTitle>
+        <Badge tone="neutral" className="ml-auto">{items.length}</Badge>
+      </div>
+      {items.length === 0 ? (
+        <p className="mt-2 text-sm text-muted">No interviews today.</p>
+      ) : (
+        <ul className="mt-2 flex flex-col divide-y divide-line">
+          {items.map((r) => {
+            const link = String(r.data.meeting_link ?? '')
+            const who = r.refs?.submission?.label ?? String(r.data.summary ?? '')
+            return (
+              <li key={r.id} className="flex items-center gap-3 py-2">
+                <span className="w-14 shrink-0 text-sm font-semibold text-ink">{String(r.data.scheduled_time ?? '') || '–'}</span>
+                <div className="min-w-0 flex-1">
+                  <Link to="/records/$table/$id" params={{ table: 'interview', id: r.id }} className="block truncate text-sm font-medium text-ink hover:underline">{String(r.data.summary ?? who)}</Link>
+                  <p className="truncate text-xs text-muted">{who}{r.data.mode ? ` · ${String(r.data.mode)}` : ''}</p>
+                </div>
+                {/^https?:\/\//.test(link) && (
+                  <Button asChild size="sm" variant="secondary">
+                    <a href={link} target="_blank" rel="noreferrer" aria-label={`Join: ${String(r.data.summary ?? who)}`}>Join</a>
+                  </Button>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+      )}
     </Card>
   )
 }
@@ -167,6 +227,12 @@ export function Home() {
     enabled: !!me.data,
     retry: false,
     refetchInterval: 15_000,
+  })
+  const allMeasures = useQuery({
+    queryKey: ['measures-all', period, mine],
+    queryFn: () => app.measures({ range: period }, false, { compare: true, mine }),
+    enabled: !!me.data && measures.isSuccess,
+    retry: false,
   })
   const stages = useQuery({
     queryKey: ['measure-stages', period],
@@ -243,10 +309,13 @@ export function Home() {
       )}
       
       <div className="grid items-start gap-4 lg:grid-cols-[3fr_2fr]">
-        {stages.data?.series ? <StageBars series={stages.data.series} board={board} /> : <div />}
+        {stages.data?.series ? <StageBars series={stages.data.series} board={board} stats={allMeasures.data?.filter((m) => m.unit)} /> : <div />}
         <WhatNeedsMe />
       </div>
-      {canManage && <SetupCard />}
+      <div className={`grid items-start gap-4 ${canManage ? 'lg:grid-cols-[3fr_2fr]' : ''}`}>
+        <TodaysInterviews />
+        {canManage && <SetupCard />}
+      </div>
       <SampleData />
       <FirstSteps />
       {measures.isSuccess && <Link to="/insights" className="w-fit text-sm font-semibold text-accent-ink underline">See all insights</Link>}

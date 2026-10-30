@@ -1,0 +1,15 @@
+key: average_time_to_fill
+label: Avg time to fill
+table: requirement
+aggregate: avg_days
+field: filled_on
+from_field: opened_on
+unit: days
+help: Average days from a requirement opening to it being filled, for those filled in the chosen dates.
+order: 75
+time_field: filled_on
+where:
+  - field: filled_on
+    op: not_empty
+  - field: opened_on
+    op: not_empty

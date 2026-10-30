@@ -375,8 +375,11 @@ class MeasureDef(_Strict):
     key: Key
     label: str
     table: Key
-    aggregate: Literal["count", "sum", "avg", "distinct"] = "count"
-    field: Key | None = None  # what to total, average or count distinct
+    aggregate: Literal["count", "sum", "avg", "distinct", "avg_days", "ratio"] = "count"
+    field: Key | None = None  # what to total, average or count distinct; avg_days: the later date
+    from_field: Key | None = None  # avg_days: the earlier date (or "created_at")
+    ratio_of: list[Key] = []  # ratio: [top measure, bottom measure]; shown as a percentage
+    unit: Literal["%", "days"] | None = None  # how the number is read
     where: list[MeasureFilter] = []
     group_by: Key | None = None  # one bar per value of this choice field
     time_field: str | None = None  # a date field, or "created_at"; the date range applies to it

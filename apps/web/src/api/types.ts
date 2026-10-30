@@ -122,6 +122,7 @@ export interface Measure {
   source: 'pack' | 'agency'
   home: boolean
   series: MeasurePoint[] | null
+  unit?: '%' | 'days' | null
   previous?: number | null
   trend?: number[] | null
 }

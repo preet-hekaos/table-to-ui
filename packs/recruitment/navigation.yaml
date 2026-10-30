@@ -2,96 +2,96 @@
   label: Candidates
   screen: candidates
   icon: users
-  section: main
+  section: recruit
   order: 10
 - key: nav_cv_intake
   label: Add from CV
   screen: cv_intake
   icon: upload
-  section: main
+  section: recruit
   order: 15
 - key: nav_documents
   label: Documents
   screen: documents
   icon: list
-  section: more
+  section: records
   order: 101
 - key: nav_clients
   label: Clients
   screen: clients
   icon: list
-  section: main
+  section: clients
   order: 20
 - key: nav_consent_records
   label: Consent records
   screen: consent_records
   icon: list
-  section: more
+  section: records
   order: 103
 - key: nav_contacts
   label: Contacts
   screen: contacts
   icon: users
-  section: main
+  section: clients
   order: 30
 - key: nav_interactions
   label: Interactions
   screen: interactions
   icon: list
-  section: more
+  section: records
   order: 105
 - key: nav_interviews
   label: Interviews
   screen: interviews
   icon: list
-  section: more
+  section: recruit
   order: 106
 - key: nav_offers
   label: Offers
   screen: offers
   icon: list
-  section: more
+  section: recruit
   order: 107
 - key: nav_placements
   label: Placements
   screen: placements
   icon: list
-  section: more
+  section: recruit
   order: 108
 - key: nav_requirements
   label: Requirements
   screen: requirements
   icon: list
-  section: main
+  section: clients
   order: 40
 - key: nav_skills
   label: Skills
   screen: skills
   icon: list
-  section: more
+  section: records
   order: 110
 - key: nav_submissions
   label: Submissions
   screen: submissions
   icon: list
-  section: main
+  section: recruit
   order: 50
 - key: nav_tasks
   label: Tasks
   screen: tasks
   icon: list
-  section: main
+  section: work
   order: 60
 - key: nav_pipeline
   label: Pipeline
   screen: pipeline
   icon: list
-  section: main
+  section: recruit
   order: 45
 - key: nav_duplicates
   label: Duplicate candidates
   screen: duplicate_candidates
   icon: users
-  section: more
+  section: recruit
   order: 120
   roles: [manager]

@@ -86,8 +86,9 @@ REQS = [
 ]
 write("04-requirements.csv",
       ["Title", "Client", "Client contact", "Status", "Positions", "Filled", "Skills", "Location", "Minimum experience", "Maximum experience",
-       "Maximum notice (days)", "Budget from", "Budget up to", "Target date", "Brief"],
-      [[r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8], r[9], r[10], r[11], r[12], d(r[13]), r[14]] for r in REQS])
+       "Maximum notice (days)", "Budget from", "Budget up to", "Target date", "Opened on", "Filled on", "Brief"],
+      [[r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8], r[9], r[10], r[11], r[12], d(r[13]),
+        d(r[13] - 45 - 3 * i), d(r[13] + 30 - 3 * i) if r[3] == "Filled" else "", r[14]] for i, r in enumerate(REQS)])
 REQD = {r[0]: r for r in REQS}
 
 # ---------------------------------------------------------------- candidates
@@ -220,6 +221,7 @@ write("06-consent-records.csv", ["Candidate", "Purpose", "Status", "Date"], cons
 # candidates sharing the same name (the near-duplicates) would collide on lookup; keep the originals only
 # ---------------------------------------------------------------- interviews
 iv = []
+TODAY_N = 0
 for s in SUBS:
     st = s["stage"]
     if st not in ("Interview", "Offer", "Placed", "Rejected"):
@@ -236,9 +238,13 @@ for s in SUBS:
             outcome = "Fail" if st == "Rejected" else ("Pass" if (st in ("Offer", "Placed") or rd < rounds) else R.choice(["Pass", ""]))
         label = ["Technical round", "Panel with hiring manager"][rd - 1] if rounds == 2 else R.choice(["Technical round", "System design", "Managerial round"])
         when = d(-R.randint(3, 25)) if status == "Done" else d(R.randint(0, 9))
+        if status == "Scheduled" and TODAY_N < 3:
+            when, TODAY_N = d(0), TODAY_N + 1  # a few interviews happen today, so the Home card has something to show
         fb = {"Pass": "Clear thinker, strong on trade-offs. Recommend moving ahead.", "Fail": "Struggled with fundamentals under time pressure.", "": ""}[outcome] if status == "Done" else ""
-        iv.append([f"{label}: {s['summary']}", s["summary"], when, R.choice(["Video", "Video", "Phone", "In person"]), status, fb, outcome, R.choice(["Panel of 2", "Hiring manager + lead", "Engineering director"])])
-write("09-interviews.csv", ["Summary", "Submission", "Scheduled on", "Mode", "Status", "Feedback", "Outcome", "Panel (client side)"], iv)
+        mode = R.choice(["Video", "Video", "Phone", "In person"])
+        link = f"https://meet.example.com/{R.randint(100, 999)}-{R.randint(1000, 9999)}" if mode == "Video" else ""
+        iv.append([f"{label}: {s['summary']}", s["summary"], when, f"{R.choice([10, 11, 12, 14, 15, 16])}:{R.choice(['00', '30'])}", link, mode, status, fb, outcome, R.choice(["Panel of 2", "Hiring manager + lead", "Engineering director"])])
+write("09-interviews.csv", ["Summary", "Submission", "Scheduled on", "Time", "Meeting link", "Mode", "Status", "Feedback", "Outcome", "Panel (client side)"], iv)
 # interview summaries must be unique-ish for readability; duplicates across rounds are prefixed by round name
 
 # ---------------------------------------------------------------- offers

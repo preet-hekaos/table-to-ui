@@ -58,9 +58,12 @@ export function WhatNeedsMe() {
                         className="size-4 shrink-0 rounded border border-muted bg-surface hover:border-accent hover:bg-soft focus-visible:outline-2 focus-visible:outline-accent"
                       />
                     )}
-                    <Link to="/records/$table/$id" params={{ table: tasks.table, id: t.id }} className="min-w-0 flex-1 truncate text-sm font-medium text-ink hover:underline">
-                      {t.title}
-                    </Link>
+                    <div className="min-w-0 flex-1">
+                      <Link to="/records/$table/$id" params={{ table: tasks.table, id: t.id }} className="block truncate text-sm font-medium text-ink hover:underline">
+                        {t.title}
+                      </Link>
+                      {t.subtitle && <p className="truncate text-xs text-muted">{t.subtitle}</p>}
+                    </div>
                     {t.due_on && <Badge tone={t.overdue ? 'bad' : t.due_on === today ? 'warn' : 'ok'}>{t.overdue ? `Overdue · ${day(t.due_on)}` : t.due_on === today ? 'Due today' : `Due ${day(t.due_on)}`}</Badge>}
                   </li>
                 ))}

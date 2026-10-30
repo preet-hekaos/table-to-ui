@@ -1,0 +1,12 @@
+key: submissions_interviewed
+label: Submissions that reached an interview
+table: interview
+aggregate: distinct
+field: submission
+help: How many different submissions had an interview in the chosen dates.
+order: 41
+hidden: true
+time_field: scheduled_on
+where:
+  - field: scheduled_on
+    op: not_empty

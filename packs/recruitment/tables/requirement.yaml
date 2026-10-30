@@ -18,4 +18,6 @@ fields:
   - {key: budget_min, label: Budget from, type: money, group: budget}
   - {key: budget_max, label: Budget up to, type: money, group: budget}
   - {key: target_date, label: Target date, type: date, group: budget}
+  - {key: opened_on, label: Opened on, type: date, group: budget, analytics: true}
+  - {key: filled_on, label: Filled on, type: date, group: budget, analytics: true}
   - {key: brief, label: Brief, type: long_text, group: needs, searchable: true}

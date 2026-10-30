@@ -128,7 +128,7 @@ export interface AutomationRun { id: string; automation: string; label: string; 
 export interface Notice { id: string; kind: string; title: string; link: string | null; created_at: string; read: boolean }
 export interface NotificationPrefs { kinds: { kind: string; label: string; channel: 'in_app' | 'in_app_email' | 'off' }[]; digest: boolean }
 export interface Needs {
-  tasks: { table: string; label: string; total: number; items: { id: string; title: string; due_on: string | null; overdue: boolean; can_finish: boolean }[] } | null
+  tasks: { table: string; label: string; total: number; items: { id: string; title: string; subtitle?: string | null; due_on: string | null; overdue: boolean; can_finish: boolean }[] } | null
   approvals: number
   unread: number
 }

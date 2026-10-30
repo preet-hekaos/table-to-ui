@@ -174,7 +174,7 @@ class Seeder:
         for r in reqs:  # everything starts Open: a filled or closed requirement takes no new submissions
             r["Status"] = "Open"
         if not self.have("requirement"):
-            self.write_rows("requirement", reqs, L(("Title", "title"), ("Client", "client"), ("Client contact", "contact"), ("Status", "status"), ("Positions", "positions"), ("Skills", "skills"), ("Location", "location"), ("Minimum experience", "min_experience"), ("Maximum experience", "max_experience"), ("Maximum notice (days)", "max_notice_days"), ("Budget from", "budget_min"), ("Budget up to", "budget_max"), ("Target date", "target_date"), ("Brief", "brief")), "Title")
+            self.write_rows("requirement", reqs, L(("Title", "title"), ("Client", "client"), ("Client contact", "contact"), ("Status", "status"), ("Positions", "positions"), ("Skills", "skills"), ("Location", "location"), ("Minimum experience", "min_experience"), ("Maximum experience", "max_experience"), ("Maximum notice (days)", "max_notice_days"), ("Budget from", "budget_min"), ("Budget up to", "budget_max"), ("Target date", "target_date"), ("Opened on", "opened_on"), ("Filled on", "filled_on"), ("Brief", "brief")), "Title")
         self.simple("candidate", "05-candidates.csv", L(("Full name", "full_name"), ("Email", "email"), ("Phone", "phone"), ("Current title", "current_title"), ("Current employer", "current_employer"), ("Location", "location"), ("Notice period (days)", "notice_period_days"), ("Status", "status"), ("Skills", "skills"), ("Total experience", "total_experience"), ("Source", "source"), ("Current CTC", "current_ctc"), ("Expected CTC", "expected_ctc")), "Full name")
         self.simple("consent_record", "06-consent-records.csv", L(("Candidate", "candidate"), ("Purpose", "purpose"), ("Status", "status"), ("Date", "given_on")), "Purpose")
         self.reopen(later)
@@ -243,7 +243,7 @@ class Seeder:
 
     def add_interviews(self, sub: str, items: list[dict[str, str]]) -> None:
         for i in items:
-            body = self.data("interview", i, {"Summary": "summary", "Scheduled on": "scheduled_on", "Mode": "mode", "Status": "status", "Feedback": "feedback", "Outcome": "outcome", "Panel (client side)": "panel"})
+            body = self.data("interview", i, {"Summary": "summary", "Scheduled on": "scheduled_on", "Time": "scheduled_time", "Meeting link": "meeting_link", "Mode": "mode", "Status": "status", "Feedback": "feedback", "Outcome": "outcome", "Panel (client side)": "panel"})
             body["submission"] = sub
             self.create("interview", body, i["Summary"])
 

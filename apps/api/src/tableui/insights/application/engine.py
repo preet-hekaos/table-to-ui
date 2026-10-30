@@ -95,6 +95,13 @@ def _aggregate(m: MeasureDef) -> str:
         return "count(*)"
     if m.aggregate == "distinct":
         return f"count(DISTINCT fields->>'{m.field}')"
+    if m.aggregate == "avg_days":
+        start = (
+            "CAST(created_at AS date)"
+            if m.from_field == "created_at"
+            else f"CAST(NULLIF(fields->>'{m.from_field}', '') AS date)"
+        )
+        return f"avg(CAST(NULLIF(fields->>'{m.field}', '') AS date) - {start})"
     num = f"CAST(NULLIF(fields->>'{m.field}', '') AS numeric)"
     return f"COALESCE(sum({num}), 0)" if m.aggregate == "sum" else f"avg({num})"
 
@@ -154,6 +161,7 @@ async def run_measure(
         "display": m.display,
         "table": m.table,
         "aggregate": m.aggregate,
+        "unit": m.unit,
         "period": bool(m.time_field),
         "source": m.source,
         "home": m.home,
@@ -220,7 +228,7 @@ async def compare_and_trend(
 ) -> dict[str, Any]:
     """What a time-based measure was in the period just before this one, and its last 12 weeks.
 
-    Only measures with a time field have a past to compare with: "active candidates right now"
+    Only measures with a time field have a past to compare with: "how many are active right now"
     has no honest history, so it gets neither.
     """
     if not m.time_field:

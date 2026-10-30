@@ -4,8 +4,10 @@ plural_label: Interviews
 title_field: summary
 fields:
   - {key: summary, label: Summary, type: text, required: true, searchable: true}
-  - {key: submission, label: Submission, type: reference, ref_table: submission, required: true, filterable: true}
-  - {key: scheduled_on, label: Scheduled on, type: date}
+  - {key: submission, label: Submission, type: reference, ref_table: submission, required: true, filterable: true, analytics: true}
+  - {key: scheduled_on, label: Scheduled on, type: date, analytics: true, filterable: true}
+  - {key: scheduled_time, label: Time, type: text}
+  - {key: meeting_link, label: Meeting link, type: url}
   - {key: mode, label: Mode, type: select, options: [Phone, Video, In person], default: Video}
   - {key: status, label: Status, type: select, required: true, default: Scheduled, options: [Scheduled, Done, Cancelled, No show], filterable: true}
   - {key: feedback, label: Feedback, type: long_text}
