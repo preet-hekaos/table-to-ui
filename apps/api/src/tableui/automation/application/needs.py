@@ -43,13 +43,13 @@ async def _subtitles(
             found = (
                 await s.execute(
                     text(
-                        f"SELECT id::text AS id, data ->> '{target.title_field}' AS t FROM \"{target.key}\" "  # noqa: S608 - validated metadata keys
+                        f"SELECT id::text AS id, data ->> '{target.title_field}' AS label FROM \"{target.key}\" "  # noqa: S608 - validated metadata keys
                         "WHERE id::text = ANY(CAST(:ids AS text[]))"
                     ),
                     {"ids": ids},
                 )
             ).all()
-        names: dict[str, str] = {str(x.id): str(x.t) for x in found if x.t}
+        names: dict[str, str] = {str(x.id): str(x.label) for x in found if x.label}
         for r in rows:
             n = names.get(str(r.data.get(f.key)))
             if n:
