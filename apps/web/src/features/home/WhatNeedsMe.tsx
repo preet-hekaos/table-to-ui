@@ -47,16 +47,21 @@ export function WhatNeedsMe() {
               </p>
               <ul className="mt-1 flex flex-col divide-y divide-line">
                 {tasks.items.map((t) => (
-                  <li key={t.id} className="flex items-center gap-2 py-1.5" data-testid="needs-task">
+                  <li key={t.id} className="flex items-center gap-3 py-2" data-testid="needs-task">
+                    {t.can_finish && (
+                      <button
+                        type="button"
+                        aria-label={`Mark done: ${t.title}`}
+                        title="Mark done"
+                        onClick={() => finish.mutate({ table: tasks.table, id: t.id })}
+                        disabled={finish.isPending}
+                        className="size-4 shrink-0 rounded border border-muted bg-surface hover:border-accent hover:bg-soft focus-visible:outline-2 focus-visible:outline-accent"
+                      />
+                    )}
                     <Link to="/records/$table/$id" params={{ table: tasks.table, id: t.id }} className="min-w-0 flex-1 truncate text-sm font-medium text-ink hover:underline">
                       {t.title}
                     </Link>
                     {t.due_on && <Badge tone={t.overdue ? 'bad' : t.due_on === today ? 'warn' : 'ok'}>{t.overdue ? `Overdue · ${day(t.due_on)}` : t.due_on === today ? 'Due today' : `Due ${day(t.due_on)}`}</Badge>}
-                    {t.can_finish && (
-                      <Button size="sm" variant="secondary" aria-label={`Mark done: ${t.title}`} onClick={() => finish.mutate({ table: tasks.table, id: t.id })} disabled={finish.isPending}>
-                        Done
-                      </Button>
-                    )}
                   </li>
                 ))}
               </ul>
