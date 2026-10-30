@@ -147,7 +147,7 @@ export function AppShell() {
     <div data-theme="agency" className="flex h-full" style={style as CSSProperties | undefined}>
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-surface focus:p-2">Skip to content</a>
       <aside className={`${open ? 'fixed inset-0 z-40 flex' : hidden ? 'hidden' : 'hidden md:flex'} ${side.fullScreen ? '!hidden' : ''}`}>
-        <div className={`flex h-full flex-col gap-4 overflow-y-auto bg-nav p-3 transition-[width] duration-150 motion-reduce:transition-none ${rail ? 'w-16 items-center' : 'w-56'}`} data-sidebar={rail ? 'collapsed' : 'expanded'}>
+        <div className={`flex h-full flex-col gap-4 overflow-y-auto bg-nav p-3 transition-[width] duration-150 motion-reduce:transition-none ${rail ? 'w-16 items-center' : 'w-62'}`} data-sidebar={rail ? 'collapsed' : 'expanded'}>
           <div className="flex items-center gap-2 px-1 text-sm font-bold text-white">
             {logo ? (
               <img src={logo} alt="" className="size-7 rounded-lg bg-white object-contain" data-testid="app-logo" />
@@ -183,7 +183,7 @@ export function AppShell() {
         </div>
       )}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className={`h-14 shrink-0 items-center gap-3 border-b border-line bg-surface px-4 ${side.fullScreen ? 'hidden' : 'flex'}`}>
+        <header className={`h-14 shrink-0 items-center gap-3 border-b border-line bg-surface px-4 md:px-6 ${side.fullScreen ? 'hidden' : 'flex'}`}>
           <Button variant="ghost" size="sm" className={hidden ? '' : 'md:hidden'} aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} onClick={() => setOpen((v) => !v)}>
             {open ? <X className="size-4" aria-hidden /> : <Menu className="size-4" aria-hidden />}
           </Button>
