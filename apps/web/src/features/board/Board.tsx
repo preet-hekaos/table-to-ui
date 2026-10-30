@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Avatar } from '@/patterns/Avatar'
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ApiError } from "@/api/client";
@@ -42,28 +43,6 @@ const DOTS = [
   "bg-rose-500",
   "bg-cyan-500",
 ];
-const AVATARS = [
-  "bg-emerald-100 text-emerald-800",
-  "bg-blue-100 text-blue-800",
-  "bg-violet-100 text-violet-800",
-  "bg-pink-100 text-pink-800",
-  "bg-orange-100 text-orange-800",
-  "bg-teal-100 text-teal-800",
-];
-
-/** Two letters from a name; "Sample - " style prefixes are skipped. */
-function initials(name: string) {
-  const words = name
-    .replace(/^.*? - /, "")
-    .split(/\s+/)
-    .filter(Boolean);
-  return ((words[0]?.[0] ?? "?") + (words[1]?.[0] ?? "")).toUpperCase();
-}
-function avatarTone(name: string) {
-  let h = 0;
-  for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return AVATARS[h % AVATARS.length];
-}
 function updatedAgo(iso: string) {
   const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
   return days <= 0
@@ -533,12 +512,7 @@ function Column({
             className={`flex flex-col gap-2 rounded-xl border border-line bg-surface p-3 shadow-[0_1px_2px_rgb(11_18_32/0.04)] ${canMove ? "cursor-grab" : ""}`}
           >
             <div className="flex items-start gap-2.5">
-              <span
-                className={`flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${avatarTone(who)}`}
-                aria-hidden
-              >
-                {initials(who)}
-              </span>
+              <Avatar name={who} />
               <div className="min-w-0 flex-1">
                 <Link
                   to="/records/$table/$id"

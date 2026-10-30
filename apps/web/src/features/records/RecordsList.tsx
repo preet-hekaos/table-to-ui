@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Avatar } from '@/patterns/Avatar'
 import { Link, useNavigate } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Bookmark, Maximize2, Plus, SlidersHorizontal, X } from 'lucide-react'
@@ -62,9 +63,12 @@ function columnsFor(table: TableDef, preview: boolean, shown: FieldDef[]): Colum
       const v = row.original.data[f.key]
       if (f.key === table.title_field && !preview) {
         return (
-          <Link to="/records/$table/$id" params={{ table: table.key, id: row.original.id }} className="font-semibold text-accent-ink hover:underline">
-            {String(v ?? '')}
-          </Link>
+          <span className="flex items-center gap-2.5">
+            <Avatar name={String(v ?? '')} size="sm" />
+            <Link to="/records/$table/$id" params={{ table: table.key, id: row.original.id }} className="font-semibold text-accent-ink hover:underline">
+              {String(v ?? '')}
+            </Link>
+          </span>
         )
       }
       if (f.type === 'select' && v) {
