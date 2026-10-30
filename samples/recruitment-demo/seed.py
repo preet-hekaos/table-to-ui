@@ -112,6 +112,16 @@ class Seeder:
             except LookupError as e:
                 self.failures.append(f"{table} '{row[title_label]}': {e}")
 
+    def reopen(self, later: dict[str, dict[str, str]]) -> None:
+        """Requirements loaded earlier with Filled or Closed status are opened again while the pipeline is built."""
+        for title in later:
+            rid = self.ids.get("requirement", {}).get(title.casefold())
+            if rid is None:
+                continue
+            cur = self.http.get(f"/v1/records/requirement/{rid}").json()
+            if cur["data"].get("status") != "Open":
+                self.http.patch(f"/v1/records/requirement/{rid}", json={"version": cur["version"], "data": {"status": "Open"}})
+
     def settle(self, later: dict[str, dict[str, str]]) -> None:
         """Mark requirements On hold, Filled or Closed now that their submissions exist."""
         for title, row in later.items():
@@ -124,7 +134,30 @@ class Seeder:
             if r.status_code != 200:
                 self.failures.append(f"requirement '{title}' -> {row['Status']}: {r.status_code} {r.text[:160]}")
 
+    def have(self, table: str) -> bool:
+        """True when the table already has records (loaded by hand earlier); their ids are kept for links."""
+        title = self.http.get(f"/v1/app/tables/{table}").json()["table"]["title_field"]
+        page, seen = 1, 0
+        oldest: dict[str, str] = {}
+        while True:
+            r = self.http.get(f"/v1/records/{table}", params={"page": page, "page_size": 100})
+            items = r.json().get("items", [])
+            for it in items:
+                t = (it["data"].get(title) or "").casefold()
+                if t and it["created_at"] < oldest.get(t, "~"):  # a name used twice means the first one made
+                    oldest[t] = it["created_at"]
+                    self.ids.setdefault(table, {})[t] = it["id"]
+            seen += len(items)
+            if len(items) < 100:
+                break
+            page += 1
+        if seen:
+            print(f"{table}: {seen} records already there, left as they are")
+        return seen > 0
+
     def simple(self, table: str, file: str, labels: dict[str, str], title_label: str) -> None:
+        if self.have(table):
+            return
         for row in rows(file):
             try:
                 self.create(table, self.data(table, row, labels), row[title_label])
@@ -132,9 +165,6 @@ class Seeder:
                 self.failures.append(f"{table} '{row[title_label]}': {e}")
 
     def run(self) -> None:
-        check = self.http.get("/v1/records/client", params={"limit": 1}).json()
-        if check.get("items"):
-            sys.exit("This workspace already has clients. Use a new workspace so nothing is doubled.")
         L = lambda *pairs: dict(pairs)  # noqa: E731
         self.simple("skill", "01-skills.csv", L(("Name", "name"), ("Category", "category")), "Name")
         self.simple("client", "02-clients.csv", L(("Name", "name"), ("Status", "status"), ("Industry", "industry"), ("City", "city"), ("Website", "website"), ("Fee (% of annual CTC)", "fee_percent"), ("Minimum fee", "min_fee"), ("Payment terms (days)", "payment_terms_days"), ("Terms and notes", "terms_notes")), "Name")
@@ -143,10 +173,13 @@ class Seeder:
         later = {r["Title"]: r for r in reqs if r["Status"] != "Open"}
         for r in reqs:  # everything starts Open: a filled or closed requirement takes no new submissions
             r["Status"] = "Open"
-        self.write_rows("requirement", reqs, L(("Title", "title"), ("Client", "client"), ("Client contact", "contact"), ("Status", "status"), ("Positions", "positions"), ("Skills", "skills"), ("Location", "location"), ("Minimum experience", "min_experience"), ("Maximum experience", "max_experience"), ("Maximum notice (days)", "max_notice_days"), ("Budget from", "budget_min"), ("Budget up to", "budget_max"), ("Target date", "target_date"), ("Brief", "brief")), "Title")
+        if not self.have("requirement"):
+            self.write_rows("requirement", reqs, L(("Title", "title"), ("Client", "client"), ("Client contact", "contact"), ("Status", "status"), ("Positions", "positions"), ("Skills", "skills"), ("Location", "location"), ("Minimum experience", "min_experience"), ("Maximum experience", "max_experience"), ("Maximum notice (days)", "max_notice_days"), ("Budget from", "budget_min"), ("Budget up to", "budget_max"), ("Target date", "target_date"), ("Brief", "brief")), "Title")
         self.simple("candidate", "05-candidates.csv", L(("Full name", "full_name"), ("Email", "email"), ("Phone", "phone"), ("Current title", "current_title"), ("Current employer", "current_employer"), ("Location", "location"), ("Notice period (days)", "notice_period_days"), ("Status", "status"), ("Skills", "skills"), ("Total experience", "total_experience"), ("Source", "source"), ("Current CTC", "current_ctc"), ("Expected CTC", "expected_ctc")), "Full name")
         self.simple("consent_record", "06-consent-records.csv", L(("Candidate", "candidate"), ("Purpose", "purpose"), ("Status", "status"), ("Date", "given_on")), "Purpose")
-        self.pipeline()
+        self.reopen(later)
+        if not self.have("submission"):
+            self.pipeline()
         self.settle(later)
         self.simple("task", "12-tasks.csv", L(("Title", "title"), ("Status", "status"), ("Due date", "due_on"), ("Candidate", "candidate"), ("Requirement", "requirement")), "Title")
         self.simple("interaction", "13-interactions.csv", L(("Summary", "summary"), ("Kind", "kind"), ("Candidate", "candidate"), ("Client", "client"), ("Date", "occurred_on"), ("Details", "details")), "Summary")

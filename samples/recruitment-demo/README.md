@@ -7,7 +7,7 @@ All names, companies and addresses are made up.
 
 ## Load it (recommended): one command
 
-Use a **new** Recruitment workspace (the script stops if clients already exist).
+Best in a **new** Recruitment workspace. If you already uploaded some of the simple tables by hand, run it anyway: it leaves any table that already has records alone and builds the rest (the pipeline, interviews, offers, placements).
 
 ```
 cd apps/api
