@@ -105,7 +105,7 @@ function Facets({ tableKey, fields, criteria, set }: { tableKey: string; fields:
   })
   if (!facets.data) return <LoadingState label="Counting" />
   return (
-    <div className="flex flex-col gap-4" aria-label="Narrow the list" role="group">
+    <div className="flex flex-col gap-4 rounded-xl border border-line bg-surface p-3" aria-label="Narrow the list" role="group">
       {Object.entries(facets.data.facets).map(([key, f]) => {
         const active = f.kind === 'range' ? criteria.ranges[key] : criteria.filters[key]
         return (
@@ -303,6 +303,7 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
   const groupField = groupBy ? table.fields.find((f) => f.key === groupBy) : undefined
   const filters_ = filterFields(table, config)
   const facetFields = (config.facets ?? []).filter((k) => table.fields.some((f) => f.key === k && !f.hidden))
+  const facetCount = facetFields.filter((k) => criteria.filters[k] || criteria.ranges[k]).length
   const searching = !!q || [filters, ranges, contains, anyof].some((m) => Object.values(m).some(Boolean))
   const setFilter = (k: string, v: string) => setCriteria({ ...criteria, filters: { ...filters, [k]: v } })
   type Slot = 'filters' | 'ranges' | 'contains' | 'anyof'
@@ -506,6 +507,7 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
         {facetFields.length > 0 && (
           <Button variant="secondary" aria-expanded={showFacets} onClick={() => setShowFacets((v) => !v)}>
             <SlidersHorizontal className="size-4" aria-hidden /> Filters
+            {facetCount > 0 && <span className="ml-1 rounded-full bg-accent px-1.5 text-xs font-semibold text-white">{facetCount}</span>}
           </Button>
         )}
       </div>
