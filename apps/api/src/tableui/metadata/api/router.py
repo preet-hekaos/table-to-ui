@@ -394,12 +394,19 @@ async def rollback(p: PrincipalDep, db: DbDep, request: Request) -> dict[str, An
 
 
 @router.get("/app/tables/{table}")
-async def live_table(table: str, app: LiveAppDep) -> dict[str, Any]:
+async def live_table(table: str, p: PrincipalDep, app: LiveAppDep) -> dict[str, Any]:
     """A table of the live app: drives forms, lists and detail pages."""
     t = app.tables.get(table)
     if t is None:
         raise NotFound(f"There is no table '{table}'.")
-    return {"release_version": app.release_version, "table": t.model_dump(mode="json")}
+    out = t.model_dump(mode="json")
+    denied = {f for (tk, f) in p.field_denies if tk == table}
+    if denied:
+        # A role that may not see a field is not shown its label either: screens treat it as hidden.
+        for f in out["fields"]:
+            if f["key"] in denied:
+                f["hidden"] = True
+    return {"release_version": app.release_version, "table": out}
 
 
 @router.get("/app/tables/{table}/relations")
@@ -435,6 +442,15 @@ def _visible(roles: list[str], role_key: str | None) -> bool:
     return not roles or role_key == "admin" or (role_key in roles)
 
 
+def _pattern_ok(p: Any, sc: Any) -> bool:
+    """Screens whose whole purpose is an action are left out for roles that could not do it."""
+    if sc.pattern == "document_review":
+        return bool(p.allows("document.upload"))
+    if sc.pattern == "duplicate_review":
+        return bool(p.allows(f"record.{sc.table}.merge"))
+    return True
+
+
 @router.get("/app/navigation")
 async def live_navigation(p: PrincipalDep, app: LiveAppDep) -> dict[str, Any]:
     """Menu items for the signed-in user's role. Items whose table the user cannot read are left out."""
@@ -443,7 +459,7 @@ async def live_navigation(p: PrincipalDep, app: LiveAppDep) -> dict[str, Any]:
         sc = app.screens.get(n.screen)
         if sc is None or not _visible(n.roles, p.role_key) or not _visible(sc.roles, p.role_key):
             continue
-        if not p.allows(f"record.{sc.table}.read"):
+        if not p.allows(f"record.{sc.table}.read") or not _pattern_ok(p, sc):
             continue
         items.append(
             {
@@ -471,6 +487,8 @@ async def live_screens(
     out = []
     for sc in app.screens.values():
         if not _visible(sc.roles, p.role_key) or not p.allows(f"record.{sc.table}.read"):
+            continue
+        if not _pattern_ok(p, sc):
             continue
         if (table and sc.table != table) or (pattern and sc.pattern != pattern):
             continue

@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 from tableui.identity.api.deps import DbDep, PendingPrincipalDep, PrincipalDep, SettingsDep
 from tableui.identity.application import auth, invitations
-from tableui.identity.application.sessions import revoke
+from tableui.identity.application.sessions import preview_as, revoke
 from tableui.identity.domain.ports import OrganisationProvider
 from tableui.platform.mail import Mailer
 from tableui.platform.web import bearer, get_mailer, get_request_id, state_get
@@ -147,7 +147,13 @@ async def sign_out(p: PendingPrincipalDep, db: DbDep) -> Response:
 
 
 @router.get("/me", response_model=MeResponse)
-async def me(p: PendingPrincipalDep) -> dict[str, Any]:
+async def me(request: Request, p: PendingPrincipalDep, db: DbDep) -> dict[str, Any]:
+    role = request.headers.get("x-preview-role")
+    env = request.headers.get("x-preview-env")
+    if (role or env) and p.tenant_id:
+        # Studio's "See it as": the screens must draw what that role could do, not what the builder can.
+        async with db.control() as s:
+            p = await preview_as(s, p, role or (p.role_key or ""), env or "live")
     return {
         "user_id": str(p.user_id),
         "email": p.email,
@@ -155,7 +161,7 @@ async def me(p: PendingPrincipalDep) -> dict[str, Any]:
         "tenant_id": str(p.tenant_id) if p.tenant_id else None,
         "tenant_name": p.tenant_name,
         "role": p.role_key,
-        "permissions": sorted(p.permissions),
+        "permissions": sorted(g for g in p.permissions if p.allows(g)),
         "mfa_enabled": p.mfa_enabled,
         "mfa_verified": p.mfa_verified,
     }

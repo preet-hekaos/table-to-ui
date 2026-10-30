@@ -281,6 +281,28 @@ async def test_preview_as_a_role_hides_what_that_role_cannot_see_and_is_read_onl
     assert write.status_code == 403
     unknown = await client.get("/v1/app/navigation", headers=a.h(**{"X-Preview-Role": "nobody"}))
     assert unknown.status_code == 403
+    # The signed-in person's own permissions follow the previewed role, so screens draw what that role could do.
+    me = (await client.get("/v1/me", headers=as_sourcer)).json()
+    assert me["role"] == "sourcer"
+    assert "record.candidate.create" in me["permissions"]
+    assert "metadata.write" not in me["permissions"] and "*" not in me["permissions"]
+    assert "expected_ctc" not in {
+        f["key"]
+        for f in (await client.get("/v1/app/tables/candidate", headers=as_sourcer)).json()["table"]["fields"]
+        if not f["hidden"]
+    }
+    assert any(
+        f["key"] == "expected_ctc" and not f["hidden"]
+        for f in (await client.get("/v1/app/tables/candidate", headers=a.h())).json()["table"]["fields"]
+    )
+    # A role that cannot add documents is not offered the CV screen; one that can, is.
+    viewer = a.h(**{"X-Preview-Role": "viewer"})
+    assert "cv_intake" not in {
+        i["screen"] for i in (await client.get("/v1/app/navigation", headers=viewer)).json()["items"]
+    }
+    assert "cv_intake" in {
+        i["screen"] for i in (await client.get("/v1/app/navigation", headers=a.h())).json()["items"]
+    }
 
 
 async def test_preview_never_gives_more_than_the_builder_has(

@@ -77,6 +77,7 @@ export function Board({ tableKey, title, filter }: { tableKey: string; title: st
   }
 
   const canOverride = can(me.data?.permissions, 'rule.override')
+  const canMove = can(me.data?.permissions, `record.${tableKey}.update`)
   return (
     <div className="flex min-w-0 max-w-full flex-col gap-4">
       <div className="flex flex-wrap items-end gap-3">
@@ -128,6 +129,7 @@ export function Board({ tableKey, title, filter }: { tableKey: string; title: st
               field={data.field}
               refLabel={refLabel}
               labels={Object.fromEntries(data.columns.map((c) => [c.stage, c.label]))}
+              canMove={canMove}
               dragging={dragging}
               setDragging={setDragging}
               onDropCard={(id) => {
@@ -213,6 +215,7 @@ function Column({
   field,
   refLabel,
   labels,
+  canMove,
   dragging,
   setDragging,
   onDropCard,
@@ -223,6 +226,7 @@ function Column({
   field: string
   refLabel: (c: RecordRow) => (string | null)[]
   labels: Record<string, string>
+  canMove: boolean
   dragging: string | null
   setDragging: (id: string | null) => void
   onDropCard: (id: string) => void
@@ -234,7 +238,7 @@ function Column({
       role="listitem"
       aria-label={`${col.label}, ${col.count} ${col.count === 1 ? 'card' : 'cards'}`}
       onDragOver={(e) => {
-        if (dragging) {
+        if (dragging && canMove) {
           e.preventDefault()
           setOver(true)
         }
@@ -245,7 +249,7 @@ function Column({
         setOver(false)
         const id = e.dataTransfer.getData('text/plain') || dragging
         setDragging(null)
-        if (id) onDropCard(id)
+        if (id && canMove) onDropCard(id)
       }}
       className={`flex w-64 shrink-0 flex-col gap-2 rounded-lg border bg-canvas p-2 ${over ? 'border-accent bg-accent-soft' : 'border-line'}`}
     >
@@ -257,13 +261,13 @@ function Column({
       {col.cards.map((c) => (
         <article
           key={c.id}
-          draggable
+          draggable={canMove}
           onDragStart={(e) => {
             e.dataTransfer.setData('text/plain', c.id)
             setDragging(c.id)
           }}
           onDragEnd={() => setDragging(null)}
-          className="flex cursor-grab flex-col gap-1.5 rounded-md border border-line bg-surface p-2.5 shadow-sm"
+          className={`flex flex-col gap-1.5 rounded-md border border-line bg-surface p-2.5 shadow-sm ${canMove ? 'cursor-grab' : ''}`}
         >
           <Link to="/records/$table/$id" params={{ table: c.table, id: c.id }} className="text-sm font-semibold text-ink hover:underline">
             {String(c.data[title] ?? 'Untitled')}
@@ -271,7 +275,7 @@ function Column({
           {refLabel(c).map((l) => (
             <p key={l} className="text-xs text-muted">{l}</p>
           ))}
-          {col.next.length > 0 && (
+          {canMove && col.next.length > 0 && (
             <>
               <label className="sr-only" htmlFor={`mv-${c.id}`}>{`Move ${String(c.data[title])} to`}</label>
               <select
