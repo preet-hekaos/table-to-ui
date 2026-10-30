@@ -351,6 +351,26 @@ async def update_field(
         )
     except ValidationError as e:
         raise _pydantic_errors(e) from None
+    if f.type == "select" and "options" in changes:
+        gone = sorted(set(f.options) - set(nf.options))
+        exists = (await s.execute(text("SELECT to_regclass(:t)"), {"t": f'"{table_key}"'})).scalar()
+        if gone and exists:
+            used = (
+                await s.execute(
+                    text(
+                        f"SELECT data->>'{field_key}' AS v, count(*) AS n FROM \"{table_key}\" "  # noqa: S608 - identifiers are validated metadata keys
+                        f"WHERE data->>'{field_key}' = ANY(CAST(:g AS text[])) GROUP BY 1 ORDER BY 1"
+                    ),
+                    {"g": gone},
+                )
+            ).all()
+            if used:
+                detail = ", ".join(f"{r.v} ({r.n})" for r in used)
+                raise _bad(
+                    "options",
+                    f"records still use {detail}; change those records before removing the choice",
+                    "in_use",
+                )
     if nf.type == "reference" and nf.required and not f.required:
         rows = await s.execute(text("SELECT definition FROM metadata_object WHERE kind = 'table'"))
         others = [
@@ -413,7 +433,34 @@ async def remove_field(
         "fields": [x for x in definition["fields"] if x["key"] != field_key],
         "version": table.version + 1,
     }
+    if table.features is not None:  # settings that named the field must not point at nothing
+        left = TableDef.model_validate(updated)
+        updated["features"] = _fit_features(table.features, left, strict=False).model_dump(
+            mode="json"
+        )
     await _put(s, tenant_id, "table", table_key, updated, source)
+    for sc in await s.execute(
+        text("SELECT key, definition, source FROM metadata_object WHERE kind = 'screen'")
+    ):
+        d = sc.definition
+        if d.get("table") != table_key:
+            continue
+        cfg = dict(d.get("config") or {})
+        before = json.dumps(cfg, sort_keys=True)
+        for name in ("columns", "filters", "fields", "facets"):
+            if isinstance(cfg.get(name), list):
+                cfg[name] = [k for k in cfg[name] if k != field_key]
+        if cfg.get("group_by") == field_key:
+            cfg.pop("group_by")
+        if json.dumps(cfg, sort_keys=True) != before:
+            await _put(
+                s,
+                tenant_id,
+                "screen",
+                sc.key,
+                {**d, "config": cfg, "version": d.get("version", 1) + 1},
+                sc.source,
+            )
     await _audit(
         s, tenant_id, user_id, "metadata.field.delete", f"{table_key}.{field_key}", {}, request_id
     )
@@ -712,7 +759,11 @@ def _fit_features(f: TableFeatures, table: TableDef, *, strict: bool) -> TableFe
     def _chart_ok(c: Any) -> bool:
         if c is None:
             return True
-        if c.x is not None and by_type.get(c.x) not in CHART_X_TYPES:
+        if (
+            c.x is not None
+            and c.x not in ("created_at", "updated_at")
+            and by_type.get(c.x) not in CHART_X_TYPES
+        ):
             return False
         return all(m.agg == "count" or m.field in numeric for m in c.measures)
 

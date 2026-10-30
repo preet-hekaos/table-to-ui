@@ -369,3 +369,64 @@ async def test_builder_previews_unpublished_draft_changes_in_the_real_app(
     assert (await client.get("/v1/records/candidate/stats", headers=a.h())).status_code == 200
     live = a.h(**{"X-Preview-Env": "live"})
     assert (await client.get("/v1/records/candidate/stats", headers=live)).status_code == 200
+
+
+async def test_removing_a_choice_in_use_is_refused_and_deleting_a_field_cleans_settings(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    r = await client.post(
+        "/v1/studio/tables/candidate/fields",
+        headers=a.h(),
+        json={"label": "Shift", "type": "select", "options": ["Day", "Night"]},
+    )
+    assert r.status_code == 201, r.text
+    await a.publish_live()
+    made = await a.create_candidate(candidate(full_name="Night Owl", shift="Night"))
+    assert made.status_code == 201, made.text
+    refuse = await client.patch(
+        "/v1/studio/tables/candidate/fields/shift", headers=a.h(), json={"options": ["Day"]}
+    )
+    assert refuse.status_code == 422 and "Night (1)" in refuse.text, refuse.text
+    ok = await client.patch(
+        "/v1/studio/tables/candidate/fields/shift",
+        headers=a.h(),
+        json={"options": ["Day", "Night", "Evening"]},
+    )
+    assert ok.status_code == 200, ok.text
+
+    feat = {"unsortable": ["shift"], "default_columns": ["full_name", "shift"]}
+    assert (
+        await client.put("/v1/studio/tables/candidate/features", headers=a.h(), json=feat)
+    ).status_code == 200
+    gone = await client.delete("/v1/studio/tables/candidate/fields/shift", headers=a.h())
+    assert gone.status_code in (200, 204), gone.text
+    table = (await client.get("/v1/studio/tables/candidate", headers=a.h())).json()
+    feats = table.get("features") or {}
+    assert "shift" not in (feats.get("unsortable") or [])
+    assert "shift" not in (feats.get("default_columns") or [])
+
+
+async def test_switches_for_sorting_and_filtering_hold_in_the_api_and_charts_take_dates_added(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    await a.publish_live()
+    off = {"unsortable": ["full_name"], "unfilterable": ["current_employer"]}
+    r = await client.put("/v1/studio/tables/candidate/features", headers=a.h(), json=off)
+    assert r.status_code == 200, r.text
+    h = a.h(**{"X-Preview-Env": "draft"})
+    assert (
+        await client.get("/v1/records/candidate", headers=h, params={"sort": "full_name"})
+    ).status_code == 422
+    assert (
+        await client.get("/v1/records/candidate", headers=h, params={"sort": "updated_at"})
+    ).status_code == 200
+    assert (
+        await client.get(
+            "/v1/records/candidate", headers=h, params={"c.current_employer": "inf"}
+        )
+    ).status_code == 422
+    chart = await client.get("/v1/records/candidate/chart", headers=h, params={"x": "created_at"})
+    assert chart.status_code == 200, chart.text
+    assert chart.json()["x"]["key"] == "created_at"

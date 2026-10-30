@@ -64,7 +64,7 @@ export function formatField(f: FieldDef | undefined, v: unknown, ref?: RecordRef
         </Link>
       ) : String(v)
     default:
-      return String(v)
+      return f.option_labels?.[String(v)] ?? String(v)
   }
 }
 

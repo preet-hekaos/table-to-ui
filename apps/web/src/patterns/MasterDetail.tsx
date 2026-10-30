@@ -119,7 +119,7 @@ export function MasterDetail({
             {(config.filters ?? []).map((k) => table.fields.find((f) => f.key === k)).filter((f) => f?.type === 'select').map((f) => (
               <Select key={f!.key} aria-label={`Filter by ${f!.label}`} className="h-8 w-auto text-xs" value={filters[f!.key] ?? ''} onChange={(e) => setFilters({ ...filters, [f!.key]: e.target.value })}>
                 <option value="">All {f!.label.toLowerCase()}</option>
-                {f!.options.map((o) => <option key={o}>{o}</option>)}
+                {f!.options.map((o) => <option key={o} value={o}>{f!.option_labels?.[o] ?? o}</option>)}
               </Select>
             ))}
             <label className="flex items-center gap-1 text-xs text-body"><input type="checkbox" checked={mine} onChange={(e) => setMine(e.target.checked)} /> Mine</label>

@@ -18,6 +18,16 @@ MAX_PAGE = 200
 _NUMERIC = {"integer", "decimal"}
 
 
+def _stage_labels(table: TableDef, field_key: str, values: list[dict[str, Any]]) -> None:
+    """Show a renamed stage by its current name; the value used to filter stays the stored one."""
+    wf = table.workflow
+    if wf is None or wf.field != field_key:
+        return
+    names = {st.key: (st.label or st.key) for st in wf.stages}
+    for v in values:
+        v["label"] = names.get(str(v["value"]), v["label"])
+
+
 def _sort_spec(table: TableDef, key: str, hidden: set[str] | None = None) -> tuple[str, str]:
     """(SQL expression, SQL type of the cursor value). Only metadata-known keys reach SQL.
     A field the person may not see cannot be sorted on: the order would reveal its values."""
@@ -28,9 +38,15 @@ def _sort_spec(table: TableDef, key: str, hidden: set[str] | None = None) -> tup
     ):  # the shared order: dragged records by position; newer, never-placed ones on top
         return 'COALESCE("sort_order", -1e12 - extract(epoch FROM "updated_at"))', "numeric"
     f = table.field(key)
-    if f is None or key in (hidden or set()):
+    if f is None or key in (hidden or set()) or f.hidden:
         raise ValidationFailed(
             errors=[{"field": "sort", "code": "unknown", "message": f"'{key}' is not a field"}]
+        )
+    feat = features_of(table)
+    starts_here = feat.default_sort is not None and feat.default_sort.field == key
+    if not starts_here and (not (feat.sort_filter and feat.sortable) or key in feat.unsortable):
+        raise ValidationFailed(
+            errors=[{"field": "sort", "code": "off", "message": f"'{f.label}' is not sortable"}]
         )
     if f.type in _NUMERIC:
         return f"COALESCE((data->>'{key}')::numeric, -1)", "numeric"
@@ -67,7 +83,7 @@ def _filter_conditions(
     hidden = {f for (t, f) in principal.field_denies if t == table.key}
     for i, (key, value) in enumerate(filters.items()):
         f = table.field(key)
-        if f is None or key in hidden:
+        if f is None or key in hidden or f.hidden:
             raise ValidationFailed(
                 errors=[{"field": key, "code": "unknown", "message": "cannot be filtered on"}]
             )
@@ -84,13 +100,27 @@ def _filter_conditions(
     sort_filter = feat.sort_filter and feat.filterable
     for i, (key, value) in enumerate((contains or {}).items()):
         f = table.field(key)
-        if f is None or key in hidden or f.type not in _TEXTY or not sort_filter:
+        if (
+            f is None
+            or key in hidden
+            or f.hidden
+            or f.type not in _TEXTY
+            or not sort_filter
+            or key in feat.unfilterable
+        ):
             raise _bad(f"c.{key}", "cannot be searched this way")
         conds.append(f"position(lower(:ct{i}) in lower(COALESCE(data->>'{key}', ''))) > 0")
         params[f"ct{i}"] = value.strip()
     for i, (key, value) in enumerate((anyof or {}).items()):
         f = table.field(key)
-        if f is None or key in hidden or f.type not in _LISTABLE or not sort_filter:
+        if (
+            f is None
+            or key in hidden
+            or f.hidden
+            or f.type not in _LISTABLE
+            or not sort_filter
+            or key in feat.unfilterable
+        ):
             raise _bad(f"in.{key}", "cannot be filtered by a list of choices")
         picks = [x for x in value.split(",") if x][:VALUE_LIST_MAX]
         if f.type == "tags":
@@ -596,6 +626,7 @@ async def facet_counts(
                 }
                 for v in values:
                     v["label"] = labels.get(v["value"]) or v["value"]
+            _stage_labels(table, f.key, values)
             out[key] = {"label": f.label, "kind": "values", "values": values}
     return {"total": total, "facets": out}
 
@@ -675,6 +706,7 @@ async def field_values(
         if f.type == "boolean":
             for v in values:
                 v["label"] = "Yes" if v["value"] == "true" else "No"
+        _stage_labels(table, f.key, values)
     return {
         "field": field_key,
         "label": f.label,

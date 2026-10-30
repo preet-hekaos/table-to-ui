@@ -11,7 +11,13 @@ from typing import Any
 from sqlalchemy import text
 
 from tableui.identity.public import Principal, scope_predicate
-from tableui.metadata.public import CHART_NUMBER_TYPES, CHART_X_TYPES, RuntimeApp, features_of
+from tableui.metadata.public import (
+    CHART_NUMBER_TYPES,
+    CHART_X_TYPES,
+    FieldDef,
+    RuntimeApp,
+    features_of,
+)
 from tableui.platform.db import Database
 from tableui.platform.errors import PermissionDenied, ValidationFailed
 from tableui.query.application.records import _filter_conditions
@@ -43,6 +49,9 @@ def parse_measures(raw: str | None) -> list[tuple[str, str | None]]:
     if not 1 <= len(out) <= 2:
         raise _bad("measures", "choose one or two measures")
     return out
+
+
+_SYSTEM_DATES = {"created_at": "Added on", "updated_at": "Last changed"}
 
 
 async def table_chart(
@@ -77,6 +86,10 @@ async def table_chart(
         # A choice field says more at a glance than a name: prefer it, then yes/no, dates, and text last.
         rank = {"select": 0, "boolean": 1, "date": 2, "text": 3}
         xf = min(groupable, key=lambda f: rank.get(f.type, 9))
+    elif x in _SYSTEM_DATES:
+        xf = FieldDef(
+            key=x, label=_SYSTEM_DATES[x], type="date"
+        )  # when a record was added or last changed
     else:
         xf = offered.get(x)  # type: ignore[assignment]
         if xf is None or xf.type not in CHART_X_TYPES:
@@ -108,7 +121,9 @@ async def table_chart(
         conds.append(scope_sql)
         params |= scope_params
     is_date = xf.type == "date"
-    if is_date:
+    if is_date and xf.key in _SYSTEM_DATES:
+        group = f"date_trunc('{bucket}', \"{xf.key}\")::date"  # bucket is validated above
+    elif is_date:
         group = (
             f"date_trunc('{bucket}', (data->>'{xf.key}')::date)::date"  # bucket is validated above
         )
@@ -150,11 +165,17 @@ async def table_chart(
             return g.isoformat()
         return str(g) if g not in (None, "") else "Not set"
 
+    wf = table.workflow
+    stage_names = (
+        {st.key: (st.label or st.key) for st in wf.stages}
+        if wf is not None and wf.field == xf.key
+        else {}
+    )
     shown, rest = (rows, []) if is_date else (rows[:top], rows[top:])
     points = [
         {
             "key": label(r),
-            "label": label(r),
+            "label": stage_names.get(label(r), label(r)),
             "count": r["n"],
             "values": {m["key"]: value([r], i, m) for i, m in enumerate(series)},
         }  # fmt: skip
@@ -181,7 +202,10 @@ async def table_chart(
         "total": sum(r["n"] for r in rows),
         "overall": {m["key"]: value(rows, i, m) for i, m in enumerate(series)},
         "scope": "table" if whole else "search",
-        "groupable": [{"key": f.key, "label": f.label, "type": f.type} for f in groupable],
+        "groupable": [
+            *({"key": f.key, "label": f.label, "type": f.type} for f in groupable),
+            *({"key": k, "label": v, "type": "date"} for k, v in _SYSTEM_DATES.items()),
+        ],
         "numbers": [
             {"key": f.key, "label": f.label, "type": f.type}
             for f in offered.values()

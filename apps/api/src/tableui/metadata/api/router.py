@@ -400,6 +400,12 @@ async def live_table(table: str, p: PrincipalDep, app: LiveAppDep) -> dict[str, 
     if t is None:
         raise NotFound(f"There is no table '{table}'.")
     out = t.model_dump(mode="json")
+    if t.workflow is not None:
+        # Stages can be renamed in the Studio; every screen shows the name, the record keeps the stored value.
+        names = {st.key: (st.label or st.key) for st in t.workflow.stages}
+        for f in out["fields"]:
+            if f["key"] == t.workflow.field:
+                f["option_labels"] = names
     denied = {f for (tk, f) in p.field_denies if tk == table}
     if denied:
         # A role that may not see a field is not shown its label either: screens treat it as hidden.

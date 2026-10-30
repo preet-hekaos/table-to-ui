@@ -18,6 +18,8 @@ export interface FieldDef {
   filterable?: boolean
   source?: 'pack' | 'agency'
   help?: string | null
+  /** For a stage field: what each stored stage is called now (stages can be renamed). */
+  option_labels?: Record<string, string>
 }
 export interface TableDef {
   key: string

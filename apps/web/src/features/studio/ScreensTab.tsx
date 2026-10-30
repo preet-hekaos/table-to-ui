@@ -160,7 +160,7 @@ function Configurator({ screen, table, canEdit }: { screen: DraftScreen; table: 
   const listLike = screen.pattern === 'searchable_table' || screen.pattern === 'master_detail' || screen.pattern === 'ranked_list'
   const dirty = title !== screen.title || JSON.stringify(cfg) !== JSON.stringify(screen.config)
   return (
-    <div className="grid gap-4 xl:grid-cols-[20rem_1fr]">
+    <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-[20rem_minmax(0,1fr)]">
       <Card className="flex flex-col gap-4" aria-label="Screen settings">
         <div className="flex items-center gap-2">
           <h2 className="text-base font-bold text-ink">Configure</h2>
@@ -191,7 +191,7 @@ function Configurator({ screen, table, canEdit }: { screen: DraftScreen; table: 
           </Button>
         )}
       </Card>
-      <section aria-label="Live preview" className="rounded-lg border border-dashed border-line bg-canvas p-4" data-testid="screen-preview">
+      <section aria-label="Live preview" className="min-w-0 overflow-x-auto rounded-lg border border-dashed border-line bg-canvas p-4" data-testid="screen-preview">
         <p className="mb-3 text-xs font-semibold tracking-wide text-muted uppercase">Live preview with your data</p>
         {screen.pattern === 'master_detail' ? (
           <MasterDetail tableKey={screen.table} title={title} config={cfg} tableOverride={table} preview />
