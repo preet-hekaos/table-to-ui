@@ -1,5 +1,5 @@
 import { ApiError } from '@/api/client'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import * as Popover from '@radix-ui/react-popover'
 import { Link } from '@tanstack/react-router'
 import { SlidersHorizontal } from 'lucide-react'
@@ -24,9 +24,9 @@ const FORMATS: Group<'export_formats'>[] = [
 ]
 
 /** A feature switch in the bar: it is on when it carries the tick. `title` is its accessible name. */
-function Master({ title, label, on, canEdit, onChange, help }: { title: string; label: string; on: boolean; canEdit: boolean; onChange: (on: boolean) => void; help: string }) {
+function Master({ title, label, on, canEdit, onChange, help, unavailable }: { title: string; label: string; on: boolean; canEdit: boolean; onChange: (on: boolean) => void; help: string; unavailable?: string | false }) {
   return (
-    <Chip role="switch" label={title} checked={on} disabled={!canEdit} onChange={onChange} hint={`${on ? 'Turn off' : 'Turn on'}: ${help}`}>
+    <Chip role="switch" label={title} checked={on} disabled={!canEdit || !!unavailable} onChange={onChange} hint={unavailable || `${on ? 'Turn off' : 'Turn on'}: ${help}`}>
       {label}
     </Chip>
   )
@@ -64,6 +64,11 @@ export function FeaturesPanel({ table, canEdit }: { table: StudioTable; canEdit:
   const qc = useQueryClient()
   const toast = useToast()
   const saved = featuresOf(table)
+  // Rows to tick, group or drag exist only on a table screen; a table shown only as master-detail has none.
+  const screens = useQuery({ queryKey: ['studio-screens'], queryFn: studio.screens, retry: false })
+  const noList = screens.data && !screens.data.some((x) => x.table === table.key && x.pattern === 'searchable_table')
+    ? 'This table has no table screen, only master-detail and other layouts, so there are no rows to tick or drag. Add a Searchable table screen to use this.'
+    : false
   const [f, setF] = useState<TableFeatures>(saved)
   // A list of keys is the same whatever order it was ticked in; switching something off and on again is no change.
   const same = (a: unknown, b: unknown) =>
@@ -101,7 +106,7 @@ export function FeaturesPanel({ table, canEdit }: { table: StudioTable; canEdit:
       <div className="overflow-hidden rounded-xl border border-line bg-surface">
         <section className="flex flex-wrap items-center gap-x-2 gap-y-2 px-4 py-3" aria-labelledby="feat-table">
           <h3 id="feat-table" className={rowLabel}>For the whole table</h3>
-          <Master title="Select rows and act on many" label="Select and bulk" on={f.select_bulk} canEdit={canEdit} onChange={(on) => set('select_bulk', on)} help="select rows on a page or every match, then act on them." />
+          <Master title="Select rows and act on many" label="Select and bulk" on={f.select_bulk} canEdit={canEdit} onChange={(on) => set('select_bulk', on)} help="select rows on a page or every match, then act on them." unavailable={noList} />
           <Options label="Bulk action options" disabled={!f.select_bulk}>
             <span className={smallLabel}>Actions</span>
             <fieldset className="flex flex-wrap gap-2" disabled={!canEdit}>
@@ -136,7 +141,7 @@ export function FeaturesPanel({ table, canEdit }: { table: StudioTable; canEdit:
             </fieldset>
           </Options>
           <Master title="Import data" label="Import" on={f.import_data} canEdit={canEdit} onChange={(on) => set('import_data', on)} help="CSV, JSON or Excel from the toolbar." />
-          <Master title="Drag to reorder" label="Reorder" on={f.row_order} canEdit={canEdit} onChange={(on) => set('row_order', on)} help="rows can be moved up or down; the order is shared across all users." />
+          <Master title="Drag to reorder" label="Reorder" on={f.row_order} canEdit={canEdit} onChange={(on) => set('row_order', on)} help="rows can be moved up or down; the order is shared across all users." unavailable={noList} />
           <Chip
             label="Choose the summary cards myself"
             checked={f.stat_cards !== null}

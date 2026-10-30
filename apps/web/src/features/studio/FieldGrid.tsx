@@ -57,6 +57,7 @@ export function FieldGrid({
 }) {
   const screens = useQuery({ queryKey: ['studio-screens'], queryFn: studio.screens, retry: false })
   const own = screens.data?.find((x) => x.table === table.key && x.pattern === 'searchable_table')
+  const listless = !!screens.data && !own
   const automatic = automaticColumns(table, (own?.config.columns as string[] | undefined) ?? undefined)
   const shown = f.default_columns ?? automatic
   const fields = table.fields.filter((x) => !x.hidden)
@@ -68,6 +69,7 @@ export function FieldGrid({
   const blocked = (c: Column): string | null => {
     if (c.master && !f[c.master.flag]) return `Turn on ${c.master.label} first.`
     if (c.follows && !f[c.follows.flag]) return `Turn on ${c.follows.label} first.`
+    if (listless && ['Shown', 'Group', 'Bulk'].includes(c.short)) return 'This table has no table screen, so there are no rows to show, group or tick.'
     if (c.short === 'Chart' && !f.statistics) return 'Turn on Numbers above the table first.'
     return null
   }

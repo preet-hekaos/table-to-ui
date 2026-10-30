@@ -20,11 +20,8 @@ export const PATTERNS = [
   { key: 'document_review', name: 'Document review', use: 'A document beside the details read from it.' },
 ] as const
 
-const ACTIONS = [
-  ['create', 'Add'],
-  ['export', 'Export CSV'],
-  ['import', 'Import'],
-] as const
+// Export and Import are switched per table in Features, so this screen only decides whether it offers Add.
+const ACTIONS = [['create', 'Add']] as const
 
 /** A thumbnail of a pattern drawn with the workspace's own records (S15 AC1). */
 function Thumb({ pattern, table, rows }: { pattern: string; table?: StudioTable; rows: RecordRow[] }) {
@@ -183,7 +180,8 @@ function Configurator({ screen, table, canEdit }: { screen: DraftScreen; table: 
           </Field>
         )}
         {!listLike && <Checklist legend="Fields shown" options={fields} value={cfg.fields ?? []} onChange={(f) => set({ fields: f })} />}
-        <Checklist legend="Actions" options={ACTIONS.map(([key, label]) => ({ key, label }))} value={cfg.actions ?? ['create']} onChange={(actions) => set({ actions })} />
+        <Checklist legend="Actions" options={ACTIONS.map(([key, label]) => ({ key, label }))} value={cfg.actions ?? ['create']} onChange={(picked) => set({ actions: [...(cfg.actions ?? ['create']).filter((a) => a !== 'create'), ...picked] })} />
+        <p className="-mt-2 text-xs text-muted">Export and Import for this table are set in its Features tab.</p>
         <Field label="Empty-state text" hint="Shown when there is nothing to list yet">
           <Input value={cfg.empty_text ?? ''} maxLength={200} onChange={(e) => set({ empty_text: e.target.value })} disabled={!canEdit} />
         </Field>
