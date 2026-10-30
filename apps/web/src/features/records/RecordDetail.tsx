@@ -1,3 +1,4 @@
+import { featuresOf } from '@/features/studio/features'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { ArrowLeft, Pencil, Plus, Sparkles } from 'lucide-react'
@@ -154,7 +155,8 @@ function RelatedList({ id, rel, canCreate }: { id: string; rel: Relation; canCre
   const boards = useQuery({ queryKey: ['board-screens', rel.table], queryFn: () => app.screens({ table: rel.table, pattern: 'board' }), retry: false })
   if (rows.isLoading || def.isLoading) return <LoadingState label={`Loading ${rel.label.toLowerCase()}`} />
   if (rows.isError || !def.data) return <ErrorState onRetry={() => void rows.refetch()} />
-  const fields = rel.columns.map((c) => def.data.table.fields.find((f) => f.key === c)).filter((f) => !!f && f.key !== rel.field)
+  const own = featuresOf(def.data.table).default_columns?.filter((k) => def.data.table.fields.some((f) => f.key === k && !f.hidden))
+  const fields = (own?.length ? own : rel.columns).map((c) => def.data.table.fields.find((f) => f.key === c)).filter((f) => !!f && f.key !== rel.field)
   return (
     <div className="flex flex-col gap-3">
       {boards.data?.[0] && (

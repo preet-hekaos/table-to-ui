@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { ApiError } from '@/api/client'
-import { admin, app } from '@/api/endpoints'
+import { admin, app, studio } from '@/api/endpoints'
 import { Badge, Button, Card, CardTitle, EmptyState, ErrorState, LoadingState, useToast } from '@/design-system'
 import { CheckCircle2, Circle } from 'lucide-react'
 import { can, useMe } from '@/features/auth/useMe'
@@ -11,6 +11,8 @@ import { FirstSteps, SampleData, WhatNeedsMe } from './WhatNeedsMe'
  *  governed measure cards, whose values come from the analytics store, never from live tables. */
 function SetupCard() {
   const home = useQuery({ queryKey: ['ws-home'], queryFn: admin.home, retry: false })
+  const me = useMe()
+  const draft = useQuery({ queryKey: ['studio-status'], queryFn: studio.status, enabled: can(me.data?.permissions ?? [], 'metadata.write'), retry: false })
   if (!home.data) return null
   const h = home.data
   const done = h.checklist.filter((c) => c.done).length
@@ -45,6 +47,11 @@ function SetupCard() {
           <dt className="text-muted">Pack updates</dt>
           <dd className="text-ink">{h.pack_updates.length ? `${h.pack_updates.length} available` : 'Up to date'}</dd>
         </dl>
+        {draft.data?.draft_changed && (
+          <p className="mt-3 rounded-md border border-line bg-canvas p-2 text-sm text-ink" data-testid="draft-waiting">
+            You have changes in Draft that people don’t see yet. Send them to Test, then make them Live from the Studio.
+          </p>
+        )}
         {h.pack_updates.map((u) => <PackUpdate key={u.version} u={u} />)}
         <Link to="/studio" className="mt-3 inline-block text-sm font-semibold text-accent-ink hover:underline">
           Open the Studio
