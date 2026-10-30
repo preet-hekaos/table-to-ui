@@ -48,6 +48,7 @@ test('Table features: all on by default, set per table, applied to all, shown in
   })
 
   await test.step('Apply to all tables', async () => {
+    await page.goto('/studio?tab=data&table=candidate&part=features')
     await page.getByTestId('features-panel').getByRole('switch', { name: /Drag to reorder/ }).uncheck()
     await page.getByRole('button', { name: 'Apply to all tables' }).click()
     await expect(page.getByText('Applied to every table').first()).toBeVisible()
