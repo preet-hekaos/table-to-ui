@@ -27,8 +27,9 @@ export function setRegional(r: { currency?: string; locale?: string }) {
 }
 
 export function formatMonths(n: number): string {
-  const y = Math.floor(n / 12)
-  const m = n % 12
+  const whole = Math.round(n) // an average of months is not a whole number
+  const y = Math.floor(whole / 12)
+  const m = whole % 12
   return [y ? `${y} yr${y === 1 ? '' : 's'}` : '', m ? `${m} mo` : ''].filter(Boolean).join(' ') || '0 mo'
 }
 

@@ -10,7 +10,7 @@ function Card({ label, value, testid }: { label: string; value: React.ReactNode;
   return (
     <div className="min-w-0 rounded-xl border border-line bg-surface px-4 py-3.5" data-testid={testid}>
       <p className="truncate text-xs font-semibold text-muted">{label}</p>
-      <p className="mt-0.5 truncate text-3xl leading-tight font-bold text-ink">{value}</p>
+      <p className={`mt-0.5 truncate leading-tight font-bold text-ink ${typeof value === 'string' && value.length > 12 ? 'text-xl' : 'text-3xl'}`}>{value}</p>
     </div>
   )
 }

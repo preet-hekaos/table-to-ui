@@ -554,6 +554,9 @@ function Column({
                   </p>
                 ))}
               </div>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs text-muted">{updatedAgo(c.updated_at)}</p>
               {canMove && col.next.length > 0 && (
                 <>
                   <label
@@ -566,7 +569,7 @@ function Column({
                     onChange={(e) =>
                       e.target.value && onMove(c, e.target.value)
                     }
-                    className="h-7 w-[5.5rem] shrink-0 rounded-md border border-line bg-surface px-1 text-xs font-medium text-body"
+                    className="h-7 w-[6.5rem] shrink-0 rounded-md border border-line bg-surface px-1 text-xs font-medium text-body"
                   >
                     <option value="">Move to…</option>
                     {col.next.map((s) => (
@@ -578,7 +581,6 @@ function Column({
                 </>
               )}
             </div>
-            <p className="text-xs text-muted">{updatedAgo(c.updated_at)}</p>
             <span className="sr-only">{field}</span>
           </article>
         );
