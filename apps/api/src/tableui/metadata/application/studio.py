@@ -372,7 +372,7 @@ async def update_field(
                     f"records still use {detail}; change those records before removing the choice",
                     "in_use",
                 )
-    if nf.required and not f.required:
+    if nf.required and not f.required and nf.type != "reference":  # links are reported by Health
         exists = (await s.execute(text("SELECT to_regclass(:t)"), {"t": f'"{table_key}"'})).scalar()
         if exists:
             blank = (

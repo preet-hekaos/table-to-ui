@@ -44,7 +44,7 @@ def _sort_spec(table: TableDef, key: str, hidden: set[str] | None = None) -> tup
         )
     feat = features_of(table)
     starts_here = feat.default_sort is not None and feat.default_sort.field == key
-    if not starts_here and (not (feat.sort_filter and feat.sortable) or key in feat.unsortable):
+    if not starts_here and key in feat.unsortable:
         raise ValidationFailed(
             errors=[{"field": "sort", "code": "off", "message": f"'{f.label}' is not sortable"}]
         )
