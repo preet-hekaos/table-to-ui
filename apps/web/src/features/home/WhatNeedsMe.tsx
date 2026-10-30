@@ -27,6 +27,7 @@ export function WhatNeedsMe() {
     void qc.invalidateQueries({ queryKey: ['notifications'] })
   }, [qc, unreadNow])
   if (!needs.data) return null
+  const today = new Date().toLocaleDateString('en-CA')
   const { tasks, approvals, unread } = needs.data
   const nothing = !tasks?.total && !approvals && !unread
   return (
@@ -50,7 +51,7 @@ export function WhatNeedsMe() {
                     <Link to="/records/$table/$id" params={{ table: tasks.table, id: t.id }} className="min-w-0 flex-1 truncate text-sm font-medium text-ink hover:underline">
                       {t.title}
                     </Link>
-                    {t.due_on && <Badge tone={t.overdue ? 'bad' : 'neutral'}>{t.overdue ? `Overdue · ${day(t.due_on)}` : `Due ${day(t.due_on)}`}</Badge>}
+                    {t.due_on && <Badge tone={t.overdue ? 'bad' : t.due_on === today ? 'warn' : 'ok'}>{t.overdue ? `Overdue · ${day(t.due_on)}` : t.due_on === today ? 'Due today' : `Due ${day(t.due_on)}`}</Badge>}
                     {t.can_finish && (
                       <Button size="sm" variant="secondary" aria-label={`Mark done: ${t.title}`} onClick={() => finish.mutate({ table: tasks.table, id: t.id })} disabled={finish.isPending}>
                         Done

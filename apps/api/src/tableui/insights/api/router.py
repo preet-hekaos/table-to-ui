@@ -32,13 +32,28 @@ async def _run(
     m: MeasureDef,
     start: dt.date,
     end: dt.date,
+    *,
+    compare: bool = False,
+    mine: bool = False,
 ) -> dict[str, Any]:
     assert p.tenant_id
     scope_sql, scope_params = await scope_predicate(db, p, m.table)
-    return await engine.run_measure(
-        analytics, p.tenant_id, m, app.table(m.table),
+    if mine:  # only the records this person owns
+        scope_sql = (
+            f"({scope_sql}) AND owner_id = :mine_owner" if scope_sql else "owner_id = :mine_owner"
+        )
+        scope_params = {**scope_params, "mine_owner": p.user_id}
+    table = app.table(m.table)
+    out = await engine.run_measure(
+        analytics, p.tenant_id, m, table,
         scope_sql=scope_sql, scope_params=scope_params, start=start, end=end,
     )  # fmt: skip
+    if compare:
+        out |= await engine.compare_and_trend(
+            analytics, p.tenant_id, m, table,
+            scope_sql=scope_sql, scope_params=scope_params, start=start, end=end,
+        )  # fmt: skip
+    return out
 
 
 async def _fresh(p: Principal, db: Database, analytics: Database, app: Any) -> None:
@@ -65,6 +80,8 @@ async def list_measures(
     range: str | None = None,  # noqa: A002 - the public query parameter name
     start: dt.date | None = None,
     end: dt.date | None = None,
+    compare: bool = False,  # add the previous period's value and a 12-week trend
+    mine: bool = False,  # count only the records I own
 ) -> list[dict[str, Any]]:
     p.require("measure.read")
     await _fresh(p, db, analytics, app)
@@ -73,7 +90,10 @@ async def list_measures(
         (m for m in app.measures if not m.hidden and _readable(p, m) and (m.home or not home)),
         key=lambda m: (m.order, m.label),
     )
-    return [await _run(p, db, analytics, app, m, first, last) for m in wanted]
+    return [
+        await _run(p, db, analytics, app, m, first, last, compare=compare, mine=mine)
+        for m in wanted
+    ]
 
 
 @router.get("/{key}")

@@ -332,3 +332,30 @@ async def test_preview_shows_the_number_or_the_problem_before_saving(
     assert bad.json()["ok"] is False and "not a number" in bad.json()["problems"][0]
     nope = await client.post("/v1/measures/preview", headers=agency.h(), json={"table": "nope"})
     assert nope.json()["ok"] is False
+
+
+async def test_home_can_compare_with_the_period_before_and_count_only_my_records(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    await _pipeline(client, agency)  # one submission sent today
+    await _flush(client)
+    r = await client.get(
+        "/v1/measures",
+        headers=agency.h(),
+        params={"home": "true", "compare": "true", "range": "last_30_days"},
+    )
+    assert r.status_code == 200, r.text
+    by = {m["key"]: m for m in r.json()}
+    sent = by["submissions_sent"]
+    assert sent["value"] == 1 and sent["previous"] == 0
+    assert sent["trend"] and len(sent["trend"]) >= 12 and sum(sent["trend"]) == 1
+    # A number that is "right now" has no honest past, so it carries no comparison or trend.
+    assert by["active_candidates"]["previous"] is None and by["active_candidates"]["trend"] is None
+    # Without the option nothing extra is added.
+    plain = await client.get("/v1/measures/submissions_sent", headers=agency.h())
+    assert "previous" not in plain.json()
+    # "Only mine" counts what this person owns; the same person made all of it, so the same number.
+    mine = await client.get(
+        "/v1/measures/submissions_sent", headers=agency.h(), params={"mine": "true"}
+    )
+    assert mine.json()["value"] == 1

@@ -62,7 +62,7 @@ test('M0 demo script', async ({ browser }) => {
 
   await test.step('1. Ananya signs up as Northstar and lands in the workspace', async () => {
     await signUp(a.page, northstar)
-    await expect(a.page.getByRole('heading', { name: /Welcome, Ananya/ })).toBeVisible()
+    await expect(a.page.getByRole('heading', { name: /Good (morning|afternoon|evening), Ananya/ })).toBeVisible()
   })
 
   await test.step('2. A second agency, Crestline HR, signs up the same way', async () => {

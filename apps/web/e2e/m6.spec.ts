@@ -119,7 +119,7 @@ test('M6: an owner removes a person and the person loses access', async ({ page 
   await page.waitForLoadState('networkidle')
   await page.getByLabel(/Start blank/).check()
   await page.getByRole('button', { name: 'Set up workspace' }).click()
-  await expect(page.getByRole('heading', { name: /^Welcome/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /^Good (morning|afternoon|evening)/ })).toBeVisible()
 
   await page.goto('/team')
   await page.getByLabel(/Email/).fill(`temp-${run}@m6.test`)

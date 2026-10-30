@@ -3,7 +3,8 @@ import { Link } from '@tanstack/react-router'
 import { ApiError } from '@/api/client'
 import { admin, app, studio } from '@/api/endpoints'
 import { Badge, Button, Card, CardTitle, EmptyState, ErrorState, LoadingState, useToast } from '@/design-system'
-import { CheckCircle2, Circle } from 'lucide-react'
+import { useState } from 'react'
+import { ArrowDownRight, ArrowUpRight, CheckCircle2, Circle } from 'lucide-react'
 import { can, useMe } from '@/features/auth/useMe'
 import { FirstSteps, SampleData, WhatNeedsMe } from './WhatNeedsMe'
 
@@ -25,7 +26,10 @@ function SetupCard() {
             {done} of {h.checklist.length} done
           </Badge>
         </div>
-        <ul className="mt-2 flex flex-col gap-2">
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-line" role="presentation">
+          <div className="h-full rounded-full bg-ok" style={{ width: `${h.checklist.length ? (done / h.checklist.length) * 100 : 0}%` }} />
+        </div>
+        <ul className="mt-3 flex flex-col gap-2">
           {h.checklist.map((c) => (
             <li key={c.key} className="flex items-center gap-2 text-sm">
               {c.done ? <CheckCircle2 className="size-4 text-ok" aria-hidden /> : <Circle className="size-4 text-muted" aria-hidden />}
@@ -86,14 +90,84 @@ function PackUpdate({ u }: { u: { pack_id: string; version: string; title: strin
   )
 }
 
+
+const PERIODS = [
+  ['last_30_days', 'Last 30 days'],
+  ['this_week', 'This week'],
+  ['this_month', 'This month'],
+  ['last_90_days', 'Last 90 days'],
+  ['this_year', 'This year'],
+] as const
+const DOTS = ['bg-slate-400', 'bg-emerald-500', 'bg-blue-500', 'bg-violet-500', 'bg-orange-500', 'bg-pink-500', 'bg-teal-500', 'bg-amber-500', 'bg-rose-500', 'bg-cyan-500']
+const greeting = () => {
+  const h = new Date().getHours()
+  return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'
+}
+
+/** A small line of the last few periods, drawn without any chart library. */
+function Spark({ points }: { points: number[] }) {
+  if (points.length < 2) return null
+  const max = Math.max(...points), min = Math.min(...points), span = max - min || 1
+  const d = points.map((v, i) => `${i ? 'L' : 'M'}${(i / (points.length - 1)) * 80},${22 - ((v - min) / span) * 20}`).join(' ')
+  return (
+    <svg viewBox="0 0 80 24" className="h-6 w-20 text-accent" aria-hidden>
+      <path d={d} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function Change({ now, before }: { now: number | null; before?: number | null }) {
+  if (now == null || before == null) return null
+  const diff = now - before
+  if (diff === 0) return <span className="text-xs text-muted">No change</span>
+  const up = diff > 0
+  const Icon = up ? ArrowUpRight : ArrowDownRight
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-xs font-semibold ${up ? 'text-ok' : 'text-bad'}`} data-testid="measure-change">
+      <Icon className="size-3.5" aria-hidden />
+      {up ? '+' : ''}{diff} vs before
+    </span>
+  )
+}
+
+/** How many sit at each stage, as one stacked bar and a legend. */
+function StageBars({ series }: { series: { label: string; value: number | null }[] }) {
+  const total = series.reduce((a, p) => a + (p.value ?? 0), 0)
+  if (!total) return null
+  return (
+    <Card data-testid="stage-bars">
+      <CardTitle>Where submissions are</CardTitle>
+      <div className="mt-2 flex h-3 overflow-hidden rounded-full bg-line" role="img" aria-label={series.map((p) => `${p.label}: ${p.value ?? 0}`).join(', ')}>
+        {series.map((p, i) => (p.value ? <div key={p.label} className={DOTS[i % DOTS.length]} style={{ width: `${((p.value ?? 0) / total) * 100}%` }} /> : null))}
+      </div>
+      <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+        {series.map((p, i) => (
+          <li key={p.label} className="inline-flex items-center gap-1.5">
+            <span className={`size-2 rounded-full ${DOTS[i % DOTS.length]}`} aria-hidden />
+            {p.label} <b className="text-ink">{p.value ?? 0}</b>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  )
+}
+
 export function Home() {
   const me = useMe()
+  const [period, setPeriod] = useState<(typeof PERIODS)[number][0]>('last_30_days')
+  const [mine, setMine] = useState(false)
   const measures = useQuery({
-    queryKey: ['measures'],
-    queryFn: () => app.measures({}, true),
+    queryKey: ['measures', period, mine],
+    queryFn: () => app.measures({ range: period }, true, { compare: true, mine }),
     enabled: !!me.data,
     retry: false,
     refetchInterval: 15_000,
+  })
+  const stages = useQuery({
+    queryKey: ['measure-stages', period],
+    queryFn: () => app.measure('submissions_by_stage', { range: period }),
+    enabled: !!me.data && measures.isSuccess,
+    retry: false,
   })
   if (!me.data) return null
   const canManage = can(me.data.permissions, 'workspace.manage')
@@ -101,9 +175,22 @@ export function Home() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-xl font-bold text-ink">Welcome, {me.data.full_name.split(' ')[0]}</h1>
-        <p className="text-sm text-muted">{me.data.tenant_name}</p>
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl font-bold text-ink">{greeting()}, {me.data.full_name.split(' ')[0]}</h1>
+          <p className="text-sm text-muted">{me.data.tenant_name}</p>
+        </div>
+        {measures.isSuccess && (
+          <div className="flex gap-2">
+            <select aria-label="Period" value={period} onChange={(e) => setPeriod(e.target.value as typeof period)} className="h-9 rounded-md border border-line bg-surface px-2 text-sm text-ink">
+              {PERIODS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+            </select>
+            <select aria-label="Whose numbers" value={mine ? 'mine' : 'all'} onChange={(e) => setMine(e.target.value === 'mine')} className="h-9 rounded-md border border-line bg-surface px-2 text-sm text-ink">
+              <option value="all">All users</option>
+              <option value="mine">Only mine</option>
+            </select>
+          </div>
+        )}
       </div>
       {measures.isLoading ? (
         <LoadingState label="Loading measures" />
@@ -127,11 +214,16 @@ export function Home() {
               <Link to="/insights/$key" params={{ key: m.key }} className="mt-1 block w-fit text-[28px] leading-9 font-semibold text-ink hover:underline" aria-label={`${m.label}: ${m.value ?? 'no data'}. Show records`}>
                 {m.value ?? '–'}
               </Link>
+              <div className="flex items-center justify-between gap-2">
+                <Change now={m.value} before={m.previous} />
+                {m.trend && <Spark points={m.trend} />}
+              </div>
               <p className="text-xs text-muted">{m.as_of ? `As of ${new Date(m.as_of).toLocaleTimeString()}` : 'No data yet'}</p>
             </Card>
           ))}
         </div>
       )}
+      {stages.data?.series && <StageBars series={stages.data.series} />}
       <div className={`grid items-start gap-4 ${canManage ? 'lg:grid-cols-[2fr_1fr]' : ''}`}>
         <WhatNeedsMe />
         {canManage && <SetupCard />}

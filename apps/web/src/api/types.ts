@@ -122,6 +122,8 @@ export interface Measure {
   source: 'pack' | 'agency'
   home: boolean
   series: MeasurePoint[] | null
+  previous?: number | null
+  trend?: number[] | null
 }
 export interface MeasureRecords {
   table: string

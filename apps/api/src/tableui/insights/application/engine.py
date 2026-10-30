@@ -207,6 +207,41 @@ async def run_measure(
     return out
 
 
+async def compare_and_trend(
+    analytics: Database,
+    tenant_id: uuid.UUID,
+    m: MeasureDef,
+    table: TableDef,
+    *,
+    scope_sql: str,
+    scope_params: dict[str, Any],
+    start: dt.date,
+    end: dt.date,
+) -> dict[str, Any]:
+    """What a time-based measure was in the period just before this one, and its last 12 weeks.
+
+    Only measures with a time field have a past to compare with: "active candidates right now"
+    has no honest history, so it gets neither.
+    """
+    if not m.time_field:
+        return {"previous": None, "trend": None}
+    days = (end - start).days + 1
+    prev_end = start - dt.timedelta(days=1)
+    prev_start = prev_end - dt.timedelta(days=days - 1)
+    plain = m.model_copy(update={"by_time": None, "group_by": None})
+    prev = await run_measure(
+        analytics, tenant_id, plain, table, scope_sql=scope_sql, scope_params=scope_params,
+        start=prev_start, end=prev_end,
+    )  # fmt: skip
+    weekly = m.model_copy(update={"by_time": "week", "group_by": None})
+    trend = await run_measure(
+        analytics, tenant_id, weekly, table, scope_sql=scope_sql, scope_params=scope_params,
+        start=end - dt.timedelta(days=83), end=end,
+    )  # fmt: skip
+    points = [x["value"] for x in (trend.get("series") or [])]
+    return {"previous": prev.get("value"), "trend": points if len(points) > 1 else None}
+
+
 async def matching_ids(
     analytics: Database,
     tenant_id: uuid.UUID,
