@@ -10,6 +10,7 @@
   --color-line: #e4e8ef;
   --color-soft: #f1f4f9;
   --color-canvas: #f4f6f9;
+  --color-head: #f7f9fc;
   --color-surface: #ffffff;
   --color-accent: #1f4fd8;
   --color-accent-strong: #1a42b5;
@@ -61,6 +62,7 @@
   --color-line: var(--color-line);
   --color-soft: var(--color-soft);
   --color-canvas: var(--color-canvas);
+  --color-head: var(--color-head);
   --color-surface: var(--color-surface);
   --color-accent: var(--color-accent);
   --color-accent-strong: var(--color-accent-strong);

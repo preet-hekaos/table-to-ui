@@ -28,7 +28,7 @@ export function Th({
     <th
       scope="col"
       aria-sort={ariaSort}
-      className={cn('border-b border-line bg-canvas px-3 py-2 text-left text-[11px] font-semibold whitespace-nowrap text-muted', className)}
+      className={cn('border-b border-line bg-head px-3 py-2.5 text-left text-xs font-semibold whitespace-nowrap text-muted', className)}
       {...props}
     >
       <span className="inline-flex items-center gap-1">
@@ -47,5 +47,5 @@ export function Th({
 }
 
 export function Td({ className, ...props }: TdHTMLAttributes<HTMLTableCellElement>) {
-  return <td className={cn('border-b border-soft px-3 py-2 whitespace-nowrap text-body', className)} {...props} />
+  return <td className={cn('border-b border-soft px-3 py-2.5 whitespace-nowrap text-body', className)} {...props} />
 }
