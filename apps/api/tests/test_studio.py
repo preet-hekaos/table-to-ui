@@ -430,3 +430,21 @@ async def test_switches_for_sorting_and_filtering_hold_in_the_api_and_charts_tak
     chart = await client.get("/v1/records/candidate/chart", headers=h, params={"x": "created_at"})
     assert chart.status_code == 200, chart.text
     assert chart.json()["x"]["key"] == "created_at"
+
+
+async def test_field_cannot_become_required_while_records_lack_it(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    r = await client.post(
+        "/v1/studio/tables/candidate/fields",
+        headers=a.h(),
+        json={"label": "Badge", "type": "text"},
+    )
+    assert r.status_code == 201, r.text
+    await a.publish_live()
+    assert (await a.create_candidate(candidate(full_name="No Badge"))).status_code == 201
+    no = await client.patch(
+        "/v1/studio/tables/candidate/fields/badge", headers=a.h(), json={"required": True}
+    )
+    assert no.status_code == 422 and "no badge" in no.text, no.text

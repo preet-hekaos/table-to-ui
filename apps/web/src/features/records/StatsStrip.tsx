@@ -49,7 +49,7 @@ export function StatsStrip({ table, query, whole = false }: { table: TableDef; q
       </CardGrid>
     )
   }
-  if (!s || s.fields.length === 0) return null
+  if (!s) return null
   const tiles = s.fields.filter((x) => x.avg !== null || x.sum !== null)
   return (
     <CardGrid count={tiles.length + 1} label={wholeTable ? 'Numbers for the whole table' : 'Numbers for the current search'} note={wholeTable ? 'Whole table, not narrowed by search or filters.' : undefined}>

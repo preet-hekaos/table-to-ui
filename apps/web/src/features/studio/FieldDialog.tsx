@@ -135,6 +135,11 @@ export function FieldDialog({ table, tables, field, open, onOpenChange }: Props)
             <Input value={help} onChange={(e) => setHelp(e.target.value)} />
           </Field>
           <div className="flex flex-col gap-2 text-sm text-ink">
+            {isPack && (
+              <p className="text-xs text-muted">
+                Whether it is required, its choices and its type are set by the pack and stay as they are. Add a new field if you need something different.
+              </p>
+            )}
             {!isPack && (
               <label className="flex items-center gap-2">
                 <input type="checkbox" checked={required} onChange={(e) => setRequired(e.target.checked)} /> Required

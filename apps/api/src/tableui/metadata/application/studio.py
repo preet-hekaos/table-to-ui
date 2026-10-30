@@ -326,7 +326,8 @@ async def update_field(
     if refused:
         raise _bad(
             refused[0],
-            "cannot be changed on a field that comes with the pack"
+            "this field comes with the pack, so only its name, help text and visibility can change; "
+            "add a new field if you need something different"
             if f.source == "pack"
             else "cannot be changed",
             "not_editable",
@@ -370,6 +371,25 @@ async def update_field(
                     "options",
                     f"records still use {detail}; change those records before removing the choice",
                     "in_use",
+                )
+    if nf.required and not f.required:
+        exists = (await s.execute(text("SELECT to_regclass(:t)"), {"t": f'"{table_key}"'})).scalar()
+        if exists:
+            blank = (
+                await s.execute(
+                    text(
+                        f'SELECT count(*) FROM "{table_key}" '  # noqa: S608 - identifiers are validated metadata keys
+                        f"WHERE COALESCE(data->>'{field_key}', '') = ''"
+                    )
+                )
+            ).scalar() or 0
+            if blank:
+                raise _bad(
+                    "required",
+                    f"{blank} existing record{'s have' if blank != 1 else ' has'} no "
+                    f"{f.label.lower()}; fill {'them' if blank != 1 else 'it'} in first, "
+                    "or leave the field optional",
+                    "blank_records",
                 )
     if nf.type == "reference" and nf.required and not f.required:
         rows = await s.execute(text("SELECT definition FROM metadata_object WHERE kind = 'table'"))
