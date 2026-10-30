@@ -257,7 +257,7 @@ for s in SUBS:
     ctc = min(r[12], int(c["ectc"] / 5000) * 5000)
     ctc = max(ctc, r[11])
     if st == "Placed":
-        off.append([f"Offer: {s['summary']}", s["summary"], ctc, d(-R.randint(2, 20)), "Accepted", d(-R.randint(25, 45)), ""])
+        off.append([f"Offer: {s['summary']}", s["summary"], ctc, d(-R.randint(2, 20)), "Accepted", d(-R.randint(12, 27)), ""])
         client = CL[r[1]]
         fee = max(int(ctc * client[5] / 100), client[6])
         pls.append([f"Placement: {s['summary']}", c["name"], r[1], r[0], s["summary"], d(-R.randint(2, 20)), ctc, fee, "Joined"])
