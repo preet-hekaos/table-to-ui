@@ -6,6 +6,15 @@ import { meKey, useMe } from './useMe'
 
 /** Turn on two-step sign-in for the signed-in user. */
 export function MfaSetup() {
+  return (
+    <div className="flex flex-col gap-4">
+      <h1 className="text-xl font-bold text-ink">Security</h1>
+      <MfaCard />
+    </div>
+  )
+}
+
+function MfaCard() {
   const me = useMe()
   const qc = useQueryClient()
   const toast = useToast()
