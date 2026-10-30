@@ -17,7 +17,7 @@ function SetupCard() {
   const h = home.data
   const done = h.checklist.filter((c) => c.done).length
   return (
-    <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
+    <div className="flex flex-col gap-4">
       <Card data-testid="setup-checklist">
         <div className="flex items-center gap-2">
           <CardTitle>Set up your workspace</CardTitle>
@@ -96,6 +96,7 @@ export function Home() {
     refetchInterval: 15_000,
   })
   if (!me.data) return null
+  const canManage = can(me.data.permissions, 'workspace.manage')
   const notPublished = measures.error instanceof ApiError && measures.error.status === 404
 
   return (
@@ -104,10 +105,6 @@ export function Home() {
         <h1 className="text-xl font-bold text-ink">Welcome, {me.data.full_name.split(' ')[0]}</h1>
         <p className="text-sm text-muted">{me.data.tenant_name}</p>
       </div>
-      <WhatNeedsMe />
-      <FirstSteps />
-      {can(me.data.permissions, 'workspace.manage') && <SetupCard />}
-      <SampleData />
       {measures.isLoading ? (
         <LoadingState label="Loading measures" />
       ) : notPublished ? (
@@ -123,19 +120,25 @@ export function Home() {
       ) : measures.error ? (
         <ErrorState requestId={(measures.error as ApiError).requestId} onRetry={() => void measures.refetch()} />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3">
           {measures.data?.map((m) => (
-            <Card key={m.key} data-testid={`measure-${m.key}`}>
-              <p className="text-xs font-semibold text-muted">{m.label}</p>
-              <Link to="/insights/$key" params={{ key: m.key }} className="mt-1 block w-fit text-3xl font-bold text-ink hover:underline" aria-label={`${m.label}: ${m.value ?? 'no data'}. Show records`}>
+            <Card key={m.key} data-testid={`measure-${m.key}`} className="px-4 py-3">
+              <p className="text-xs font-medium text-muted">{m.label}</p>
+              <Link to="/insights/$key" params={{ key: m.key }} className="mt-1 block w-fit text-[28px] leading-9 font-semibold text-ink hover:underline" aria-label={`${m.label}: ${m.value ?? 'no data'}. Show records`}>
                 {m.value ?? '–'}
               </Link>
-              <p className="mt-1 text-xs text-muted">{m.as_of ? `As of ${new Date(m.as_of).toLocaleTimeString()}` : 'No data yet'}</p>
+              <p className="text-xs text-muted">{m.as_of ? `As of ${new Date(m.as_of).toLocaleTimeString()}` : 'No data yet'}</p>
             </Card>
           ))}
-          <Link to="/insights" className="self-center text-sm font-semibold text-accent-ink underline">See all insights</Link>
         </div>
       )}
+      <div className={`grid items-start gap-4 ${canManage ? 'lg:grid-cols-[2fr_1fr]' : ''}`}>
+        <WhatNeedsMe />
+        {canManage && <SetupCard />}
+      </div>
+      <SampleData />
+      <FirstSteps />
+      {measures.isSuccess && <Link to="/insights" className="w-fit text-sm font-semibold text-accent-ink underline">See all insights</Link>}
     </div>
   )
 }
