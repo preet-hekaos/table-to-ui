@@ -1,5 +1,5 @@
 import { featuresOf } from '@/features/studio/features'
-import { useQuery } from '@tanstack/react-query'
+import { useQueries, useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { ArrowLeft, Pencil, Plus, Sparkles } from 'lucide-react'
 import { ApiError } from '@/api/client'
@@ -27,6 +27,8 @@ export function RecordDetail({ tableKey, id, embedded = false }: { tableKey: str
   const profile = useProfile(tableKey)
   const matches = useQuery({ queryKey: ['screens', 'source', tableKey], queryFn: () => app.screens({ source_table: tableKey }), staleTime: 60_000 })
   const timeline = useTimeline(id, profile, hist.data)
+  // Same query keys as RelatedList, so a tab's count and its list share one request.
+  const relCounts = useQueries({ queries: (relations.data ?? []).map((r) => ({ queryKey: ['related', r.table, r.field, id], queryFn: () => app.related(r.table, r.field, id) })) })
 
   const err = rec.error ?? def.error
   if (err instanceof ApiError && err.status === 404) return <NotFound what="record" />
@@ -71,7 +73,15 @@ export function RecordDetail({ tableKey, id, embedded = false }: { tableKey: str
       <Tabs defaultValue="details">
         <TabsList aria-label="Record sections" className="overflow-x-auto">
           <TabsTrigger value="details">Details</TabsTrigger>
-          {relations.data?.map((r) => <TabsTrigger key={r.table} value={`rel-${r.table}-${r.field}`}>{r.label}</TabsTrigger>)}
+          {relations.data?.map((r, i) => {
+            const n = relCounts[i]?.data?.items.length ?? 0
+            return (
+              <TabsTrigger key={r.table} value={`rel-${r.table}-${r.field}`}>
+                {r.label}
+                {n > 0 && <span className="ml-1 tabular-nums">{n}</span>}
+              </TabsTrigger>
+            )
+          })}
           <TabsTrigger value="history">Timeline</TabsTrigger>
         </TabsList>
         <TabsContent value="details" className="pt-4">
