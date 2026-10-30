@@ -253,9 +253,9 @@ function Column({
       }}
       className={`flex w-64 shrink-0 flex-col gap-2 rounded-lg border bg-canvas p-2 ${over ? 'border-accent bg-accent-soft' : 'border-line'}`}
     >
-      <h2 className="flex items-center justify-between px-1 text-xs font-bold text-ink">
+      <h2 className="flex items-center justify-between px-1 text-sm font-semibold text-ink">
         {col.label}
-        <Badge tone={col.end ? 'neutral' : 'accent'}>{col.count}</Badge>
+        <Badge tone={col.end || col.count === 0 ? 'neutral' : 'accent'}>{col.count}</Badge>
       </h2>
       {col.cards.length === 0 && <p className="px-1 py-3 text-xs text-muted">No one at this stage.</p>}
       {col.cards.map((c) => (
