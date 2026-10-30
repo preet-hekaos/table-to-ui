@@ -1,6 +1,7 @@
 import { ApiError } from '@/api/client'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import * as Popover from '@radix-ui/react-popover'
+import { Link } from '@tanstack/react-router'
 import { SlidersHorizontal } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { studio } from '@/api/endpoints'
@@ -160,7 +161,7 @@ export function FeaturesPanel({ table, canEdit }: { table: StudioTable; canEdit:
         <div className="sticky bottom-0 z-10 flex flex-wrap items-center gap-3 rounded-xl border border-line bg-surface px-5 py-3 shadow-[0_-4px_16px_rgba(20,26,38,0.06)]" role="region" aria-label="Save">
           <span className={cn('size-2 rounded-full', dirty ? 'bg-warn' : 'bg-line')} aria-hidden />
           <span className="text-sm font-medium text-ink">{dirty ? `${changes} unsaved ${changes === 1 ? 'change' : 'changes'}` : 'No unsaved changes'}</span>
-          <span className="text-sm text-muted">Saved in Draft until you publish.</span>
+          <span className="text-sm text-muted">Saved in Draft until you publish. <Link to="/studio" search={{ tab: 'preview' }} className="font-medium text-accent-ink underline">See it in the real app</Link></span>
           <span className="flex-1" />
           <Button variant="ghost" disabled={JSON.stringify(f) === JSON.stringify(DEFAULT_FEATURES)} onClick={() => setF(DEFAULT_FEATURES)}>
             Switch everything on

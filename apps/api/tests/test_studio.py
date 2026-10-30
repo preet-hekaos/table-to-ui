@@ -353,3 +353,19 @@ async def test_builder_changes_a_policy_severity_and_fixtures_respect_it(
     assert fixed.status_code in (404, 422)
     out = (await client.post("/v1/apps/current/fixtures/run", headers=a.h())).json()
     assert out["failed"] == 0, [x for x in out["results"] if not x["passed"]]
+
+
+async def test_builder_previews_unpublished_draft_changes_in_the_real_app(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    await a.publish_live()
+    off = await client.put(
+        "/v1/studio/tables/candidate/features", headers=a.h(), json={"statistics": False}
+    )
+    assert off.status_code == 200, off.text
+    as_draft = a.h(**{"X-Preview-Env": "draft"})
+    assert (await client.get("/v1/records/candidate/stats", headers=as_draft)).status_code == 403
+    assert (await client.get("/v1/records/candidate/stats", headers=a.h())).status_code == 200
+    live = a.h(**{"X-Preview-Env": "live"})
+    assert (await client.get("/v1/records/candidate/stats", headers=live)).status_code == 200

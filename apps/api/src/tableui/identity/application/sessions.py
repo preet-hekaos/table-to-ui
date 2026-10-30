@@ -159,8 +159,8 @@ async def preview_as(s: AsyncSession, p: Principal, role_key: str, env: str) -> 
     """The builder seen through another role: never more than either of them may see or do."""
     if not p.allows("metadata.read"):
         raise PermissionDenied("Only builders can preview the app as another role.")
-    if env not in ("live", "test"):
-        raise PermissionDenied("Preview runs against Live or Test.")
+    if env not in ("live", "test", "draft"):
+        raise PermissionDenied("Preview runs against Draft, Test or Live.")
     assert p.tenant_id
     exists = (
         await s.execute(
