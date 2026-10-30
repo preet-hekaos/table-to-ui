@@ -570,3 +570,11 @@ class Pack(_Strict):
 
 def features_of(table: TableDef) -> TableFeatures:
     return table.features or TableFeatures()
+
+
+def menu_sorted(items: list[Any], section: Any, order: Any) -> list[Any]:
+    """Menu entries grouped by section, sections ordered by their first entry, entries by their own order."""
+    first: dict[str, int] = {}
+    for n in items:
+        first[section(n)] = min(first.get(section(n), 10**9), order(n))
+    return sorted(items, key=lambda n: (first[section(n)], section(n), order(n)))

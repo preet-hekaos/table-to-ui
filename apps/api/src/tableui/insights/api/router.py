@@ -77,7 +77,9 @@ async def _ratio(
         bottom = await _run(p, db, analytics, app, parts[1], s, e, mine=mine)  # type: ignore[arg-type]
         t, b = top.get("value"), bottom.get("value")
         value = round(100 * t / b, 1) if t is not None and b else None
-        return (int(value) if value is not None and value == int(value) else value), top.get("as_of")
+        return (int(value) if value is not None and value == int(value) else value), top.get(
+            "as_of"
+        )
 
     out["value"], out["as_of"] = await pct(start, end)
     if compare:

@@ -26,7 +26,9 @@ def _todo(app: RuntimeApp) -> Any:
     return next((t for t in app.tables.values() if t.todo is not None), None)
 
 
-async def _subtitles(db: Database, p: Principal, app: RuntimeApp, todo: Any, rows: Any) -> dict[str, str]:
+async def _subtitles(
+    db: Database, p: Principal, app: RuntimeApp, todo: Any, rows: Any
+) -> dict[str, str]:
     """For each to-do, the names of what it is about (the records its reference fields point at)."""
     assert p.tenant_id
     refs = [f for f in todo.fields if f.type == "reference" and f.ref_table in app.tables]
@@ -41,13 +43,13 @@ async def _subtitles(db: Database, p: Principal, app: RuntimeApp, todo: Any, row
             found = (
                 await s.execute(
                     text(
-                        f'SELECT id::text AS id, data ->> \'{target.title_field}\' AS t FROM "{target.key}" '  # noqa: S608 - validated metadata keys
+                        f"SELECT id::text AS id, data ->> '{target.title_field}' AS t FROM \"{target.key}\" "  # noqa: S608 - validated metadata keys
                         "WHERE id::text = ANY(CAST(:ids AS text[]))"
                     ),
                     {"ids": ids},
                 )
             ).all()
-        names = {x.id: x.t for x in found if x.t}
+        names: dict[str, str] = {str(x.id): str(x.t) for x in found if x.t}
         for r in rows:
             n = names.get(str(r.data.get(f.key)))
             if n:

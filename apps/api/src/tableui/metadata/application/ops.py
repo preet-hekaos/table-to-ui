@@ -14,6 +14,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tableui.metadata.application import automations, measures, relationships, studio
+from tableui.metadata.domain.models import menu_sorted
 from tableui.platform.errors import ValidationFailed
 
 Op = Callable[[AsyncSession, uuid.UUID, uuid.UUID, dict[str, Any], str | None], Awaitable[Any]]
@@ -72,7 +73,7 @@ async def _nav_add(s: AsyncSession, t: uuid.UUID, u: uuid.UUID, a: dict[str, Any
     _need(a, "label", "screen")
     _only(a, {"label", "screen", "section", "icon", "order"})
     items = await studio.read_draft(s, t, "nav")
-    items.sort(key=lambda n: (n.get("section", "main"), n.get("order", 100)))
+    items = menu_sorted(items, lambda n: n.get("section", "main"), lambda n: n.get("order", 100))
     mine = {"label": str(a["label"]).strip(), "screen": a["screen"], "section": a.get("section", "main"), "icon": a.get("icon", "list")}  # fmt: skip
     if "order" in a:
         mine["order"] = a["order"]

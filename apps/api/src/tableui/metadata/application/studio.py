@@ -582,7 +582,9 @@ async def save_navigation(
         if n.screen not in screens:
             raise _bad(f"items.{i}.screen", "must be a screen in this app")
         if not re.fullmatch(r"[a-z][a-z0-9_]{0,30}", n.section):
-            raise _bad(f"items.{i}.section", "must be a short name in lower case, like main or more")
+            raise _bad(
+                f"items.{i}.section", "must be a short name in lower case, like main or more"
+            )
         out.append(n)
     await s.execute(text("DELETE FROM metadata_object WHERE kind = 'nav'"))
     for n in out:

@@ -11,6 +11,7 @@ from tableui.metadata.application import draft, releases, studio
 from tableui.metadata.application import measures as measure_builder
 from tableui.metadata.application import relationships as rel
 from tableui.metadata.domain.diff import diff_manifests
+from tableui.metadata.domain.models import menu_sorted
 from tableui.metadata.domain.stages import item_stages
 from tableui.platform.db import Database
 from tableui.platform.errors import NotFound, PermissionDenied
@@ -224,7 +225,7 @@ async def studio_navigation(p: PrincipalDep, db: DbDep) -> list[dict[str, Any]]:
     assert p.tenant_id
     async with db.control() as s:
         items = await studio.read_draft(s, p.tenant_id, "nav")
-    return sorted(items, key=lambda n: (n.get("section", "main"), n.get("order", 100)))
+    return menu_sorted(items, lambda n: n.get("section", "main"), lambda n: n.get("order", 100))
 
 
 class NavIn(BaseModel):
