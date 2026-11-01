@@ -45,7 +45,7 @@ test('S6.2 field settings reach the live form, list, API and import', async ({ p
       const r = await call(page, 'PATCH', `/v1/studio/tables/candidate/fields/${key}`, body)
       expect(r.status, `${key}: ${JSON.stringify(r.body)}`).toBe(200)
     }
-    const m = await call(page, 'POST', '/v1/studio/measures', { label: 'Total notice days', table: 'candidate', aggregate: 'sum', field: 'notice_period_days', display: 'number', home: true })
+    const m = await call(page, 'POST', '/v1/studio/measures', { label: 'Total notice days', table: 'candidate', aggregate: 'sum', field: 'notice_period_days', display: 'number' })
     expect(m.status, JSON.stringify(m.body)).toBe(201)
     await publishLive(page)
   })
@@ -128,7 +128,7 @@ test('S6.2 field settings reach the live form, list, API and import', async ({ p
   })
 
   await test.step('analytics: a measure on a number field shows in Insights for everyone', async () => {
-    await s.goto('/')
+    await s.goto('/insights')
     await expect(s.getByText('Total notice days').first()).toBeVisible()
   })
   await s.context().close()
