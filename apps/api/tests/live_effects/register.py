@@ -47,12 +47,16 @@ FIELD: dict[str, Setting] = {
         (FORM, LIST, IMPORT, EXPORT, CHART, SEARCH), "S1", "rename must reach every screen"
     ),
     "type": gap((FORM, LIST, INLINE, IMPORT, BULK), "S2"),
-    "required": server(
+    "required": Setting(
+        "live",
         (FORM, INLINE, IMPORT, BULK, API),
-        "api:test_inline_edit.py::test_one_cell_change_clears_validates_and_refuses_stale_versions",
-        "api:test_studio.py::test_field_cannot_become_required_while_records_lack_it",
-        stage="S1",
-        note="inline edit and the publish guard are proven; form, import and bulk screens are not",
+        (
+            "e2e:s0-live-effect.spec.ts::a field made required in Studio is required on the live form",
+            "api:test_inline_edit.py::test_one_cell_change_clears_validates_and_refuses_stale_versions",
+            "api:test_studio.py::test_field_cannot_become_required_while_records_lack_it",
+        ),
+        "S1",
+        "form proven end to end; import, bulk and inline are proven on the server only",
     ),
     "group": gap((FORM,), "S1", "field group heading on the record form"),
     "normalize": gap((IMPORT, API, FORM), "S2", "decides how values are compared and saved"),
