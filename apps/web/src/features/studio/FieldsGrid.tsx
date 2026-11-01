@@ -2,11 +2,11 @@ import { GripVertical } from 'lucide-react'
 import { Fragment, useState, type KeyboardEvent } from 'react'
 import type { FieldDef, StudioTable } from '@/api/types'
 import { Badge, Button, StageBadge, Table, Td, Th, cn, stageStripe } from '@/design-system'
-import { TYPE_LABELS } from './FieldDialog'
 import { FieldDetails } from './FieldDetails'
 import { FieldMenu } from './FieldMenu'
 import { InlineLabel } from './InlineLabel'
 import { RequiredSwitch } from './RequiredSwitch'
+import { TypeCell } from './TypeCell'
 import { UndoRemove } from './UndoRemove'
 import { useFieldOrder } from './useFieldOrder'
 import type { useStages } from './useStages'
@@ -18,12 +18,14 @@ export function FieldsGrid({
   canEdit,
   stages,
   onEdit,
+  onAddNew,
 }: {
   table: StudioTable
   tables: StudioTable[]
   canEdit: boolean
   stages: ReturnType<typeof useStages>
   onEdit: (f: FieldDef) => void
+  onAddNew: () => void
 }) {
   const { move, note } = useFieldOrder(table)
   const [dragKey, setDragKey] = useState<string | null>(null)
@@ -59,6 +61,7 @@ export function FieldsGrid({
             <Th>Field name</Th>
             <Th>Label</Th>
             <Th>Type</Th>
+            <Th>Core type</Th>
             <Th>Required</Th>
             {canEdit && <Th><span className="sr-only">Actions</span></Th>}
           </tr>
@@ -109,8 +112,10 @@ export function FieldsGrid({
                   {f.hidden && <Badge tone="warn" className="ml-1">Hidden</Badge>}
                 </Td>
                 <Td className="py-1.5">
-                  {TYPE_LABELS[f.type] ?? f.type}
-                  {f.ref_table && <span className="text-muted"> to {tables.find((t) => t.key === f.ref_table)?.label ?? f.ref_table}</span>}
+                  <TypeCell table={table} tables={tables} field={f} canEdit={canEdit} onAddNew={onAddNew} />
+                </Td>
+                <Td className="py-1.5">
+                  <code className="rounded bg-soft px-1.5 py-0.5 font-mono text-xs text-body">{f.type}</code>
                 </Td>
                 <Td className="py-1.5">
                   <RequiredSwitch table={table} field={f} canEdit={canEdit} />
@@ -127,7 +132,7 @@ export function FieldsGrid({
               </tr>
               {open.has(f.key) && (
                 <tr data-details-of={f.key}>
-                  <Td colSpan={canEdit ? 6 : 4} className="p-0">
+                  <Td colSpan={canEdit ? 7 : 5} className="p-0">
                     <FieldDetails table={table} tables={tables} field={f} canEdit={canEdit} />
                   </Td>
                 </tr>
@@ -142,7 +147,7 @@ export function FieldsGrid({
               <Td>
                 {f.label} <StageBadge stage="removed" className="ml-1 no-underline" />
               </Td>
-              <Td colSpan={canEdit ? 3 : 2}>
+              <Td colSpan={canEdit ? 4 : 3}>
                 <span className="mr-3">Deleted in the Draft; goes away when published.</span>
                 {canEdit && <UndoRemove table={table.key} fieldKey={f.key} label={f.label} />}
               </Td>

@@ -10,6 +10,8 @@ export interface FieldDef {
   min: number | null
   max: number | null
   max_length: number | null
+  type_name?: string | null
+  save_as?: 'upper' | 'lower' | null
   normalize: 'text' | 'email' | 'phone' | null
   unique: boolean
   hidden?: boolean

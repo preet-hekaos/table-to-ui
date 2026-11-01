@@ -207,6 +207,7 @@ export const studio = {
   updateField: (table: string, field: string, body: Partial<FieldDef>) =>
     send<FieldDef>('PATCH', `/v1/studio/tables/${table}/fields/${field}`, body),
   restoreField: (table: string, field: string) => send<FieldDef>('POST', `/v1/studio/tables/${table}/fields/${field}/restore`),
+  typePresets: () => cast<TypePresets>(api.GET('/v1/studio/type-presets' as never, {} as never)),
   reorderFields: (table: string, order: string[]) => send<StudioTable>('PUT', `/v1/studio/tables/${table}/field-order`, { order }),
   removeField: (table: string, field: string) => send<void>('DELETE', `/v1/studio/tables/${table}/fields/${field}`),
   rules: () => g<{ id: string; checks: { id: string; severity: string; message: string; editable?: boolean; edited?: boolean }[] }[]>('/v1/studio/rules'),
@@ -651,4 +652,22 @@ export const ai = {
   ask: (table: string, question: string) => send<{ filters: Record<string, string>; q: string; cached: boolean }>('POST', '/v1/ai/ask', { table, question }),
   draft: (table: string, id: string, intent: string) => send<{ subject: string; body: string; cached: boolean }>('POST', '/v1/ai/draft', { table, id, intent }),
   explainNumber: (measure: string, range?: string) => send<AiText & { figures: { value: number | null } }>('POST', '/v1/ai/explain-number', { measure, range }),
+}
+
+export interface TypePreset {
+  key: string
+  name: string
+  core: FieldDef['type']
+  area: string
+  description: string
+  example: string
+  max_length: number | null
+  save_as: 'upper' | 'lower' | null
+  min: number | null
+  max: number | null
+  used: number
+}
+export interface TypePresets {
+  presets: TypePreset[]
+  compatible: Record<string, string[]>
 }

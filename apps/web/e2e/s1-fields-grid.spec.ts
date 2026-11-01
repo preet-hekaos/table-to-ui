@@ -256,3 +256,67 @@ test('S1.7 row menu and details panel: help text, choices and hide all save to t
     await live.context().close()
   })
 })
+
+test('S2.3 type picker: search, keyboard, blocked options explain themselves, and the chosen type reaches the live form', async ({ page, browser }) => {
+  await signUpWithPack(page, `S2 Typ ${run}`, `s2a-${run}@studio.test`)
+  await page.goto('/studio')
+  const typeBtn = (label: string) => page.getByRole('button', { name: new RegExp(`^Type of ${label}:`) })
+  const picker = page.getByRole('dialog', { name: 'Type picker' })
+
+  await test.step('The picker opens on the field type with the groups and the right pane', async () => {
+    await typeBtn('Current title').click()
+    await expect(picker).toBeVisible()
+    await expect(picker.getByRole('group', { name: 'Commonly used' })).toBeVisible()
+    await expect(picker.getByRole('group', { name: 'Recruitment' })).toBeVisible()
+    await expect(picker.getByText('What it sets for you')).toBeVisible()
+  })
+
+  await test.step('Search narrows the list; Enter on a compatible choice uses it', async () => {
+    const search = picker.getByLabel('Search types')
+    await search.fill('pan')
+    await expect(picker.getByRole('option', { name: /PAN \(India\)/ })).toBeVisible()
+    await expect(picker.getByRole('option', { name: /Whole number/ })).toHaveCount(0)
+    await picker.getByRole('option', { name: /PAN \(India\)/ }).click()
+    await expect(picker.getByText('Capital letters')).toBeVisible()
+    await search.press('Enter')
+    await expect(picker).toHaveCount(0)
+    const row = page.getByRole('row', { name: /^(?:Move [^.]*\. Drag, or use the up and down arrow keys\. )?current_title /})
+    await expect(row).toContainText('PAN (India)')
+    await expect(row.locator('code')).toHaveText('text')
+    await expect(page.getByTestId('draft-banner')).toContainText('unpublished change')
+  })
+
+  await test.step('An incompatible type is shown disabled with the reason and an Add a new field button', async () => {
+    await typeBtn('Notice period \\(days\\)').click()
+    await picker.getByRole('option', { name: /^Date/ }).click({ force: true }) // disabled options stay clickable so the reason can be read
+    await expect(picker.getByRole('button', { name: /^Use / })).toBeDisabled()
+    await expect(picker.getByText(/Cannot use this type here/)).toBeVisible()
+    await picker.getByRole('button', { name: 'Add a new field' }).click()
+    await expect(page.getByRole('dialog')).toContainText('Add a field to Candidate')
+    await page.getByRole('button', { name: 'Cancel' }).click()
+  })
+
+  await test.step('Whole number can become a number with decimals', async () => {
+    await typeBtn('Notice period \\(days\\)').click()
+    await picker.getByRole('option', { name: /Number with decimals/ }).click()
+    await picker.getByRole('button', { name: /^Use / }).click()
+    const row = page.getByRole('row', { name: /^(?:Move [^.]*\. Drag, or use the up and down arrow keys\. )?notice_period_days /})
+    await expect(row.locator('code')).toHaveText('decimal')
+  })
+
+  await test.step('After publishing, the live form saves capitals and stops values longer than 10', async () => {
+    await publishLive(page)
+    const live = await freshSession(browser, page)
+    await live.goto('/records/candidate/new')
+    await live.getByLabel(/^Full name/).fill('Capital Check')
+    await live.getByLabel(/^Email/).fill(`s2-${run}@pan.test`)
+    await live.getByLabel(/^Phone/).fill('+91 98450 55555')
+    await live.getByLabel(/^Current title/).fill('abcde1234fg')
+    await live.getByRole('button', { name: 'Save candidate' }).click()
+    await expect(live.getByText(/at most 10 characters/)).toBeVisible()
+    await live.getByLabel(/^Current title/).fill('abcde1234f')
+    await live.getByRole('button', { name: 'Save candidate' }).click()
+    await expect(live.getByText('ABCDE1234F').first()).toBeVisible()
+    await live.context().close()
+  })
+})

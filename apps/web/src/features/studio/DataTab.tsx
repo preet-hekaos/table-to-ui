@@ -74,7 +74,7 @@ export function DataTab({
             </div>
           </div>
           <TabsContent value="fields">
-            <FieldsGrid table={current as StudioTable} tables={all} canEdit={canEdit} stages={stages} onEdit={setEditing} />
+            <FieldsGrid table={current as StudioTable} tables={all} canEdit={canEdit} stages={stages} onEdit={setEditing} onAddNew={() => setEditing('new')} />
           </TabsContent>
           <TabsContent value="screens" className="p-3">
             <ScreensTab canEdit={canEdit} tableKey={current.key} />
