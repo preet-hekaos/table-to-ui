@@ -1895,6 +1895,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/records/{table}/validate-field": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Validate Field
+         * @description The message for one value of one field, from the same engine that saves records. Writes nothing.
+         *     Forms call it when a person leaves a field, so a broken rule shows beside the input before Save.
+         */
+        post: operations["validate_field_v1_records__table__validate_field_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/records/{table}/values/{field}": {
         parameters: {
             query?: never;
@@ -3141,6 +3162,13 @@ export interface components {
             file_id: string;
             /** Screen */
             screen: string;
+        };
+        /** FieldValueBody */
+        FieldValueBody: {
+            /** Field */
+            field: string;
+            /** Value */
+            value?: unknown;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -7337,6 +7365,43 @@ export interface operations {
                 content: {
                     "application/json": {
                         [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    validate_field_v1_records__table__validate_field_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                table: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FieldValueBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string | null;
                     };
                 };
             };

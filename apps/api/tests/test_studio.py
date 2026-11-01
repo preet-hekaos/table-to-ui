@@ -720,3 +720,25 @@ async def test_status_warns_how_many_records_break_a_rule_added_in_the_draft_but
     await a.publish_live()  # a warning, not a block
     after = (await client.get("/v1/studio/status", headers=a.h())).json()
     assert after["rule_warnings"] == []
+
+
+async def test_validate_field_gives_the_live_message_for_one_value_and_writes_nothing(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    key = await _live_rule_field(
+        client,
+        a,
+        [{"name": "PAN", "pattern": "^[A-Z]{5}[0-9]{4}[A-Z]$", "message": "Enter a PAN."}],
+    )
+    await a.publish_live()
+    url = "/v1/records/candidate/validate-field"
+    bad = await client.post(url, headers=a.h(), json={"field": key, "value": "abcde1234f"})
+    assert bad.status_code == 200 and bad.json() == {"message": "Enter a PAN."}
+    good = await client.post(url, headers=a.h(), json={"field": key, "value": "ABCDE1234F"})
+    assert good.json() == {"message": None}
+    blank = await client.post(url, headers=a.h(), json={"field": key, "value": ""})
+    assert blank.json() == {"message": None}  # blank is left to Required
+    other = await client.post(url, headers=a.h(), json={"field": "phone", "value": "12"})
+    assert other.json()["message"]  # not only rules: the same engine as saving
+    assert (await client.get("/v1/records/candidate", headers=a.h())).json()["items"] == []

@@ -476,6 +476,8 @@ export const app = {
     cast<RecordPage>(api.GET('/v1/records/{table}', { params: { path: { table }, query: { limit: 200, sort: 'updated_at', direction: 'desc' } } })),
   check: (table: string, data: Json) =>
     cast<{ outcomes: RuleOutcome[] }>(api.POST('/v1/records/{table}/check', { params: { path: { table } }, body: { data } })),
+  validateField: (table: string, field: string, value: unknown) =>
+    send<{ message: string | null }>('POST', `/v1/records/${table}/validate-field`, { field, value }),
   measures: (range?: RangeQuery, home = false, opts?: { compare?: boolean; mine?: boolean }) =>
     g<Measure[]>(`/v1/measures${qs({ ...range, home: home ? 'true' : undefined, compare: opts?.compare ? 'true' : undefined, mine: opts?.mine ? 'true' : undefined })}`),
   measure: (key: string, range?: RangeQuery) => g<Measure>(`/v1/measures/${key}${qs({ ...range })}`),

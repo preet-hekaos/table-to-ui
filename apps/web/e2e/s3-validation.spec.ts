@@ -200,3 +200,50 @@ test('S3.5 describe it in words: disabled with AI off, a checked suggestion with
     await live.context().close()
   })
 })
+
+test('S3.6 form behaviour: the rule message shows when you leave the field, Save explains itself, and fixing the value clears it', async ({ page, browser }) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await signUpWithPack(page, `S3 Fm ${run}`, `s3e-${run}@studio.test`)
+  await page.goto('/studio')
+  await page.getByRole('button', { name: /^Add\. Validation of Current title/ }).click()
+  const pop = page.getByRole('dialog', { name: 'Validation for Current title' })
+  await pop.getByRole('button', { name: 'PAN', exact: true }).click()
+  await pop.getByLabel('Message of PAN').fill('Enter a PAN like ABCDE1234F.')
+  await pop.getByRole('button', { name: 'Done' }).click()
+  await publishLive(page)
+
+  const live = await freshSession(browser, page)
+  await live.goto('/records/candidate/new')
+  await live.getByLabel(/^Full name/).fill('Form Check')
+  await live.getByLabel(/^Email/).fill(`s3e-${run}@form.test`)
+  await live.getByLabel(/^Phone/).fill('+91 98450 88888')
+  const title = live.getByLabel(/^Current title/)
+  const save = live.getByRole('button', { name: 'Save candidate' })
+
+  await test.step('Leaving the field shows the message under it, before any Save', async () => {
+    await title.fill('abcde1234f')
+    await expect(live.getByText('Enter a PAN like ABCDE1234F.')).toHaveCount(0) // still typing
+    await live.getByLabel(/^Current employer/).focus() // leave the field
+    await expect(live.getByText('Enter a PAN like ABCDE1234F.')).toBeVisible()
+    await expect(title).toHaveAttribute('aria-invalid', 'true')
+  })
+
+  await test.step('Save cannot proceed and says why', async () => {
+    await expect(save).toBeDisabled()
+    await expect(live.getByText('Cannot save yet: fix Current title.')).toBeVisible()
+    await live.setViewportSize({ width: 1280, height: 1500 })
+    await live.screenshot({ path: '../../docs/screens/studio-table/s3/after-form-message.png' })
+    await live.setViewportSize({ width: 1280, height: 720 })
+  })
+
+  await test.step('Fixing the value clears the message and Save works', async () => {
+    await title.fill('ABCDE1234F')
+    await expect(live.getByText('Enter a PAN like ABCDE1234F.')).toHaveCount(0)
+    await expect(save).toBeEnabled()
+    await live.getByLabel(/^Current employer/).focus()
+    await expect(live.getByText('Cannot save yet')).toHaveCount(0)
+    await save.click()
+    await expect(live.getByText('ABCDE1234F').first()).toBeVisible()
+  })
+  await live.context().close()
+})
