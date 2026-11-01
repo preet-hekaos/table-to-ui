@@ -97,6 +97,7 @@ test('S1.3 required switch: one click saves to the Draft, and the live form then
     await again.focus()
     await page.keyboard.press('Space')
     await expect(again).toHaveAttribute('aria-checked', 'false')
+    await expect(again).not.toHaveAttribute('aria-busy', 'true')
     await again.press('Space')
     await expect(again).toHaveAttribute('aria-checked', 'true')
   })

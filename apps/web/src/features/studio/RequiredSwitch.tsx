@@ -23,8 +23,9 @@ export function RequiredSwitch({ table, field, canEdit }: { table: StudioTable; 
     <Switch
       label={`${field.label} is required`}
       checked={save.isPending ? !!save.variables : field.required}
-      disabled={!canEdit || save.isPending}
-      onCheckedChange={(on) => save.mutate(on)}
+      disabled={!canEdit}
+      aria-busy={save.isPending || undefined}
+      onCheckedChange={(on) => !save.isPending && save.mutate(on)}
     />
   )
 }
