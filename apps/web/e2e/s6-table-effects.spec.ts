@@ -160,7 +160,6 @@ test('S6.2 table settings: numbers as a chart, chart choices and bulk actions re
       stat_view: 'chart',
       chart: { type: 'bar', x: 'status', bucket: 'month', measures: [{ agg: 'count' }], top: 8 },
       nochart: ['source'],
-      stat_fields: ['notice_period_days'],
       bulk_actions: ['export'],
     })
     expect(r.status, JSON.stringify(r.body)).toBe(200)
@@ -182,11 +181,6 @@ test('S6.2 table settings: numbers as a chart, chart choices and bulk actions re
     expect(options).not.toContain('Source')
     expect(options).toContain('Status')
   })
-  await test.step('stat_fields: the chart measures only the chosen number field', async () => {
-    const options = await s.getByTestId('chart-card').getByLabel('Measure').locator('option').allTextContents()
-    expect(options.join('|')).toContain('Notice period')
-    expect(options.join('|')).not.toContain('Total experience')
-  })
   await test.step('bulk_actions: only Export is offered on selected rows', async () => {
     await s.getByRole('checkbox', { name: 'Select Asha Rao' }).check()
     const bar = s.getByTestId('bulk-bar')
@@ -194,5 +188,22 @@ test('S6.2 table settings: numbers as a chart, chart choices and bulk actions re
     await expect(bar.getByRole('button', { name: 'Change a value' })).toHaveCount(0)
     await expect(bar.getByRole('button', { name: 'Delete' })).toHaveCount(0)
   })
+  await s.context().close()
+})
+
+test('S6.2 table settings: the chosen number fields feed the summary cards', async ({ page, browser }) => {
+  test.setTimeout(200_000)
+  await page.setViewportSize({ width: 1500, height: 1000 })
+  await signUpWithPack(page, `S6 Cards ${run}`, `s6k-${run}@studio.test`)
+  const r = await call(page, 'POST', '/v1/records/candidate', { data: { full_name: 'Asha Rao', email: `k0-${run}@example.in`, phone: '+91 98450 32340', status: 'Active', notice_period_days: 30 } })
+  expect(r.status).toBe(201)
+  expect((await call(page, 'PUT', '/v1/studio/tables/candidate/features', { stat_fields: ['notice_period_days'] })).status).toBe(200)
+  await publishLive(page)
+  const s = await freshSession(browser, page)
+  await s.setViewportSize({ width: 1500, height: 1000 })
+  await s.goto('/s/candidates')
+  const strip = s.getByTestId('stats-strip')
+  await expect(strip).toContainText(/notice period/i)
+  await expect(strip).not.toContainText(/current ctc/i)
   await s.context().close()
 })
