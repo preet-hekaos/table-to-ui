@@ -95,6 +95,15 @@ const OutcomeLink = ({ o }: { o: RuleOutcome }) =>
   ) : null
 
 /** Pattern: a form generated from table metadata, with instant rule checks and server errors beside their fields. */
+
+const STANDARD_WORDS: Record<string, string> = { today: 'today’s date', now: 'the current time', user: 'your name', zero: '0', empty: 'empty', not_provided: '“Not provided”', first_choice: 'the first choice' }
+/** What a left-blank value becomes, when the field has an "if blank, set to …" rule (S5): shown under the input. */
+function blankBecomes(f: FieldDef): string | null {
+  const r = f.transforms?.find((t) => t.enabled && t.when === 'blank' && (t.do === 'set' || t.do === 'set_standard'))
+  if (!r) return null
+  return r.do === 'set' ? `“${r.value}”` : (STANDARD_WORDS[r.value] ?? r.value)
+}
+
 export function RecordForm({
   table,
   initial,
@@ -214,8 +223,9 @@ export function RecordForm({
             <div className="grid gap-4 md:grid-cols-2">
               {fields.map((f) => {
                 const hasRules = !!f.rules?.some((r) => r.enabled)
+                const blankHint = blankBecomes(f)
                 const reg = register(f.key, {
-                  required: f.required ? `${f.label} is required` : false,
+                  required: f.required && !blankHint ? `${f.label} is required` : false,
                   onChange: () => setLiveErrors((all) => (all[f.key] ? Object.fromEntries(Object.entries(all).filter(([k]) => k !== f.key)) : all)),
                   onBlur: () => {
                     if (hasRules) void checkField(f)
@@ -228,7 +238,7 @@ export function RecordForm({
                     <Field
                       label={unsure ? `${f.label} (check this)` : f.label}
                       required={f.required}
-                      hint={unsure ? 'Read with low confidence. Please check it.' : (f.help ?? undefined)}
+                      hint={unsure ? 'Read with low confidence. Please check it.' : [f.help, blankHint ? `Left blank, this becomes ${blankHint}.` : ''].filter(Boolean).join(' ') || undefined}
                       error={liveErrors[f.key] ?? formState.errors[f.key]?.message}
                     >
                       {control(f, reg, defaults[f.key], (v) => setValue(f.key, v))}

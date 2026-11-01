@@ -141,3 +141,58 @@ test('S5.3 say it in words: disabled with AI off, a checked suggestion with AI o
     await expect(cell(page)).not.toContainText('Add')
   })
 })
+
+test('S5.4 Studio to live: the form hint, trim and Title Case, a rule switched off, update without the field, a refused value names itself', async ({ page, browser }) => {
+  await signUpWithPack(page, `S5 Live ${run}`, `s5l-${run}@studio.test`)
+  const tok = () => sessionStorage.getItem('tableui.token')
+  await test.step('The owner sets three rules in the Draft and makes them Live', async () => {
+    const statuses = await page.evaluate(async () => {
+      const h = { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionStorage.getItem('tableui.token')}` }
+      const patch = (f: string, transforms: unknown[]) => fetch(`/v1/studio/tables/candidate/fields/${f}`, { method: 'PATCH', headers: h, body: JSON.stringify({ transforms }) }).then((r) => r.status)
+      return [
+        await patch('notice_period_days', [{ when: 'blank', args: [], do: 'set', value: '30', stop: true, enabled: true }]),
+        await patch('full_name', [{ when: 'blank', args: [], do: 'set', value: '', stop: false, enabled: false }, { do: 'trim', when: 'contains', args: [' '], value: '', stop: false, enabled: true }, { when: 'contains', args: [' '], do: 'case', value: 'title', stop: false, enabled: true }]),
+        await patch('current_title', [{ when: 'contains', args: ['xx'], do: 'clear', value: '', stop: false, enabled: false }]),
+      ]
+    })
+    expect(statuses).toEqual([200, 200, 200])
+    void tok
+    await publishLive(page)
+  })
+
+  const other = await freshSession(browser, page)
+  const api = (method: string, path: string, body?: unknown) =>
+    other.evaluate(
+      async ([m, p, b]) => {
+        const r = await fetch(p as string, { method: m as string, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionStorage.getItem('tableui.token')}` }, body: b ? JSON.stringify(b) : undefined })
+        return { status: r.status, body: await r.json().catch(() => null) } as { status: number; body: { id?: string; data?: Record<string, unknown>; errors?: { field: string; message: string }[] } | null }
+      },
+      [method, path, body] as [string, string, unknown],
+    )
+
+  await test.step('The Add form says what a blank becomes, and saves without asking for it', async () => {
+    await other.goto('/records/candidate/new')
+    await expect(other.getByText('Left blank, this becomes “30”.')).toBeVisible()
+    await other.getByLabel(/Full name/).fill('  arjun   MENON ')
+    await other.getByLabel(/^Email/).fill(`arjun-${run}@live.test`)
+    await other.getByLabel(/^Phone/).fill('+91 98450 11111')
+    await other.getByLabel(/Notice period/).scrollIntoViewIfNeeded()
+    await other.screenshot({ path: `${SHOTS}/after-form-hint.png` })
+    await other.getByRole('button', { name: 'Save candidate' }).click()
+    await expect(other.getByRole('heading', { name: 'Arjun Menon' })).toBeVisible()
+    await expect(other.getByText('30').first()).toBeVisible()
+  })
+
+  await test.step('An update that leaves the field out never touches it; a refused value names itself', async () => {
+    const made = await api('POST', '/v1/records/candidate', { data: { full_name: 'Neha Rao', email: `neha-${run}@live.test`, phone: '+91 98450 22222', status: 'Active', notice_period_days: 45 } })
+    expect(made.status, JSON.stringify(made.body)).toBe(201)
+    const id = made.body!.id!
+    const upd = await api('PATCH', `/v1/records/candidate/${id}`, { version: 1, data: { current_employer: 'Infosys' } })
+    expect(upd.status).toBe(200)
+    expect(upd.body!.data!.notice_period_days).toBe(45)
+    const bad = await api('PATCH', `/v1/records/candidate/${id}`, { version: 2, data: { notice_period_days: 'banana' } })
+    expect(bad.status).toBe(422)
+    expect(JSON.stringify(bad.body)).toContain('whole number')
+  })
+  await other.context().close()
+})

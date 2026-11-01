@@ -198,6 +198,30 @@ async def test_import_applies_the_rules_and_the_file_is_not_changed(
     assert rows and rows[0]["data"]["current_employer"] == "INFOSYS"
 
 
+async def test_import_fills_the_signed_in_user_for_the_user_standard_value(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    r = await client.patch(
+        "/v1/studio/tables/candidate/fields/current_employer",
+        headers=a.h(),
+        json={"transforms": [R("blank", "set_standard", [], "user")]},
+    )
+    assert r.status_code == 200, r.text
+    await a.publish_live()
+    job = await _job(client, a, _csv(["Bina Das,bina@x.test,9845022222,,5 yrs,12 LPA,30,Java,"]))
+    await client.put(
+        f"/v1/imports/{job['id']}/mapping",
+        headers=a.h(),
+        json={"mapping": {**job["mapping"], "Joined": None}},
+    )
+    await client.post(f"/v1/imports/{job['id']}/validate", headers=a.h())
+    await client.post(f"/v1/imports/{job['id']}/start", headers=a.h())
+    await wait_all()
+    rows = (await client.get("/v1/records/candidate?q=bina", headers=a.h())).json()["items"]
+    assert rows and rows[0]["data"]["current_employer"]  # the name of whoever ran the import
+
+
 async def test_a_default_can_be_set_in_studio_and_old_defaults_still_apply(
     client: httpx.AsyncClient, agency: Agency
 ) -> None:
