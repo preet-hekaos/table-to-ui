@@ -117,12 +117,12 @@ export function FieldsGrid({
                   <span className="sr-only">{f.required ? 'Yes' : 'No'}</span>
                 </Td>
                 {canEdit && (
-                  <Td className="whitespace-nowrap py-1.5 text-right">
+                  <Td className="py-1.5"><div className="flex items-center justify-end gap-1">
                     <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => onEdit(f)} aria-label={`Edit ${f.label}`}>
                       Edit
                     </Button>
                     <FieldMenu table={table.key} field={f} expanded={open.has(f.key)} onToggleDetails={() => toggle(f.key)} onEdit={() => onEdit(f)} />
-                  </Td>
+                  </div></Td>
                 )}
               </tr>
               {open.has(f.key) && (
@@ -150,6 +150,10 @@ export function FieldsGrid({
           ))}
         </tbody>
       </Table>
+      <p className="flex flex-wrap justify-between gap-2 border-t border-line px-4 py-2 text-xs text-muted">
+        <span>{table.fields.length} fields{canEdit && ' · changes save to the Draft as you edit'}</span>
+        {canEdit && <span className="font-mono">Enter save · Esc cancel · Arrows on the handle move a field</span>}
+      </p>
     </div>
   )
 }
