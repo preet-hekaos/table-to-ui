@@ -1,0 +1,114 @@
+"""S0 audit: what a setting does once published, checked through the real API.
+
+Tests without a mark pass today and stay as regression guards. Tests marked `xfail(strict=True)` state the
+behaviour the redesign promises and fail today; when a stage fixes one, the strict mark turns the run red until
+the mark and the matching register entry are removed. Each reason names the stage that closes the gap.
+"""
+
+import httpx
+import pytest
+
+from tests.conftest import Agency, candidate
+
+
+async def _add(client: httpx.AsyncClient, a: Agency, **body: object) -> dict:
+    r = await client.post("/v1/studio/tables/candidate/fields", headers=a.h(), json=body)
+    assert r.status_code == 201, r.text
+    return r.json()
+
+
+async def _patch(client: httpx.AsyncClient, a: Agency, key: str, **body: object) -> httpx.Response:
+    return await client.patch(f"/v1/studio/tables/candidate/fields/{key}", headers=a.h(), json=body)
+
+
+async def test_a_length_set_in_studio_stops_longer_text_after_publish(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    f = await _add(client, a, label="Badge", type="text")
+    assert (await _patch(client, a, f["key"], max_length=5)).status_code == 200
+    await a.publish_live()
+    ok = await a.create_candidate(
+        candidate(badge="ABCDE", phone="+91 98450 10001", email="l1@x.test")
+    )
+    assert ok.status_code == 201, ok.text
+    long = await a.create_candidate(
+        candidate(badge="ABCDEF", phone="+91 98450 10002", email="l2@x.test")
+    )
+    assert long.status_code == 422
+
+
+@pytest.mark.xfail(strict=True, reason="S2: length is enforced for text and long text only")
+async def test_a_length_set_in_studio_stops_longer_web_addresses_too(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    f = await _add(client, a, label="Site", type="url")
+    assert (await _patch(client, a, f["key"], max_length=20)).status_code == 200
+    await a.publish_live()
+    long = await a.create_candidate(
+        candidate(
+            site="https://example.com/a/very/long/path", phone="+91 98450 10003", email="l3@x.test"
+        )
+    )
+    assert long.status_code == 422
+
+
+@pytest.mark.xfail(strict=True, reason="S2: min and max are enforced for whole numbers only")
+async def test_a_maximum_set_in_studio_stops_larger_decimals(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    f = await _add(client, a, label="Rating", type="decimal")
+    assert (await _patch(client, a, f["key"], max=5)).status_code == 200
+    await a.publish_live()
+    big = await a.create_candidate(
+        candidate(rating=9.5, phone="+91 98450 10004", email="l4@x.test")
+    )
+    assert big.status_code == 422
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="S5: a default can only come from a pack; Studio cannot set one and it applies on create only",
+)
+async def test_a_default_can_be_set_in_studio(client: httpx.AsyncClient, agency: Agency) -> None:
+    a = agency
+    r = await client.post(
+        "/v1/studio/tables/candidate/fields",
+        headers=a.h(),
+        json={"label": "Notice", "type": "integer", "default": 30},
+    )
+    assert r.status_code == 201 and r.json()["default"] == 30
+
+
+@pytest.mark.xfail(
+    strict=True, reason="S4: unique, searchable and filterable are fixed when the field is created"
+)
+@pytest.mark.parametrize("setting", ["unique", "searchable", "filterable"])
+async def test_unique_searchable_and_filterable_can_be_changed_after_the_field_exists(
+    client: httpx.AsyncClient, agency: Agency, setting: str
+) -> None:
+    a = agency
+    f = await _add(client, a, label="Code", type="text")
+    r = await _patch(client, a, f["key"], **{setting: setting != "filterable"})
+    assert r.status_code == 200, r.text
+
+
+async def test_a_new_text_field_is_found_by_keyword_search_after_publish(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    """Guard for S4. Searchable cannot be switched later today, so the risk of records saved before the switch
+    cannot be reached yet; S4 adds that scenario (an old record must be found after the switch, via re-index)."""
+    a = agency
+    await _add(client, a, label="Nickname", type="text")
+    await a.publish_live()
+    assert (
+        await a.create_candidate(
+            candidate(nickname="zebracorn", phone="+91 98450 10005", email="l5@x.test")
+        )
+    ).status_code == 201
+    hit = (
+        await client.get("/v1/records/candidate", headers=a.h(), params={"q": "zebracorn"})
+    ).json()["items"]
+    assert len(hit) == 1
