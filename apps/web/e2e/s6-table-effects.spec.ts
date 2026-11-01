@@ -107,7 +107,7 @@ test('S6.2 table settings: values reach the live list for a second session', asy
     await s.getByTestId('bulk-bar').getByRole('button', { name: 'Change a value' }).click()
     const options = await s.getByLabel('Field to change').locator('option').allTextContents()
     expect(options).not.toContain('Status')
-    expect(options).toContain('Email')
+    expect(options).toContain('Current title')
     await s.keyboard.press('Escape')
     await s.getByRole('button', { name: 'Clear selection' }).click()
   })
