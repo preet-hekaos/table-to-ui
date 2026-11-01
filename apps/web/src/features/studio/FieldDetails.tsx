@@ -46,9 +46,9 @@ export function FieldDetails({ table, tables, field, canEdit }: { table: StudioT
   const target = field.ref_table ? (tables.find((t) => t.key === field.ref_table)?.label ?? field.ref_table) : null
 
   return (
-    <div className="flex flex-wrap gap-8 bg-soft/50 px-4 py-3" data-testid={`details-${field.key}`}>
+    <div className="flex flex-wrap gap-x-10 gap-y-4 bg-soft/50 py-3 pl-12 pr-4" data-testid={`details-${field.key}`}>
       <div className="min-w-72 flex-1">
-        <label htmlFor={`help-${field.key}`} className="text-[11px] font-semibold uppercase tracking-wide text-muted">Help text</label>
+        <label htmlFor={`help-${field.key}`} className="block text-[11px] font-semibold uppercase tracking-wide text-muted">Help text</label>
         <input
           id={`help-${field.key}`}
           value={help}
@@ -65,7 +65,7 @@ export function FieldDetails({ table, tables, field, canEdit }: { table: StudioT
           <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Choices</p>
           <ul className="mt-1 flex flex-wrap gap-1.5" aria-label={`Choices of ${field.label}`}>
             {options.map((o, i) => (
-              <li key={o} className="flex items-center gap-0.5 rounded-full border border-line bg-surface py-0.5 pl-2.5 pr-1 text-xs text-ink">
+              <li key={o} className="flex items-center gap-1 rounded-full border border-line bg-surface py-0.5 pl-2.5 pr-1 text-xs text-ink">
                 {o}
                 {canEdit && (
                   <>

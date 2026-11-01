@@ -117,7 +117,7 @@ export function FieldsGrid({
                   <span className="sr-only">{f.required ? 'Yes' : 'No'}</span>
                 </Td>
                 {canEdit && (
-                  <Td className="py-1.5 text-right">
+                  <Td className="whitespace-nowrap py-1.5 text-right">
                     <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => onEdit(f)} aria-label={`Edit ${f.label}`}>
                       Edit
                     </Button>
