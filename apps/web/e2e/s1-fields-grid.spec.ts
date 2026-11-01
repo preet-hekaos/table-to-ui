@@ -31,7 +31,7 @@ test('S1.2 inline label: Enter saves, Esc cancels, leaving the cell saves, bad l
   await test.step('Leaving the cell saves', async () => {
     await rename('email', 'Email').click()
     await page.getByLabel('Label of email').fill('E-mail')
-    await page.getByRole('heading', { level: 2 }).first().click()
+    await page.locator('body').click({ position: { x: 3, y: 3 } })
     await expect(row('email')).toContainText('E-mail')
   })
 
@@ -68,6 +68,11 @@ test('S1 live effect: a label renamed in Studio shows on the live form and list'
   const live = await freshSession(browser, page)
   await live.goto('/records/candidate/new')
   await expect(live.getByLabel(/^Candidate name/)).toBeVisible()
+  await live.getByLabel(/^Candidate name/).fill('Live Rename Check')
+  await live.getByLabel(/^Email/).fill(`live-${run}@rename.test`)
+  await live.getByLabel(/^Phone/).fill('+91 98450 77777')
+  await live.getByRole('button', { name: 'Save candidate' }).click()
+  await expect(live.getByRole('heading', { name: 'Live Rename Check' }).first()).toBeVisible()
   await live.goto('/records/candidate')
   await expect(live.getByRole('columnheader', { name: /Candidate name/ })).toBeVisible()
   await live.context().close()
