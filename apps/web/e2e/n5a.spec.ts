@@ -44,8 +44,8 @@ test('Table features: all on by default, set per table, applied to all, shown in
     await expect(page.getByRole('checkbox', { name: 'Excel' })).not.toBeChecked()
     await expect(page.getByRole('checkbox', { name: 'CSV' })).toBeChecked()
     await page.keyboard.press('Escape')
-    await page.goto('/studio?tab=data&table=client&part=features')
-    await expect(page.getByTestId('features-panel').getByRole('switch', { name: /Group rows/ })).toBeChecked()
+    await page.goto('/studio?tab=data&table=client')
+    await expect(page.getByRole('group', { name: 'Table-wide switches for Client' }).getByRole('switch', { name: /^Group rows/ })).toBeChecked()
   })
 
   await test.step('Apply to all tables', async () => {

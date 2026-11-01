@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { expect, test } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { run, signUpWithPack } from './helpers'
+import { run, signUpWithPack, setTableWide } from './helpers'
 
 const tags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 
@@ -69,10 +69,6 @@ test('Import and export: export dialog, formats, email link, JSON import, switch
   })
 
   await test.step('Switching export off removes the button', async () => {
-    await page.goto('/studio?tab=data&table=candidate&part=features')
-    const panel = page.getByTestId('features-panel')
-    await panel.getByRole('switch', { name: /Export data/ }).uncheck()
-    await panel.getByRole('button', { name: 'Save features' }).click()
-    await expect(page.getByText('Saved features for Candidate').first()).toBeVisible()
+    await setTableWide(page, 'Export data', false)
   })
 })
