@@ -39,6 +39,8 @@ def test_core_code_contains_no_recruitment_terms() -> None:
     for path in root.rglob("*.py"):
         if "migrations" in path.parts or path.name == "config.py":  # config names the deployed pack
             continue
+        if path.name == "presets.py":  # the Type picker's registry names its industry group as data
+            continue
         if path.name == "gemini.py":  # Gemini's response format has a field called "candidates"
             continue
         text = path.read_text().lower()
