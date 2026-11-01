@@ -91,7 +91,7 @@ test('S6.2 table settings: values reach the live list for a second session', asy
   await test.step('export_formats, export_email, unexported, bulk_scope: the export dialog', async () => {
     await s.getByRole('button', { name: 'Export', exact: true }).click()
     const dialog = s.getByRole('dialog')
-    expect(await dialog.getByLabel('Format').locator('option').allTextContents()).toEqual(['CSV', 'JSON'])
+    expect(await dialog.getByLabel('Format').locator('option').allTextContents()).toEqual(['CSV (opens in Excel)', 'JSON'])
     await expect(dialog.getByRole('button', { name: 'Email me a link' })).toHaveCount(0)
     await expect(dialog.getByLabel('Columns')).toHaveValue('all')
     await dialog.getByLabel('Format').selectOption('json')
