@@ -140,6 +140,32 @@ async def validation_preview(body: dict[str, Any], p: PrincipalDep) -> dict[str,
     return {"results": studio.rule_preview(rule, [str(v) for v in values])}
 
 
+@router.post("/studio/tables/{table}/fields/{field}/transform-preview")
+async def transform_preview(
+    table: str, field: str, body: dict[str, Any], p: PrincipalDep, db: DbDep
+) -> dict[str, Any]:
+    """Try a value: what the drafted transformation rules do to sample values, and whether the result is then valid."""
+    p.require("metadata.write")
+    assert p.tenant_id
+    transforms, samples = body.get("transforms"), body.get("samples")
+    if not isinstance(transforms, list) or not isinstance(samples, list):
+        raise HTTPException(422, "send the rules and a list of samples")
+    async with db.control() as s:
+        return {
+            "results": await studio.transform_preview(
+                s, p.tenant_id, table, field, transforms, samples
+            )
+        }
+
+
+@router.get("/studio/standard-values")
+async def standard_values(p: PrincipalDep) -> list[dict[str, str]]:
+    p.require("metadata.write")
+    from tableui.metadata.domain.transforms import STANDARD
+
+    return [{"key": k, "label": v} for k, v in STANDARD.items() if k != "now"]
+
+
 @router.post("/studio/tables/{table}/fields/{field}/rules/check-existing")
 async def rules_check_existing(
     table: str, field: str, body: dict[str, Any], p: PrincipalDep, db: DbDep

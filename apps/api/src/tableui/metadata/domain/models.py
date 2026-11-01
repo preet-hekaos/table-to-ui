@@ -54,6 +54,68 @@ class FieldRule(_Strict):
         return self
 
 
+class TransformRule(_Strict):
+    """One "if this, then that" step on a field (S5): runs on the incoming value before it is checked and saved."""
+
+    when: Literal[
+        "blank",
+        "equals_any",
+        "contains",
+        "starts_with",
+        "ends_with",
+        "matches",
+        "above",
+        "below",
+        "field_is",
+    ]
+    args: list[str] = Field(default=[], max_length=30)  # the values the condition compares with
+    do: Literal[
+        "set", "set_standard", "copy_field", "keep_match", "trim", "case", "remove_chars", "clear"
+    ]
+    value: str = Field(
+        default="", max_length=200
+    )  # what the action uses: a value, a standard value, a field, a case, characters
+    stop: bool = False
+    enabled: bool = True
+
+    @model_validator(mode="after")
+    def _check(self) -> "TransformRule":
+        if self.when == "matches":
+            from tableui.metadata.domain.patterns import check_pattern
+
+            problem = check_pattern(self.args[0] if self.args else "")
+            if problem:
+                raise ValueError(problem)
+        if (
+            self.when in ("equals_any", "contains", "starts_with", "ends_with", "above", "below")
+            and not self.args
+        ):
+            raise ValueError("this condition needs a value to compare with")
+        if self.when == "field_is" and len(self.args) < 2:
+            raise ValueError("pick the other field and what it should be")
+        if self.do == "case" and self.value not in ("lower", "upper", "title"):
+            raise ValueError("choose lower, UPPER or Title Case")
+        if self.do == "set_standard" and self.value not in (
+            "today",
+            "now",
+            "user",
+            "zero",
+            "empty",
+            "not_provided",
+            "first_choice",
+        ):
+            raise ValueError("choose one of the standard values")
+        if self.do == "copy_field" and not self.value:
+            raise ValueError("pick the field to copy")
+        if self.do == "keep_match" and self.value:
+            from tableui.metadata.domain.patterns import check_pattern
+
+            problem = check_pattern(self.value)
+            if problem:
+                raise ValueError(problem)
+        return self
+
+
 class FieldDef(_Strict):
     key: Key
     label: str
@@ -82,6 +144,9 @@ class FieldDef(_Strict):
     help: str | None = None
     aliases: list[str] = []  # other column names an import should match to this field
     rules: list[FieldRule] = Field(default=[], max_length=20)  # validation rules, run top to bottom
+    transforms: list[TransformRule] = Field(
+        default=[], max_length=20
+    )  # clean the value first, top to bottom
 
     @model_validator(mode="after")
     def _check(self) -> "FieldDef":

@@ -95,7 +95,9 @@ async def _write_row(
     assert tenant_id is not None
     tk = table.key
     if op.kind == "create":
-        clean, errors = validate_record(table, op.payload, partial=False)
+        clean, errors = validate_record(
+            table, op.payload, partial=False, actor=ctx.principal.full_name
+        )
         if errors:
             raise ValidationFailed(errors=errors)
         await _check_references(s, table, clean)
@@ -158,12 +160,16 @@ async def _write_row(
         await _emit(s, ctx, table, f"{tk}.deleted", op.record_id, current.version + 1, before)
         return BatchResult(op, True, op.record_id, before)
     if op.kind == "replace":
-        after, errors = validate_record(table, op.payload, partial=False)
+        after, errors = validate_record(
+            table, op.payload, partial=False, actor=ctx.principal.full_name
+        )
     else:
-        patch, errors = validate_record(table, op.payload, partial=True)
+        patch, errors = validate_record(
+            table, op.payload, partial=True, actor=ctx.principal.full_name
+        )
         after = {**before, **patch}
         if not errors:
-            after, errors = validate_record(table, after, partial=False)
+            after, errors = validate_record(table, after, partial=False, transform=False)
     if errors:
         raise ValidationFailed(errors=errors)
     await _check_references(s, table, after)

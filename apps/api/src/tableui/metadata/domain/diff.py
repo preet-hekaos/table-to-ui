@@ -20,6 +20,8 @@ _FIELD_ATTRS = (
     "type_name",
     "save_as",
     "rules",
+    "transforms",
+    "default",
 )
 
 

@@ -81,10 +81,6 @@ async def test_a_maximum_set_in_studio_stops_larger_decimals(
     assert big.status_code == 422
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="S5: a default can only come from a pack; Studio cannot set one and it applies on create only",
-)
 async def test_a_default_can_be_set_in_studio(client: httpx.AsyncClient, agency: Agency) -> None:
     a = agency
     r = await client.post(

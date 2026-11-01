@@ -288,7 +288,7 @@ async def create_record(
     ctx.principal.require(f"record.{table_key}.create")
     table = ctx.app.table(table_key)
     _reject_hidden_writes(ctx, table, payload)
-    clean, errors = validate_record(table, payload, partial=False)
+    clean, errors = validate_record(table, payload, partial=False, actor=ctx.principal.full_name)
     if errors:
         raise ValidationFailed(errors=errors)
     shadow = shadow_columns(table, clean)
@@ -399,7 +399,7 @@ async def update_record(
     ctx.principal.require(f"record.{table_key}.update")
     table = ctx.app.table(table_key)
     _reject_hidden_writes(ctx, table, payload)
-    patch, errors = validate_record(table, payload, partial=True)
+    patch, errors = validate_record(table, payload, partial=True, actor=ctx.principal.full_name)
     if errors:
         raise ValidationFailed(errors=errors)
     tenant_id = ctx.principal.tenant_id
@@ -431,7 +431,7 @@ async def update_record(
                 )
             before = current.data
             after = {**before, **patch}
-            merged_clean, errs = validate_record(table, after, partial=False)
+            merged_clean, errs = validate_record(table, after, partial=False, transform=False)
             if errs:
                 raise ValidationFailed(errors=errs)
             await _check_references(s, table, merged_clean)

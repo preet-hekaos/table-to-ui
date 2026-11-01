@@ -29,6 +29,7 @@ from tableui.metadata.domain.models import (
 )
 from tableui.metadata.domain.patterns import rule_problem
 from tableui.metadata.domain.presets import BY_KEY, compatible, why_not
+from tableui.metadata.domain.values import validate_record
 from tableui.platform.errors import NotFound, ValidationFailed
 from tableui.platform.ids import schema_name
 from tableui.platform.sql import split_statements
@@ -73,6 +74,8 @@ FIELD_EDITABLE = {
     "unique",
     "searchable",
     "filterable",
+    "transforms",
+    "default",
 }
 
 
@@ -200,6 +203,8 @@ def _new_field(body: dict[str, Any], existing: set[str], tables: set[str]) -> Fi
                 "help": body.get("help") or None,
                 "group": body.get("group") or None,
                 "rules": body.get("rules") or [],
+                "transforms": body.get("transforms") or [],
+                "default": body.get("default"),
                 "ref_table": body.get("ref_table") if ftype == "reference" else None,
                 "unique": unique,
                 "normalize": normalize,
@@ -698,6 +703,59 @@ async def draft_rule_warnings(
                         "count": r["count"],
                     }
                 )
+    return out
+
+
+async def transform_preview(
+    s: AsyncSession,
+    tenant_id: uuid.UUID,
+    table_key: str,
+    field_key: str,
+    transforms: list[dict[str, Any]],
+    samples: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Try a value: the real transformation and validation functions on sample values, with the rules as drafted."""
+    from tableui.metadata.domain.transforms import apply_field_rules
+
+    await _enter_tenant(s, tenant_id)
+    found = await _draft(s, "table", table_key)
+    if found is None:
+        raise NotFound(f"There is no table '{table_key}'.")
+    table = TableDef.model_validate(found[0])
+    f = table.field(field_key)
+    if f is None:
+        raise NotFound(f"There is no field '{field_key}' on '{table_key}'.")
+    try:
+        nf = FieldDef.model_validate({**f.model_dump(mode="json"), "transforms": transforms})
+    except ValidationError as e:
+        raise _pydantic_errors(e) from None
+    probe = TableDef.model_validate(
+        {
+            **found[0],
+            "fields": [
+                nf.model_dump(mode="json") if x["key"] == field_key else x
+                for x in found[0]["fields"]
+            ],
+        }
+    )
+    out: list[dict[str, Any]] = []
+    for smp in samples[:20]:
+        others = {k: v for k, v in (smp.get("others") or {}).items() if isinstance(k, str)}
+        value = smp.get("value")
+        res = apply_field_rules(nf, value, {**others, field_key: value})
+        _, errs = validate_record(probe, {**others, field_key: value}, partial=True)
+        mine = next((e for e in errs if e["field"] == field_key), None)
+        out.append(
+            {
+                "input": value,
+                "output": res.value,
+                "steps": [
+                    {"rule": st.index + 1, "matched": st.matched, "stopped": st.stopped}
+                    for st in res.steps
+                ],
+                "problem": mine["message"] if mine else None,
+            }
+        )
     return out
 
 

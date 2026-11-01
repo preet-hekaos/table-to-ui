@@ -74,10 +74,19 @@ FIELD: dict[str, Setting] = {
             "api:test_field_switches.py::test_switching_unique_off_allows_duplicates_again",
         ),
     ),
-    "default": gap(
+    "default": server(
         (FORM, IMPORT, API),
-        "S5",
-        "Studio cannot set one; a pack default applies on create when blank only",
+        "api:test_transforms.py::test_a_default_can_be_set_in_studio_and_old_defaults_still_apply",
+        stage="S6",
+        note="applies on create when blank; the S6 migration moves it into an 'if blank' rule",
+    ),
+    "transforms": server(
+        (FORM, IMPORT, API, BULK, INLINE),
+        "api:test_transforms.py::test_if_blank_sets_a_value_and_stops_and_an_update_without_the_field_leaves_it",
+        "api:test_transforms.py::test_every_condition_and_keep_the_match_hold_on_create_inline_bulk_and_api",
+        "api:test_transforms.py::test_every_action_on_a_text_field",
+        "api:test_transforms.py::test_import_applies_the_rules_and_the_file_is_not_changed",
+        stage="S6",
     ),
     "options": server(
         (FORM, LIST, IMPORT, BULK),

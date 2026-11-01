@@ -9,6 +9,7 @@ import phonenumbers
 
 from tableui.metadata.domain.models import FieldDef, TableDef
 from tableui.metadata.domain.patterns import rule_problem
+from tableui.metadata.domain.transforms import transform_payload
 
 _EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 _URL = re.compile(r"^https?://\S+$")
@@ -181,9 +182,18 @@ def _coerce_type(field: FieldDef, value: Any) -> tuple[Any, str | None]:
 
 
 def validate_record(
-    table: TableDef, payload: dict[str, Any], *, partial: bool
+    table: TableDef,
+    payload: dict[str, Any],
+    *,
+    partial: bool,
+    transform: bool = True,
+    actor: str = "",
 ) -> tuple[dict[str, Any], list[dict[str, str]]]:
-    """Return (clean data, field errors). ``partial`` is true for updates."""
+    """Return (clean data, field errors). ``partial`` is true for updates. The fields' transformation rules run first
+    (``transform=False`` for data that already went through them, such as a merge of stored and new values)."""
+    changed: dict[str, Any] = {}
+    if transform:
+        payload, changed = transform_payload(table.fields, payload, partial=partial, actor=actor)
     errors: list[dict[str, str]] = []
     clean: dict[str, Any] = {}
     known = {f.key for f in table.fields}
@@ -204,6 +214,8 @@ def validate_record(
             continue
         value, err = _coerce(f, payload[f.key])
         if err:
+            if f.key in changed:  # say what the value became, so the person is never left guessing
+                err = f"{err} (your rules changed it to “{payload[f.key]}”)"
             errors.append({"field": f.key, "code": "invalid", "message": err})
         else:
             clean[f.key] = value
