@@ -64,7 +64,7 @@ async def test_pack_field_is_edited_and_deleted_like_any_other_field(
     )
     assert r.status_code == 200 and r.json()["max_length"] == 40
     r = await client.patch(f"{base}/current_employer", headers=a.h(), json={"type": "integer"})
-    assert r.status_code == 422 and r.json()["errors"][0]["code"] == "not_editable"
+    assert r.status_code == 422 and r.json()["errors"][0]["code"] == "type_not_compatible"
     # A pack field a rule still uses is protected like any other field; an unused one can go.
     r = await client.delete(f"{base}/current_employer", headers=a.h())
     assert r.status_code == 422 and r.json()["errors"][0]["code"] == "in_use"
@@ -483,3 +483,44 @@ async def test_a_deleted_field_comes_back_with_undo_until_it_is_published(
     assert again.status_code == 422 and again.json()["errors"][0]["code"] == "already_there"
     gone = await client.post(f"{base}/never_existed/restore", headers=a.h())
     assert gone.status_code == 404
+
+
+async def test_type_presets_are_one_time_bundles_and_type_changes_follow_the_compatibility_table(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    base = "/v1/studio/tables/candidate/fields"
+    listing = (await client.get("/v1/studio/type-presets", headers=a.h())).json()
+    assert {"person_name", "pan_in", "notice_days"} <= {x["key"] for x in listing["presets"]}
+    assert "decimal" in listing["compatible"]["integer"]
+    # a new field made from a preset gets its core type, length and capitals
+    r = await client.post(base, headers=a.h(), json={"label": "PAN number", "preset": "pan_in"})
+    assert r.status_code == 201, r.text
+    f = r.json()
+    assert (f["type"], f["max_length"], f["save_as"], f["type_name"]) == (
+        "text",
+        10,
+        "upper",
+        "PAN (India)",
+    )
+    # changing a pack field to a compatible type keeps working; an incompatible one is refused and saves nothing
+    r = await client.patch(f"{base}/current_title", headers=a.h(), json={"type": "long_text"})
+    assert (
+        r.status_code == 200 and r.json()["type"] == "long_text" and r.json()["type_name"] is None
+    )
+    r = await client.patch(f"{base}/current_title", headers=a.h(), json={"type": "date"})
+    assert r.status_code == 422 and r.json()["errors"][0]["code"] == "type_not_compatible"
+    r = await client.patch(f"{base}/current_title", headers=a.h(), json={"preset": "nope"})
+    assert r.status_code == 422 and r.json()["errors"][0]["code"] == "unknown_preset"
+    # a preset applied later fills the settings once; editing the length afterwards does not touch the preset
+    r = await client.patch(f"{base}/current_title", headers=a.h(), json={"preset": "job_title"})
+    assert r.status_code == 200 and r.json()["max_length"] == 80 and r.json()["type"] == "text"
+    r = await client.patch(f"{base}/current_title", headers=a.h(), json={"max_length": 50})
+    assert (
+        r.status_code == 200
+        and r.json()["max_length"] == 50
+        and r.json()["type_name"] == "Job title"
+    )
+    # whole number to decimal
+    r = await client.patch(f"{base}/notice_period_days", headers=a.h(), json={"type": "decimal"})
+    assert r.status_code == 200 and r.json()["type"] == "decimal"

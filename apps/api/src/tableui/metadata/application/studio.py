@@ -26,6 +26,7 @@ from tableui.metadata.domain.models import (
     TableDef,
     TableFeatures,
 )
+from tableui.metadata.domain.presets import BY_KEY, compatible, why_not
 from tableui.platform.errors import NotFound, ValidationFailed
 from tableui.platform.ids import schema_name
 from tableui.platform.sql import split_statements
@@ -65,6 +66,7 @@ FIELD_EDITABLE = {
     "min",
     "max",
     "max_length",
+    "type",
 }
 
 
@@ -168,7 +170,10 @@ def _new_field(body: dict[str, Any], existing: set[str], tables: set[str]) -> Fi
     label = str(body.get("label") or "").strip()
     if not label:
         raise _bad("label", "is required", "required")
-    ftype = body.get("type")
+    preset = BY_KEY.get(str(body.get("preset"))) if body.get("preset") else None
+    if body.get("preset") and preset is None:
+        raise _bad("preset", f"there is no type called '{body['preset']}'", "unknown_preset")
+    ftype = preset.core if preset else body.get("type")
     key = body.get("key") or slug(label)
     if key in RESERVED_FIELDS or key.endswith("_norm"):
         raise _bad("key", f"'{key}' is reserved; choose another name")
@@ -194,6 +199,11 @@ def _new_field(body: dict[str, Any], existing: set[str], tables: set[str]) -> Fi
                 "source": "agency",
                 "searchable": ftype in TEXTUAL,
                 "filterable": True,
+                **(
+                    {k: v for k, v in preset.settings().items() if k != "type" and v is not None}
+                    if preset
+                    else {}
+                ),
             }
         )
     except ValidationError as e:
@@ -325,6 +335,18 @@ async def update_field(
     if f is None:
         raise NotFound(f"There is no field '{field_key}' on '{table_key}'.")
     allowed = FIELD_EDITABLE
+    body = dict(body)
+    preset_key = body.pop("preset", None)
+    if preset_key is not None:
+        preset = BY_KEY.get(str(preset_key))
+        if preset is None:
+            raise _bad("preset", f"there is no type called '{preset_key}'", "unknown_preset")
+        body = {**body, **preset.settings()}
+    elif "type" in body and "type_name" not in body:
+        body["type_name"] = None  # a plain core type has no real-world name
+    allowed = (
+        allowed | {"type_name", "save_as"} if preset_key is not None or "type" in body else allowed
+    )
     refused = sorted(set(body) - allowed)
     if refused:
         raise _bad(
@@ -333,6 +355,13 @@ async def update_field(
             "not_editable",
         )
     changes = {k: v for k, v in body.items() if k in allowed}
+    if "type" in changes and changes["type"] != f.type:
+        if not compatible(f.type, str(changes["type"])):
+            raise _bad("type", why_not(f.type, str(changes["type"])), "type_not_compatible")
+        if f.options and changes["type"] not in ("select", "tags"):
+            changes["options"] = []
+        keeps = NORMALIZER.get(str(changes["type"])) or ("text" if f.unique else None)
+        changes["normalize"] = keeps
     if "label" in changes and not str(changes["label"]).strip():
         raise _bad("label", "is required", "required")
     if "label" in changes:

@@ -93,8 +93,18 @@ FIELD: dict[str, Setting] = {
     "max_length": server(
         (FORM, IMPORT, API, INLINE, BULK),
         "api:live_effects/test_live_effects_audit.py::test_a_length_set_in_studio_stops_longer_text_after_publish",
+        "api:live_effects/test_live_effects_audit.py::test_a_length_set_in_studio_stops_longer_web_addresses_too",
         stage="S2",
-        note="Partly: Studio sets it and text obeys it; email, phone and web address ignore it",
+        note="Studio sets it (Length column arrives in S2.4); text, email, phone and web address all obey it",
+    ),
+    "type_name": gap(
+        (), "S2", "the real-world type name; shown in the grid and the field panel from S2.3"
+    ),
+    "save_as": server(
+        (FORM, IMPORT, API, INLINE, BULK),
+        "api:live_effects/test_live_effects_audit.py::test_a_pan_type_chosen_in_studio_saves_capitals_and_stops_longer_values_after_publish",
+        stage="S2",
+        note="Set by choosing a type such as PAN (India); S5 turns it into transformation rules",
     ),
     "analytics": gap((STATS,), "S6", "marks a field for the insights database"),
     "source": gap((), "S1", "stored marker; the redesign stops reading it"),

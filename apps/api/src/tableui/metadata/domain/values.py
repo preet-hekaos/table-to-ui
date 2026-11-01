@@ -85,6 +85,22 @@ def parse_months(value: Any) -> int | None:
 
 
 def _coerce(field: FieldDef, value: Any) -> tuple[Any, str | None]:
+    """Convert one value to what is stored, or say why it cannot be. A length limit applies to every text-like type."""
+    out, problem = _coerce_type(field, value)
+    if problem is None and field.save_as and isinstance(out, str):
+        out = out.upper() if field.save_as == "upper" else out.lower()
+    if (
+        problem is None
+        and field.type in ("email", "phone", "url")
+        and field.max_length
+        and isinstance(out, str)
+        and len(out) > field.max_length
+    ):
+        return None, f"must be at most {field.max_length} characters"
+    return out, problem
+
+
+def _coerce_type(field: FieldDef, value: Any) -> tuple[Any, str | None]:
     t = field.type
     if t in ("text", "long_text"):
         if not isinstance(value, str):

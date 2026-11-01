@@ -129,6 +129,42 @@ async def remove_field(
     return Response(status_code=204)
 
 
+@router.get("/studio/type-presets")
+async def type_presets(p: PrincipalDep, db: DbDep) -> dict[str, Any]:
+    """The types a builder can pick (real-world names over core types), ranked by use, with the allowed type changes."""
+    p.require("metadata.read")
+    assert p.tenant_id
+    async with db.control() as s:
+        tables = await studio.read_draft(s, p.tenant_id, "table")
+    used: dict[str, int] = {}
+    for t in tables:
+        for f in t.get("fields", []):
+            if f.get("type_name"):
+                used[f["type_name"]] = used.get(f["type_name"], 0) + 1
+    from tableui.metadata.domain.presets import COMPATIBLE, PRESETS
+
+    ranked = sorted(PRESETS, key=lambda x: (-used.get(x.name, 0), PRESETS.index(x)))
+    return {
+        "presets": [
+            {
+                "key": x.key,
+                "name": x.name,
+                "core": x.core,
+                "area": x.area,
+                "description": x.description,
+                "example": x.example,
+                "max_length": x.max_length,
+                "save_as": x.save_as,
+                "min": x.min,
+                "max": x.max,
+                "used": used.get(x.name, 0),
+            }
+            for x in ranked
+        ],
+        "compatible": {k: sorted(v) for k, v in COMPATIBLE.items()},
+    }
+
+
 @router.post("/studio/tables/{table}/fields/{field}/restore")
 async def restore_field(
     table: str, field: str, p: PrincipalDep, db: DbDep, request: Request

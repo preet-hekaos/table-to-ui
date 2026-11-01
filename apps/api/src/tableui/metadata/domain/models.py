@@ -47,6 +47,12 @@ class FieldDef(_Strict):
     min: float | None = None
     max: float | None = None
     max_length: int | None = None
+    type_name: str | None = (
+        None  # the real-world name chosen in the Type picker, for example "PAN (India)"
+    )
+    save_as: Literal["upper", "lower"] | None = (
+        None  # capitals handling applied before the value is saved
+    )
     analytics: bool = False
     source: Literal["pack", "agency"] = "pack"
     ref_table: str | None = None

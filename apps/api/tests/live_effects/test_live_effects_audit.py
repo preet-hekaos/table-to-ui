@@ -38,7 +38,6 @@ async def test_a_length_set_in_studio_stops_longer_text_after_publish(
     assert long.status_code == 422
 
 
-@pytest.mark.xfail(strict=True, reason="S2: length is enforced for text and long text only")
 async def test_a_length_set_in_studio_stops_longer_web_addresses_too(
     client: httpx.AsyncClient, agency: Agency
 ) -> None:
@@ -154,3 +153,25 @@ async def test_field_order_saved_in_studio_is_the_order_the_live_table_lists_fie
     await a.publish_live()
     live = (await client.get("/v1/app/tables/candidate", headers=a.h())).json()["table"]
     assert [f["key"] for f in live["fields"]] == wanted
+
+
+async def test_a_pan_type_chosen_in_studio_saves_capitals_and_stops_longer_values_after_publish(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    r = await client.post(
+        "/v1/studio/tables/candidate/fields",
+        headers=a.h(),
+        json={"label": "PAN", "preset": "pan_in"},
+    )
+    assert r.status_code == 201, r.text
+    await a.publish_live()
+    ok = await a.create_candidate(
+        candidate(pan="abcde1234f", phone="+91 98450 10006", email="p1@x.test")
+    )
+    assert ok.status_code == 201, ok.text
+    assert ok.json()["data"]["pan"] == "ABCDE1234F"
+    long = await a.create_candidate(
+        candidate(pan="ABCDE1234FG", phone="+91 98450 10007", email="p2@x.test")
+    )
+    assert long.status_code == 422
