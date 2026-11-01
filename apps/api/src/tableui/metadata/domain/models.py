@@ -158,6 +158,43 @@ class FieldDef(_Strict):
             raise ValueError("a reference field needs 'ref_table'")
         return self
 
+    @model_validator(mode="before")
+    @classmethod
+    def _default_into_rule(cls, data: Any) -> Any:
+        """S6 migration: an old `default` is the rule "if blank, set to it, and stop". Definitions saved before the
+        transformation rules open and publish unchanged, and behave the same."""
+        if not isinstance(data, dict) or data.get("default") is None:
+            return data
+        d = data["default"]
+        if isinstance(d, dict):
+            return data
+        text = (
+            ("true" if d else "false")
+            if isinstance(d, bool)
+            else ",".join(map(str, d))
+            if isinstance(d, list)
+            else str(d)
+        )
+        if len(text) > 200:
+            return data
+        rule = {
+            "when": "blank",
+            "args": [],
+            "do": "set",
+            "value": text,
+            "stop": True,
+            "enabled": True,
+        }
+        return {**data, "default": None, "transforms": [rule, *(data.get("transforms") or [])]}
+
+    @property
+    def has_fallback(self) -> bool:
+        """A blank value is filled in by the field itself (an "if blank, set to" rule)."""
+        return any(
+            t.enabled and t.when == "blank" and t.do in ("set", "set_standard")
+            for t in self.transforms
+        )
+
 
 class SearchInclude(_Strict):
     """Keyword search on this table also looks in the searchable text of records that point at it
