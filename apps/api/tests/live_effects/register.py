@@ -270,3 +270,29 @@ TABLE: dict[str, Setting] = {
         (LIST,), "api:test_row_order.py::test_switch_permission_and_scope_are_enforced", stage="S4"
     ),
 }
+
+
+# S6.2: a second session opens the live list after publish and uses each table setting.
+_MAIN = "e2e:s6-table-effects.spec.ts::S6.2 table settings: values reach the live list"
+_CHART = "e2e:s6-table-effects.spec.ts::S6.2 table settings: numbers as a chart"
+_CARDS = "e2e:s6-table-effects.spec.ts::S6.2 table settings: the chosen number fields"
+_TABLE_PROOF: dict[str, tuple[str, ...]] = {
+    **{
+        k: (_MAIN,)
+        for k in (
+            "sort_filter", "sortable", "filterable", "unsortable", "unfilterable", "default_sort",
+            "select_bulk", "bulk_scope", "import_data", "export_data", "export_formats",
+            "export_email", "inline_edit", "grouping", "statistics", "stat_cards", "stat_scope",
+            "default_columns", "density", "uneditable", "ungroupable", "unexported", "nobulk",
+            "row_order",
+        )
+    },  # fmt: skip
+    "bulk_actions": (_MAIN, _CHART),
+    "stat_view": (_CHART,),
+    "chart": (_CHART,),
+    "nochart": (_CHART,),
+    "stat_fields": (_CARDS,),
+}
+for _k, _e2e in _TABLE_PROOF.items():
+    _old = TABLE[_k]
+    TABLE[_k] = Setting("live", _old.surfaces, (*_e2e, *_old.proofs), "", _old.note, _old.risks)
