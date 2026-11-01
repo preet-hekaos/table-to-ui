@@ -112,3 +112,14 @@ async def test_a_new_text_field_is_found_by_keyword_search_after_publish(
         await client.get("/v1/records/candidate", headers=a.h(), params={"q": "zebracorn"})
     ).json()["items"]
     assert len(hit) == 1
+
+
+async def test_a_label_already_used_by_another_field_is_refused(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    f = await _add(client, a, label="Badge", type="text")
+    clash = await _patch(client, a, f["key"], label="full name")
+    assert clash.status_code == 422 and "already called" in clash.text, clash.text
+    ok = await _patch(client, a, f["key"], label="Badge number")
+    assert ok.status_code == 200

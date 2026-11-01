@@ -4,6 +4,7 @@ import type { ApiError } from '@/api/client'
 import type { FieldDef, StudioTable } from '@/api/types'
 import { Badge, Button, Card, ErrorState, LoadingState, StageBadge, Table, Tabs, TabsContent, TabsList, TabsTrigger, Td, Th, cn, stageStripe } from '@/design-system'
 import { FieldDialog, NewTableDialog, TYPE_LABELS } from './FieldDialog'
+import { InlineLabel } from './InlineLabel'
 import { FeaturesPanel } from './FeaturesPanel'
 import { SchemaExportDialog } from './SchemaExportDialog'
 import { SchemaImportDialog } from './SchemaImportDialog'
@@ -91,7 +92,7 @@ export function DataTab({
                     <tr key={f.key} className={cn(stageStripe(stage))} data-stage={stage}>
                       <Td className="py-1.5 font-mono text-xs text-muted">{f.key}</Td>
                       <Td className="py-1.5 font-medium text-ink">
-                        {f.label} {stage && stage !== 'live' && <StageBadge stage={stage} className="ml-1" />}
+                        <InlineLabel table={current as StudioTable} field={f} canEdit={canEdit} /> {stage && stage !== 'live' && <StageBadge stage={stage} className="ml-1" />}
                         {f.hidden && <Badge tone="warn" className="ml-1">Hidden</Badge>}
                       </Td>
                       <Td className="py-1.5">

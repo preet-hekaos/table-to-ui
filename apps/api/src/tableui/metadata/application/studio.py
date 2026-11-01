@@ -335,6 +335,14 @@ async def update_field(
     changes = {k: v for k, v in body.items() if k in allowed}
     if "label" in changes and not str(changes["label"]).strip():
         raise _bad("label", "is required", "required")
+    if "label" in changes:
+        wanted = str(changes["label"]).strip().casefold()
+        if any(x.key != field_key and x.label.strip().casefold() == wanted for x in table.fields):
+            raise _bad(
+                "label",
+                f"another field is already called {str(changes['label']).strip()}",
+                "duplicate",
+            )
     new = {**f.model_dump(mode="json"), **changes}
     if new.get("hidden") and (new.get("required") or field_key == table.title_field):
         raise _bad("hidden", "a required field or the record's name cannot be hidden")
