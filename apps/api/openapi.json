@@ -8887,6 +8887,71 @@
         ]
       }
     },
+    "/v1/studio/tables/{table}/fields/{field}/length-impact": {
+      "get": {
+        "operationId": "length_impact_v1_studio_tables__table__fields__field__length_impact_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "table",
+            "required": true,
+            "schema": {
+              "title": "Table",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "field",
+            "required": true,
+            "schema": {
+              "title": "Field",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "max_length",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "title": "Max Length",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "title": "Response Length Impact V1 Studio Tables  Table  Fields  Field  Length Impact Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Length Impact",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
     "/v1/studio/tables/{table}/fields/{field}/restore": {
       "post": {
         "description": "Undo a field deletion that has not been published yet.",

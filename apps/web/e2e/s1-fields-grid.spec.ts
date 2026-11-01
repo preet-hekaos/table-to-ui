@@ -366,3 +366,50 @@ test('S2.4 length column: edit with Enter, cancel with Esc, dash for other types
   await expect(page.getByRole('button', { name: 'Maximum length of Current title: 12' })).toBeVisible()
   await page.screenshot({ path: '../../docs/screens/studio-table/s2/after-length.png' })
 })
+
+test('S2.5 shrinking a length asks first, names how many records are affected, and leaves them as they are', async ({ page, browser }) => {
+  await signUpWithPack(page, `S2 Shr ${run}`, `s2s-${run}@studio.test`)
+  await page.goto('/records/candidate/new')
+  await page.getByLabel(/^Full name/).fill('Shrink Check')
+  await page.getByLabel(/^Email/).fill(`s2s-${run}@len.test`)
+  await page.getByLabel(/^Phone/).fill('+91 98450 55555')
+  await page.getByLabel(/^Current title/).fill('Senior Recruiter')
+  await page.getByRole('button', { name: 'Save candidate' }).click()
+  await expect(page.getByText('Senior Recruiter').first()).toBeVisible()
+
+  await page.goto('/studio')
+  const lenBtn = (v: string) => page.getByRole('button', { name: `Maximum length of Current title: ${v}` })
+  const input = page.getByLabel('Maximum length of current_title')
+  const dlg = page.getByRole('dialog', { name: /Shorten Current title to 5/ })
+
+  await test.step('A length no record exceeds saves straight away', async () => {
+    await lenBtn('No limit').click()
+    await input.fill('40')
+    await input.press('Enter')
+    await expect(lenBtn('40')).toBeVisible()
+  })
+
+  await test.step('Shrinking below an existing value names the count; Keep changes nothing', async () => {
+    await lenBtn('40').click()
+    await input.fill('5')
+    await input.press('Enter')
+    await expect(dlg).toContainText('1 record has a longer value')
+    await dlg.getByRole('button', { name: 'Keep 40' }).click()
+    await expect(dlg).toHaveCount(0)
+    await expect(lenBtn('40')).toBeVisible()
+  })
+
+  await test.step('Shorten saves it, and the existing record is untouched', async () => {
+    await lenBtn('40').click()
+    await input.fill('5')
+    await input.press('Enter')
+    await page.screenshot({ path: '../../docs/screens/studio-table/s2/after-shrink-confirm.png' })
+    await dlg.getByRole('button', { name: 'Shorten to 5' }).click()
+    await expect(lenBtn('5')).toBeVisible()
+    await publishLive(page)
+    const live = await freshSession(browser, page)
+    await live.goto('/records/candidate')
+    await expect(live.getByText('Senior Recruiter').first()).toBeVisible()
+    await live.context().close()
+  })
+})

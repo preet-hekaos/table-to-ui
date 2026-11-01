@@ -524,3 +524,23 @@ async def test_type_presets_are_one_time_bundles_and_type_changes_follow_the_com
     # whole number to decimal
     r = await client.patch(f"{base}/notice_period_days", headers=a.h(), json={"type": "decimal"})
     assert r.status_code == 200 and r.json()["type"] == "decimal"
+
+
+async def test_length_impact_counts_records_longer_than_a_new_maximum(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    for name, phone in (("Ann Long Name", "+91 98450 11111"), ("Bo", "+91 98450 22222")):
+        r = await a.create_candidate(candidate(full_name=name, phone=phone))
+        assert r.status_code == 201, r.text
+    base = "/v1/studio/tables/candidate/fields/full_name/length-impact"
+    r = await client.get(base, params={"max_length": 5}, headers=a.h())
+    assert r.status_code == 200 and r.json() == {"count": 1}
+    assert (await client.get(base, params={"max_length": 50}, headers=a.h())).json() == {"count": 0}
+    assert (await client.get(base, params={"max_length": 0}, headers=a.h())).status_code == 422
+    gone = await client.get(
+        "/v1/studio/tables/candidate/fields/nope/length-impact",
+        params={"max_length": 5},
+        headers=a.h(),
+    )
+    assert gone.status_code == 404

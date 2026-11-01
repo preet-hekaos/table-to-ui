@@ -551,6 +551,31 @@ async def remove_field(
     )
 
 
+async def length_impact(
+    s: AsyncSession, *, tenant_id: uuid.UUID, table_key: str, field_key: str, max_length: int
+) -> dict[str, int]:
+    """How many records already hold a value longer than a new maximum length (they are left as they are)."""
+    await _enter_tenant(s, tenant_id)
+    found = await _draft(s, "table", table_key)
+    if found is None:
+        raise NotFound(f"There is no table '{table_key}'.")
+    if TableDef.model_validate(found[0]).field(field_key) is None:
+        raise NotFound(f"There is no field '{field_key}' on '{table_key}'.")
+    exists = (await s.execute(text("SELECT to_regclass(:t)"), {"t": f'"{table_key}"'})).scalar()
+    if not exists:
+        return {"count": 0}
+    n = (
+        await s.execute(
+            text(
+                f'SELECT count(*) FROM "{table_key}" '  # noqa: S608 - identifiers are validated metadata keys
+                f"WHERE char_length(COALESCE(data->>'{field_key}', '')) > :n"
+            ),
+            {"n": max_length},
+        )
+    ).scalar()
+    return {"count": int(n or 0)}
+
+
 async def restore_field(
     s: AsyncSession,
     *,

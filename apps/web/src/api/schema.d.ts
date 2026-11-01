@@ -2440,6 +2440,23 @@ export interface paths {
         patch: operations["update_field_v1_studio_tables__table__fields__field__patch"];
         trace?: never;
     };
+    "/v1/studio/tables/{table}/fields/{field}/length-impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Length Impact */
+        get: operations["length_impact_v1_studio_tables__table__fields__field__length_impact_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/studio/tables/{table}/fields/{field}/restore": {
         parameters: {
             query?: never;
@@ -8524,6 +8541,42 @@ export interface operations {
                 content: {
                     "application/json": {
                         [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    length_impact_v1_studio_tables__table__fields__field__length_impact_get: {
+        parameters: {
+            query: {
+                max_length: number;
+            };
+            header?: never;
+            path: {
+                table: string;
+                field: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: number;
                     };
                 };
             };

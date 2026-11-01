@@ -91,6 +91,18 @@ async def update_field(
         )
 
 
+@router.get("/studio/tables/{table}/fields/{field}/length-impact")
+async def length_impact(
+    table: str, field: str, p: PrincipalDep, db: DbDep, max_length: Annotated[int, Query(ge=1)]
+) -> dict[str, int]:
+    p.require("metadata.write")
+    assert p.tenant_id
+    async with db.control() as s:
+        return await studio.length_impact(
+            s, tenant_id=p.tenant_id, table_key=table, field_key=field, max_length=max_length
+        )
+
+
 @router.put("/studio/tables/{table}/field-order")
 async def reorder_fields(
     table: str, body: dict[str, Any], p: PrincipalDep, db: DbDep, request: Request
