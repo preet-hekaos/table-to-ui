@@ -38,7 +38,7 @@ export function buildChoices(data: TypePresets | undefined, areaName: string): T
   void areaName
   const rank = (c: TypeChoice) => (c.preset ? -c.preset.used : 0)
   const order = (list: TypeChoice[]) => [...list].sort((a, b) => rank(a) - rank(b))
-  return [...order(core.filter((c) => c.group === 'common')), ...order(presets), ...core.filter((c) => c.group === 'other')]
+  return [...core.filter((c) => c.group === 'common').sort((a, b) => COMMON.indexOf(a.core) - COMMON.indexOf(b.core)), ...order(presets), ...core.filter((c) => c.group === 'other')]
 }
 
 function presetTile(p: TypePreset): string {

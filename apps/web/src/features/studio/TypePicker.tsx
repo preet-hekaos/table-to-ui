@@ -133,7 +133,7 @@ export function TypePicker({
         )}
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Content align="start" sideOffset={6} collisionPadding={16} aria-label="Type picker" className="z-50 flex w-[42rem] max-w-[95vw] overflow-hidden rounded-xl border border-line bg-surface shadow-xl">
+        <Popover.Content align="start" sideOffset={6} collisionPadding={16} aria-label="Type picker" className="z-50 flex h-[min(36rem,var(--radix-popover-content-available-height))] w-[42rem] max-w-[95vw] overflow-hidden rounded-xl border border-line bg-surface shadow-xl">
           <div className="flex w-1/2 min-w-0 flex-col border-r border-line p-3">
             <div className="relative">
               <Search className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted" aria-hidden />
@@ -151,7 +151,7 @@ export function TypePicker({
                 className="h-9 w-full rounded-md border border-line bg-surface pl-8 pr-2 text-sm"
               />
             </div>
-            <div ref={listRef} id={`${id}-list`} role="listbox" aria-label="Types" className="mt-2 max-h-80 overflow-y-auto pr-1">
+            <div ref={listRef} id={`${id}-list`} role="listbox" aria-label="Types" className="mt-2 min-h-0 flex-1 overflow-y-auto pr-1">
               {groups.map((g) => (
                 <div key={g.key} role="group" aria-label={g.title} className="mb-2">
                   <p className="px-1 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wide text-muted">
@@ -173,6 +173,7 @@ export function TypePicker({
                 )}
               </div>
             </div>
+            <p className="mt-2 text-[11px] leading-snug text-muted">Groups are ordered the business first: commonly used, then this workspace's industry, then everything else. Core types stay available for experts.</p>
           </div>
           <div className="flex w-1/2 min-w-0 flex-col p-4">
             {active ? (
@@ -181,7 +182,7 @@ export function TypePicker({
                   <Tile text={active.tile} active />
                   <div>
                     <p className="font-semibold text-ink">{active.name}</p>
-                    <p className="text-xs text-muted">{active.description}</p>
+                    <p className="text-xs text-muted">{active.preset ? `${areaLabel} · ` : ''}{active.description}</p>
                   </div>
                 </div>
                 <p className="mt-4 text-[11px] font-semibold uppercase tracking-wide text-muted">What it sets for you</p>
