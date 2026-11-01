@@ -2477,6 +2477,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/studio/type-presets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Type Presets
+         * @description The types a builder can pick (real-world names over core types), ranked by use, with the allowed type changes.
+         */
+        get: operations["type_presets_v1_studio_type_presets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/workflow/{table}/board": {
         parameters: {
             query?: never;
@@ -8587,6 +8607,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    type_presets_v1_studio_type_presets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };

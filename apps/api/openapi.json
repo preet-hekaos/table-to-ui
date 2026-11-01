@@ -8997,6 +8997,30 @@
         ]
       }
     },
+    "/v1/studio/type-presets": {
+      "get": {
+        "description": "The types a builder can pick (real-world names over core types), ranked by use, with the allowed type changes.",
+        "operationId": "type_presets_v1_studio_type_presets_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Type Presets V1 Studio Type Presets Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Type Presets",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
     "/v1/workflow/{table}/board": {
       "get": {
         "description": "Stages as columns. ``f.<field>=<value>`` narrows the board, for example to one parent record.",
