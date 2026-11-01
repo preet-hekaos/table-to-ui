@@ -6,7 +6,7 @@ const GLOW = /oklab|color\(|lab\(/
 
 test('Canvas: a hovered or chosen table lifts, glows, and its links flow toward the table they point at', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
-  await signUpWithPack(page, `Canvas Co ${run}`, `canvas-${run}@canvas.test`)
+  await signUpWithPack(page, `Canvas R11 ${run}`, `canvas-r11-${run}@canvas.test`)
   await page.goto('/studio?tab=map')
   const card = page.getByTestId('box-candidate')
   await expect(card).toBeVisible()
