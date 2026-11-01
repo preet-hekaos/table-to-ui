@@ -5,6 +5,7 @@ import { Badge, Button, StageBadge, Table, Td, Th, cn, stageStripe } from '@/des
 import { FieldDetails } from './FieldDetails'
 import { FieldMenu } from './FieldMenu'
 import { InlineLabel } from './InlineLabel'
+import { LengthCell } from './LengthCell'
 import { RequiredSwitch } from './RequiredSwitch'
 import { TypeCell } from './TypeCell'
 import { UndoRemove } from './UndoRemove'
@@ -62,6 +63,7 @@ export function FieldsGrid({
             <Th>Label</Th>
             <Th>Type</Th>
             <Th>Core type</Th>
+            <Th>Length</Th>
             <Th>Required</Th>
             {canEdit && <Th><span className="sr-only">Actions</span></Th>}
           </tr>
@@ -118,6 +120,9 @@ export function FieldsGrid({
                   <code className="rounded bg-soft px-1.5 py-0.5 font-mono text-xs text-body">{f.type}</code>
                 </Td>
                 <Td className="py-1.5">
+                  <LengthCell table={table} field={f} canEdit={canEdit} />
+                </Td>
+                <Td className="py-1.5">
                   <RequiredSwitch table={table} field={f} canEdit={canEdit} />
                   <span className="sr-only">{f.required ? 'Yes' : 'No'}</span>
                 </Td>
@@ -132,7 +137,7 @@ export function FieldsGrid({
               </tr>
               {open.has(f.key) && (
                 <tr data-details-of={f.key}>
-                  <Td colSpan={canEdit ? 7 : 5} className="p-0">
+                  <Td colSpan={canEdit ? 8 : 6} className="p-0">
                     <FieldDetails table={table} tables={tables} field={f} canEdit={canEdit} />
                   </Td>
                 </tr>

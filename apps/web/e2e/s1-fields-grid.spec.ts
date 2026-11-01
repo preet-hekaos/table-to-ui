@@ -320,3 +320,49 @@ test('S2.3 type picker: search, keyboard, blocked options explain themselves, an
     await live.context().close()
   })
 })
+
+test('S2.4 length column: edit with Enter, cancel with Esc, dash for other types, and the live form enforces it', async ({ page, browser }) => {
+  await signUpWithPack(page, `S2 Len ${run}`, `s2l-${run}@studio.test`)
+  await page.goto('/studio')
+  const row = (key: string) => page.getByRole('row', { name: new RegExp(`^(?:Move [^.]*\\. Drag, or use the up and down arrow keys\\. )?${key} `) })
+  const lenBtn = page.getByRole('button', { name: /^Maximum length of Current title:/ })
+
+  await test.step('Non text types show a dash; text types show their limit', async () => {
+    await expect(row('notice_period_days').getByLabel('Notice period (days) has no length')).toBeVisible()
+    await expect(lenBtn).toBeVisible()
+  })
+
+  await test.step('Esc cancels, a bad value is refused, Enter saves', async () => {
+    await lenBtn.click()
+    const input = page.getByLabel('Maximum length of current_title')
+    await input.fill('7')
+    await input.press('Escape')
+    await expect(input).toHaveCount(0)
+    await expect(page.getByTestId('draft-banner')).toHaveCount(0)
+    await lenBtn.click()
+    await input.fill('0')
+    await input.press('Enter')
+    await expect(page.getByRole('alert').filter({ hasText: 'whole number' })).toBeVisible()
+    await input.fill('12')
+    await input.press('Enter')
+    await expect(page.getByRole('button', { name: 'Maximum length of Current title: 12' })).toBeVisible()
+    await expect(page.getByTestId('draft-banner')).toContainText('unpublished change')
+  })
+
+  await test.step('After publishing, the live form stops values longer than 12', async () => {
+    await publishLive(page)
+    const live = await freshSession(browser, page)
+    await live.goto('/records/candidate/new')
+    await live.getByLabel(/^Full name/).fill('Length Check')
+    await live.getByLabel(/^Email/).fill(`s2l-${run}@len.test`)
+    await live.getByLabel(/^Phone/).fill('+91 98450 55555')
+    await live.getByLabel(/^Current title/).fill('1234567890123')
+    await live.getByRole('button', { name: 'Save candidate' }).click()
+    await expect(live.getByText(/at most 12 characters/)).toBeVisible()
+    await live.context().close()
+  })
+
+  await page.goto('/studio')
+  await expect(page.getByRole('button', { name: 'Maximum length of Current title: 12' })).toBeVisible()
+  await page.screenshot({ path: '../../docs/screens/studio-table/s2/after-length.png' })
+})
