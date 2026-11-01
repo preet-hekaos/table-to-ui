@@ -158,7 +158,7 @@ test('S6.2 table settings: numbers as a chart, chart choices and bulk actions re
   await test.step('The owner shows the numbers as a chart, limits the chart and the bulk actions, and makes it Live', async () => {
     const r = await call(page, 'PUT', '/v1/studio/tables/candidate/features', {
       stat_view: 'chart',
-      chart: { type: 'bar', x: 'status', bucket: 'month', measures: [{ kind: 'count' }], top: 8 },
+      chart: { type: 'bar', x: 'status', bucket: 'month', measures: [{ agg: 'count' }], top: 8 },
       nochart: ['source'],
       stat_fields: ['notice_period_days'],
       bulk_actions: ['export'],
