@@ -56,6 +56,7 @@ FIELD: dict[str, Setting] = {
         (FORM, INLINE, IMPORT, BULK, API),
         (
             "e2e:s0-live-effect.spec.ts::a field made required in Studio is required on the live form",
+            "e2e:s1-fields-grid.spec.ts::S1.3 required switch",
             "api:test_inline_edit.py::test_one_cell_change_clears_validates_and_refuses_stale_versions",
             "api:test_studio.py::test_field_cannot_become_required_while_records_lack_it",
         ),
