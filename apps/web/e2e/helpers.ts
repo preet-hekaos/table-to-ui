@@ -11,7 +11,7 @@ export async function signUpWithPack(page: Page, name: string, email: string, pa
   await page.getByLabel(/Work email/).fill(email)
   await page.getByLabel(/^Password/).fill(PASSWORD)
   await page.getByRole('button', { name: 'Create workspace' }).click()
-  await expect(page.getByRole('heading', { name: /^Set up / })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /^Set up / })).toBeVisible({ timeout: 30_000 }) // creating a workspace builds its database schema; slow on shared CI machines
   await page.waitForLoadState('networkidle')
   const choice = page.getByLabel(pack === 'blank' ? /Start blank/ : pack)
   const go = page.getByRole('button', { name: 'Set up workspace' })

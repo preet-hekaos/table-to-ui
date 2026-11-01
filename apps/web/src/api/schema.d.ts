@@ -5975,6 +5975,8 @@ export interface operations {
                 range?: string | null;
                 start?: string | null;
                 end?: string | null;
+                compare?: boolean;
+                mine?: boolean;
             };
             header?: never;
             path?: never;
