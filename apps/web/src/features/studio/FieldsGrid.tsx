@@ -7,6 +7,7 @@ import { FieldMenu } from './FieldMenu'
 import { InlineLabel } from './InlineLabel'
 import { LengthCell } from './LengthCell'
 import { RequiredSwitch } from './RequiredSwitch'
+import { ValidationCell } from './ValidationCell'
 import { TypeCell } from './TypeCell'
 import { RemovedCount, UndoRemove } from './UndoRemove'
 import { useFieldOrder } from './useFieldOrder'
@@ -64,6 +65,7 @@ export function FieldsGrid({
             <Th>Type</Th>
             <Th>Core type</Th>
             <Th>Length</Th>
+            <Th>Validation</Th>
             <Th>Required</Th>
             {canEdit && <Th><span className="sr-only">Actions</span></Th>}
           </tr>
@@ -123,6 +125,9 @@ export function FieldsGrid({
                   <LengthCell table={table} field={f} canEdit={canEdit} />
                 </Td>
                 <Td className="py-1.5">
+                  <ValidationCell table={table} field={f} canEdit={canEdit} />
+                </Td>
+                <Td className="py-1.5">
                   <RequiredSwitch table={table} field={f} canEdit={canEdit} />
                   <span className="sr-only">{f.required ? 'Yes' : 'No'}</span>
                 </Td>
@@ -137,7 +142,7 @@ export function FieldsGrid({
               </tr>
               {open.has(f.key) && (
                 <tr data-details-of={f.key}>
-                  <Td colSpan={canEdit ? 8 : 6} className="p-0">
+                  <Td colSpan={canEdit ? 9 : 7} className="p-0">
                     <FieldDetails table={table} tables={tables} field={f} canEdit={canEdit} />
                   </Td>
                 </tr>
@@ -152,7 +157,7 @@ export function FieldsGrid({
               <Td>
                 <span className="line-through">{f.label}</span> <StageBadge stage="removed" className="ml-1 no-underline" />
               </Td>
-              <Td colSpan={canEdit ? 5 : 4} className="whitespace-normal">
+              <Td colSpan={canEdit ? 6 : 5} className="whitespace-normal">
                 <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <span>Deleted in the Draft; goes away when published.</span>
                   <RemovedCount table={table.key} fieldKey={f.key} />

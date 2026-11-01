@@ -12,6 +12,7 @@ export interface FieldDef {
   max_length: number | null
   type_name?: string | null
   save_as?: 'upper' | 'lower' | null
+  rules?: FieldRule[]
   normalize: 'text' | 'email' | 'phone' | null
   unique: boolean
   hidden?: boolean
@@ -233,4 +234,13 @@ export interface MergeRow {
   relinked: number
   undone: boolean
   can_undo: boolean
+}
+
+/** One validation rule on a field: a pattern the value must match, or the built-in "not in the future". */
+export interface FieldRule {
+  name: string
+  kind: 'pattern' | 'not_future'
+  pattern: string
+  message: string
+  enabled: boolean
 }

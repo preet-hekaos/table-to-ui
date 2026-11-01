@@ -2,6 +2,7 @@
  *  response shapes come from ./types until the API publishes response models for them. */
 import { api, unwrap } from './client'
 import type {
+  FieldRule,
   ActivityRow,
   HeldChange,
   Board,
@@ -208,6 +209,11 @@ export const studio = {
     send<FieldDef>('PATCH', `/v1/studio/tables/${table}/fields/${field}`, body),
   restoreField: (table: string, field: string) => send<FieldDef>('POST', `/v1/studio/tables/${table}/fields/${field}/restore`),
   typePresets: () => cast<TypePresets>(api.GET('/v1/studio/type-presets' as never, {} as never)),
+  validationLibrary: () => g<LibraryRule[]>('/v1/studio/validation-library'),
+  validationPreview: (rule: Pick<FieldRule, 'kind' | 'pattern'>, values: string[]) =>
+    send<{ results: { value: string; allowed: boolean }[] }>('POST', '/v1/studio/validation-preview', { rule, values }),
+  checkExisting: (table: string, field: string, rules: FieldRule[]) =>
+    send<{ count: number; checked: number }>('POST', `/v1/studio/tables/${table}/fields/${field}/rules/check-existing`, { rules }),
   valueCount: (table: string, field: string) => g<{ count: number }>(`/v1/studio/tables/${table}/fields/${field}/value-count`),
   lengthImpact: (table: string, field: string, maxLength: number) =>
     g<{ count: number }>(`/v1/studio/tables/${table}/fields/${field}/length-impact?max_length=${maxLength}`),
@@ -655,6 +661,17 @@ export const ai = {
   ask: (table: string, question: string) => send<{ filters: Record<string, string>; q: string; cached: boolean }>('POST', '/v1/ai/ask', { table, question }),
   draft: (table: string, id: string, intent: string) => send<{ subject: string; body: string; cached: boolean }>('POST', '/v1/ai/draft', { table, id, intent }),
   explainNumber: (measure: string, range?: string) => send<AiText & { figures: { value: number | null } }>('POST', '/v1/ai/explain-number', { measure, range }),
+}
+
+/** A ready-made rule from the library, with samples that show what it allows and refuses. */
+export interface LibraryRule {
+  key: string
+  name: string
+  kind: FieldRule['kind']
+  pattern: string
+  message: string
+  good: string[]
+  bad: string[]
 }
 
 export interface TypePreset {

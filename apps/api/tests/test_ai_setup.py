@@ -128,10 +128,10 @@ async def test_a_failing_step_is_shown_and_blocks_the_whole_apply(
         "reply": "Two changes.",
         "steps": [
             {"op": "table.add", "args": {"label": "Project"}, "why": "x"},
-            # A pack field's type cannot be changed.
+            # A type change between incompatible core types is refused (an email cannot become a number).
             {
                 "op": "field.change",
-                "args": {"table": "candidate", "field": "email", "type": "text"},
+                "args": {"table": "candidate", "field": "email", "type": "integer"},
                 "why": "x",
             },  # fmt: skip
         ],
