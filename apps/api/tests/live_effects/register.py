@@ -1,0 +1,216 @@
+"""The settings register (S0 of the Studio table redesign).
+
+Every property of a field and every table feature flag is listed here with the places it must take effect once
+the owner publishes it, and the tests that prove it. `test_live_effects_gate.py` fails when a setting is missing
+from this file, when a named test does not exist, or when the number of gaps grows.
+
+Levels
+  live    a Studio -> publish -> live-screen scenario (Playwright) proves it, as a second user
+  server  a server test proves the live API enforces it, but no screen-level scenario exists yet
+  gap     nothing proves it yet; `stage` says which redesign stage closes the gap
+
+S6 requires zero gaps and every entry at `live`.
+"""
+
+from dataclasses import dataclass, field
+
+FORM, LIST, INLINE, IMPORT, BULK, EXPORT, API, SEARCH, CHART, STATS = (
+    "form", "list", "inline_edit", "import", "bulk", "export", "api", "search", "chart", "stats",
+)  # fmt: skip
+
+
+@dataclass(frozen=True)
+class Setting:
+    level: str
+    surfaces: tuple[str, ...]
+    proofs: tuple[str, ...] = ()  # "api:test_file.py::test_name" or "e2e:spec.ts::test title"
+    stage: str = ""  # for a gap: the stage that closes it
+    note: str = ""
+    risks: tuple[str, ...] = field(default=())
+
+
+def gap(surfaces: tuple[str, ...], stage: str, note: str = "") -> Setting:
+    return Setting("gap", surfaces, (), stage, note)
+
+
+def server(surfaces: tuple[str, ...], *proofs: str, stage: str = "S6", note: str = "") -> Setting:
+    return Setting("server", surfaces, tuple(proofs), stage, note)
+
+
+FIELD: dict[str, Setting] = {
+    "key": gap(
+        (FORM, LIST, API, IMPORT),
+        "S1",
+        "key is read-only once published; nothing proves a new key reaches the screens",
+    ),
+    "label": gap(
+        (FORM, LIST, IMPORT, EXPORT, CHART, SEARCH), "S1", "rename must reach every screen"
+    ),
+    "type": gap((FORM, LIST, INLINE, IMPORT, BULK), "S2"),
+    "required": server(
+        (FORM, INLINE, IMPORT, BULK, API),
+        "api:test_inline_edit.py::test_one_cell_change_clears_validates_and_refuses_stale_versions",
+        "api:test_studio.py::test_field_cannot_become_required_while_records_lack_it",
+        stage="S1",
+        note="inline edit and the publish guard are proven; form, import and bulk screens are not",
+    ),
+    "group": gap((FORM,), "S1", "field group heading on the record form"),
+    "normalize": gap((IMPORT, API, FORM), "S2", "decides how values are compared and saved"),
+    "unique": gap(
+        (FORM, IMPORT, API, BULK),
+        "S4",
+        "can only be chosen when the field is created; duplicates already stored must block the publish",
+    ),
+    "default": gap(
+        (FORM, IMPORT, API),
+        "S5",
+        "Studio cannot set one; a pack default applies on create when blank only",
+    ),
+    "options": server(
+        (FORM, LIST, IMPORT, BULK),
+        "api:test_studio.py::test_removing_a_choice_in_use_is_refused_and_deleting_a_field_cleans_settings",
+        stage="S1",
+    ),
+    "min": gap(
+        (FORM, IMPORT, API, INLINE, BULK),
+        "S2",
+        "Partly: Studio sets it, only whole numbers obey it",
+    ),
+    "max": gap(
+        (FORM, IMPORT, API, INLINE, BULK),
+        "S2",
+        "Partly: Studio sets it, only whole numbers obey it",
+    ),
+    "max_length": server(
+        (FORM, IMPORT, API, INLINE, BULK),
+        "api:live_effects/test_live_effects_audit.py::test_a_length_set_in_studio_stops_longer_text_after_publish",
+        stage="S2",
+        note="Partly: Studio sets it and text obeys it; email, phone and web address ignore it",
+    ),
+    "analytics": gap((STATS,), "S6", "marks a field for the insights database"),
+    "source": gap((), "S1", "stored marker; the redesign stops reading it"),
+    "ref_table": server(
+        (FORM, LIST, IMPORT),
+        "api:test_relationships.py::test_a_link_can_be_relabelled_but_not_pointed_elsewhere",
+        stage="S1",
+    ),
+    "hidden": server(
+        (FORM, LIST, EXPORT, SEARCH, STATS),
+        "api:test_export_import.py::test_a_hidden_field_never_leaves_in_an_export",
+        "api:test_stats.py::test_a_hidden_number_is_never_summarised",
+        "api:test_search.py::test_facets_count_and_narrow_and_respect_hidden_fields",
+        stage="S1",
+    ),
+    "searchable": gap(
+        (SEARCH,),
+        "S4",
+        "fixed at creation (on for text); when switchable, records saved earlier must be re-indexed",
+    ),
+    "filterable": server(
+        (LIST, SEARCH),
+        "api:test_field_grid.py::test_filtering_can_be_off_while_sorting_stays_on",
+        stage="S4",
+        note="two flags exist (field.filterable and table unfilterable list); S4 decides how they combine",
+    ),
+    "help": gap((FORM,), "S1", "help text under the input"),
+    "aliases": gap((IMPORT,), "S6", "kept working; editor moves to the import wizard later"),
+}
+
+TABLE: dict[str, Setting] = {
+    "sort_filter": server(
+        (LIST, API),
+        "api:test_sort_filter.py::test_switching_sort_and_filter_off_refuses_the_new_filters",
+        stage="S4",
+    ),
+    "sortable": server(
+        (LIST, API),
+        "api:test_studio.py::test_switches_for_sorting_and_filtering_hold_in_the_api_and_charts_take_dates_added",
+        stage="S4",
+    ),
+    "filterable": server(
+        (LIST, API),
+        "api:test_field_grid.py::test_filtering_can_be_off_while_sorting_stays_on",
+        stage="S4",
+    ),
+    "unsortable": server(
+        (LIST, API),
+        "api:test_sort_filter.py::test_per_field_settings_and_default_sort_are_checked",
+        stage="S4",
+    ),
+    "unfilterable": server(
+        (LIST, API),
+        "api:test_sort_filter.py::test_per_field_settings_and_default_sort_are_checked",
+        stage="S4",
+    ),
+    "default_sort": server(
+        (LIST,),
+        "api:test_sort_filter.py::test_per_field_settings_and_default_sort_are_checked",
+        stage="S4",
+    ),
+    "select_bulk": server(
+        (BULK,), "api:test_bulk.py::test_switches_are_enforced_on_the_server", stage="S4"
+    ),
+    "bulk_actions": server(
+        (BULK,), "api:test_bulk.py::test_switches_are_enforced_on_the_server", stage="S4"
+    ),
+    "bulk_scope": gap((BULK,), "S4", "view versus every field"),
+    "import_data": server(
+        (IMPORT,),
+        "api:test_export_import.py::test_json_files_import_and_the_switch_can_refuse_it",
+        stage="S4",
+    ),
+    "export_data": server(
+        (EXPORT,), "api:test_export_import.py::test_switches_and_formats_are_enforced", stage="S4"
+    ),
+    "export_formats": server(
+        (EXPORT,), "api:test_export_import.py::test_switches_and_formats_are_enforced", stage="S4"
+    ),
+    "export_email": gap((EXPORT,), "S4", "emailed link switch"),
+    "inline_edit": gap(
+        (INLINE,), "S4", "table-wide switch; per-field list is proven, the switch itself is not"
+    ),
+    "grouping": gap((LIST,), "S4", "Group rows switch"),
+    "statistics": server(
+        (STATS, CHART),
+        "api:test_stats.py::test_chosen_fields_are_checked_and_the_switch_is_enforced",
+        "api:test_chart.py::test_chart_is_available_unless_numbers_are_switched_off",
+        stage="S4",
+    ),
+    "stat_fields": server(
+        (STATS,),
+        "api:test_stats.py::test_chosen_fields_are_checked_and_the_switch_is_enforced",
+        stage="S4",
+    ),
+    "stat_cards": server(
+        (STATS,),
+        "api:test_stat_cards.py::test_chosen_cards_are_computed_over_the_matches",
+        stage="S4",
+    ),
+    "stat_scope": server(
+        (STATS,), "api:test_stat_cards.py::test_whole_table_numbers_ignore_the_search", stage="S4"
+    ),
+    "stat_view": gap((STATS, CHART), "S4", "cards or chart above the table"),
+    "chart": server(
+        (CHART,), "api:test_chart.py::test_chart_settings_must_fit_the_table", stage="S4"
+    ),
+    "nochart": server(
+        (CHART,), "api:test_chart.py::test_it_refuses_what_cannot_be_charted", stage="S4"
+    ),
+    "default_columns": gap((LIST,), "S4", "columns everyone sees first"),
+    "density": gap((LIST,), "S4", "starting row height"),
+    "uneditable": gap((INLINE,), "S4", "per-field edit in the list"),
+    "ungroupable": gap((LIST,), "S4"),
+    "unexported": server(
+        (EXPORT,),
+        "api:test_field_grid.py::test_a_field_left_out_of_exports_never_leaves",
+        stage="S4",
+    ),
+    "nobulk": server(
+        (BULK,),
+        "api:test_field_grid.py::test_a_field_left_out_of_bulk_change_is_refused_by_the_server",
+        stage="S4",
+    ),
+    "row_order": server(
+        (LIST,), "api:test_row_order.py::test_switch_permission_and_scope_are_enforced", stage="S4"
+    ),
+}
