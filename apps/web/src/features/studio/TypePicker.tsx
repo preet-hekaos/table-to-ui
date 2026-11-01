@@ -4,10 +4,13 @@ import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type R
 import { Button, cn } from '@/design-system'
 import { coreTypes, type TypeChoice } from './typeCatalog'
 
+/** The little symbol before a type name. Drawn with CSS so it never counts as the button's visible text. */
 export const Tile = ({ text, active }: { text: string; active?: boolean }) => (
-  <span aria-hidden className={cn('inline-flex h-6 min-w-8 items-center justify-center rounded-md px-1.5 text-[11px] font-semibold', active ? 'bg-accent-soft text-accent-ink' : 'bg-soft text-accent-ink')}>
-    {text}
-  </span>
+  <span
+    aria-hidden
+    data-tile={text}
+    className={cn("inline-flex h-6 min-w-8 items-center justify-center rounded-md px-1.5 text-[11px] font-semibold before:content-[attr(data-tile)]", active ? 'bg-accent-soft text-accent-ink' : 'bg-soft text-accent-ink')}
+  />
 )
 
 const SAVED_AS = { upper: 'Capital letters', lower: 'Lower case' } as const
@@ -66,18 +69,11 @@ export function TypePicker({
   const reason = active && blocked ? blocked(active) : null
 
   useEffect(() => {
-    if (open) {
-      setActiveId(current?.id)
-      setQ('')
-      setShowCore(false)
-    }
-  }, [open, current?.id])
-  useEffect(() => {
     if (!active) return
     listRef.current?.querySelector<HTMLElement>(`[data-choice="${CSS.escape(active.id)}"]`)?.scrollIntoView({ block: 'nearest' })
   }, [active])
 
-  const use = () => {
+  const commit = () => {
     if (!active || reason) return
     onUse(active)
     setOpen(false)
@@ -90,7 +86,7 @@ export function TypePicker({
   const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'ArrowDown') { e.preventDefault(); move(1) }
     else if (e.key === 'ArrowUp') { e.preventDefault(); move(-1) }
-    else if (e.key === 'Enter') { e.preventDefault(); use() }
+    else if (e.key === 'Enter') { e.preventDefault(); commit() }
   }
 
   const row = (c: TypeChoice, scope: string) => {
@@ -116,7 +112,17 @@ export function TypePicker({
   }
 
   return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
+    <Popover.Root
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o)
+        if (o) {
+          setActiveId(current?.id)
+          setQ('')
+          setShowCore(false)
+        }
+      }}
+    >
       <Popover.Trigger asChild>
         {trigger ?? (
           <button type="button" aria-label={label} className="flex items-center gap-2 rounded-md border border-transparent px-1 py-0.5 text-left text-sm text-ink hover:border-line hover:bg-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
@@ -205,7 +211,7 @@ export function TypePicker({
             )}
             <div className="mt-auto flex justify-end gap-2 pt-4">
               <Button variant="secondary" size="sm" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button variant="primary" size="sm" onClick={use} disabled={!active || !!reason}>Use {active?.name ?? ''}</Button>
+              <Button variant="primary" size="sm" onClick={commit} disabled={!active || !!reason}>Use {active?.name ?? ''}</Button>
             </div>
           </div>
         </Popover.Content>
