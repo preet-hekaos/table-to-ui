@@ -6,6 +6,7 @@ authorise -> validate -> idempotency -> load context -> evaluate rules -> one tr
 
 import hashlib
 import json
+import re
 import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -364,11 +365,26 @@ async def create_record(
             result.body["warnings"] = warnings
             await _store_idempotency(s, ctx, result)
             return result
-    except IntegrityError:
+    except IntegrityError as e:
         # A concurrent create won the unique index. Re-run the rules to give the proper answer.
         async with db.tenant(tenant_id) as s:
             _resolve(ctx, await _evaluate_rules(s, ctx, table, "create", clean, shadow, None))
-        raise ValidationFailed("This record conflicts with an existing one.") from None
+        raise _conflict(e, table_key, "This record conflicts with an existing one.") from None
+
+
+def unique_field(e: IntegrityError, table_key: str) -> str | None:
+    """The field whose Unique index refused the value, read from the index name."""
+    m = re.search(rf'"{re.escape(table_key)}_([a-z0-9_]+)_unique"', str(e.orig))
+    return m.group(1) if m else None
+
+
+def _conflict(e: IntegrityError, table_key: str, default: str) -> ValidationFailed:
+    key = unique_field(e, table_key)
+    if key is None:
+        return ValidationFailed(default)
+    return ValidationFailed(
+        errors=[{"field": key, "code": "duplicate", "message": "is already used by another record"}]
+    )
 
 
 async def update_record(
@@ -486,8 +502,8 @@ async def update_record(
             result.body["warnings"] = warnings
             await _store_idempotency(s, ctx, result)
             return result
-    except IntegrityError:
-        raise ValidationFailed("This change conflicts with an existing record.") from None
+    except IntegrityError as e:
+        raise _conflict(e, table_key, "This change conflicts with an existing record.") from None
 
 
 async def check_record(

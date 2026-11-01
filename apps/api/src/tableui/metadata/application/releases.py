@@ -7,6 +7,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tableui.audit.public import write_audit
+from tableui.metadata.application import schema_changes
 from tableui.metadata.application.runtime import canonical_hash
 from tableui.platform.errors import NotFound, ValidationFailed
 
@@ -19,6 +20,12 @@ async def publish_to_test(
     manifest: dict[str, Any],
     request_id: str | None,
 ) -> dict[str, Any]:
+    live = await environment_manifest(control, tenant_id, "live")
+    blockers = await schema_changes.unique_blockers(
+        control, tenant_id, live[1] if live else None, manifest
+    )
+    if blockers:
+        raise schema_changes.blocked_message(blockers)
     manifest_id, release_id = uuid.uuid4(), uuid.uuid4()
     await control.execute(
         text(
@@ -69,6 +76,13 @@ async def promote_to_live(
 ) -> dict[str, Any]:
     rel = await _release(control, tenant_id, version)
     await _require_tested(control, tenant_id, rel)
+    live = await environment_manifest(control, tenant_id, "live")
+    await schema_changes.apply(
+        control,
+        tenant_id,
+        live[1] if live else None,
+        await manifest_of(control, tenant_id, version),
+    )
     await control.execute(
         text(
             "UPDATE control.release_approval SET status = 'approved', decided_by = :u, decided_at = now() "
@@ -273,6 +287,14 @@ async def rollback_live(
     previous = next((r for r in rows[1:] if r.release_id != current.release_id), None)
     if previous is None:
         raise ValidationFailed("There is no earlier live version to roll back to.")
+    live = await environment_manifest(control, tenant_id, "live")
+    await schema_changes.apply(
+        control,
+        tenant_id,
+        live[1] if live else None,
+        await manifest_of(control, tenant_id, previous.version),
+        enforce_unique=False,
+    )
     await _deploy(control, tenant_id, "live", previous.release_id, "rollback", user_id)
     await write_audit(
         control,

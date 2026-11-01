@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from tableui.identity.api.deps import PrincipalDep
 from tableui.metadata.api.deps import LiveAppDep
 from tableui.metadata.application import automations as automation_builder
-from tableui.metadata.application import draft, releases, studio
+from tableui.metadata.application import draft, releases, schema_changes, studio
 from tableui.metadata.application import measures as measure_builder
 from tableui.metadata.application import relationships as rel
 from tableui.metadata.domain.diff import diff_manifests
@@ -407,11 +407,16 @@ async def studio_status(p: PrincipalDep, db: DbDep) -> dict[str, Any]:
     changes = diff_manifests(live[1] if live else {}, d)
     async with db.control() as s:
         warnings = await studio.draft_rule_warnings(s, p.tenant_id, changes, d)
+    async with db.control() as s:
+        blockers = await schema_changes.unique_blockers(
+            s, p.tenant_id, live[1] if live else None, d
+        )
     return {
         "live_version": live[0] if live else None,
         "draft_changed": changes["changed"],
         "changes": changes,
         "rule_warnings": warnings,
+        "unique_blockers": blockers,
     }
 
 

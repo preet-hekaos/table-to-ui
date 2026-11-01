@@ -11,6 +11,8 @@ _FIELD_ATTRS = (
     "options",
     "help",
     "unique",
+    "searchable",
+    "filterable",
     "ref_table",
     "max_length",
     "min",

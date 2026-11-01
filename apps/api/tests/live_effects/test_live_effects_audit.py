@@ -95,9 +95,6 @@ async def test_a_default_can_be_set_in_studio(client: httpx.AsyncClient, agency:
     assert r.status_code == 201 and r.json()["default"] == 30
 
 
-@pytest.mark.xfail(
-    strict=True, reason="S4: unique, searchable and filterable are fixed when the field is created"
-)
 @pytest.mark.parametrize("setting", ["unique", "searchable", "filterable"])
 async def test_unique_searchable_and_filterable_can_be_changed_after_the_field_exists(
     client: httpx.AsyncClient, agency: Agency, setting: str
@@ -111,8 +108,7 @@ async def test_unique_searchable_and_filterable_can_be_changed_after_the_field_e
 async def test_a_new_text_field_is_found_by_keyword_search_after_publish(
     client: httpx.AsyncClient, agency: Agency
 ) -> None:
-    """Guard for S4. Searchable cannot be switched later today, so the risk of records saved before the switch
-    cannot be reached yet; S4 adds that scenario (an old record must be found after the switch, via re-index)."""
+    """Guard. The switch-later scenario (an old record found after the switch) is in test_field_switches.py."""
     a = agency
     await _add(client, a, label="Nickname", type="text")
     await a.publish_live()

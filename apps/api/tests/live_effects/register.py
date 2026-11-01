@@ -65,10 +65,12 @@ FIELD: dict[str, Setting] = {
     ),
     "group": gap((FORM,), "S1", "field group heading on the record form"),
     "normalize": gap((IMPORT, API, FORM), "S2", "decides how values are compared and saved"),
-    "unique": gap(
+    "unique": server(
         (FORM, IMPORT, API, BULK),
-        "S4",
-        "can only be chosen when the field is created; duplicates already stored must block the publish",
+        "api:test_field_switches.py::test_unique_is_blocked_while_records_hold_duplicates_then_holds_everywhere",
+        "api:test_field_switches.py::test_switching_unique_off_allows_duplicates_again",
+        stage="S6",
+        note="duplicates already stored block the publish and are listed; screen-level scenario comes with the S4 e2e",
     ),
     "default": gap(
         (FORM, IMPORT, API),
@@ -136,16 +138,17 @@ FIELD: dict[str, Setting] = {
         "api:test_search.py::test_facets_count_and_narrow_and_respect_hidden_fields",
         stage="S1",
     ),
-    "searchable": gap(
+    "searchable": server(
         (SEARCH,),
-        "S4",
-        "fixed at creation (on for text); when switchable, records saved earlier must be re-indexed",
+        "api:test_field_switches.py::test_searchable_rebuilds_the_search_text_of_records_saved_before",
+        stage="S6",
     ),
     "filterable": server(
         (LIST, SEARCH),
         "api:test_field_grid.py::test_filtering_can_be_off_while_sorting_stays_on",
-        stage="S4",
-        note="two flags exist (field.filterable and table unfilterable list); S4 decides how they combine",
+        "api:test_field_switches.py::test_filterable_sets_the_field_flag_and_the_table_list_together",
+        stage="S6",
+        note="the tick sets field.filterable and the table's unfilterable list together",
     ),
     "help": gap((FORM,), "S1", "help text under the input"),
     "aliases": gap((IMPORT,), "S6", "kept working; editor moves to the import wizard later"),

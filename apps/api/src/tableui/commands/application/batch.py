@@ -22,6 +22,7 @@ from tableui.commands.application.pipeline import (
     _emit,
     _evaluate_rules,
     _reject_hidden_writes,
+    unique_field,
 )
 from tableui.metadata.public import TableDef, search_document, shadow_columns, validate_record
 from tableui.platform.db import Database
@@ -52,14 +53,19 @@ class BatchResult:
     warnings: list[dict[str, Any]] = field(default_factory=list)
 
 
-def _describe(e: Exception) -> tuple[str, str]:
+def _describe(e: Exception, table_key: str) -> tuple[str, str]:
     if isinstance(e, ValidationFailed) and e.errors:
         return "; ".join(f"{x['field']} {x['message']}" for x in e.errors), "invalid"
     if isinstance(e, ProblemError):
         rule = (e.extra or {}).get("rule")
         return str(e), f"rule:{rule['check']}" if rule else e.type_slug
     if isinstance(e, IntegrityError):
-        return "conflicts with an existing record", "conflict"
+        key = unique_field(e, table_key)
+        return (
+            f"{key} is already used by another record"
+            if key
+            else "conflicts with an existing record"
+        ), "conflict"
     return str(e), "error"
 
 
@@ -224,7 +230,7 @@ async def apply_batch(
                 async with s.begin_nested():
                     results.append(await _write_row(s, ctx, table, op))
             except (ProblemError, IntegrityError) as e:
-                msg, code = _describe(e)
+                msg, code = _describe(e, table.key)
                 results.append(BatchResult(op, False, op.record_id, error=msg, code=code))
         done = [r for r in results if r.ok]
         overridden = [r for r in done if any(w.get("overridden") for w in r.warnings)]

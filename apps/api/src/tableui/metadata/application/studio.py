@@ -70,6 +70,9 @@ FIELD_EDITABLE = {
     "max_length",
     "rules",
     "type",
+    "unique",
+    "searchable",
+    "filterable",
 }
 
 
@@ -201,8 +204,8 @@ def _new_field(body: dict[str, Any], existing: set[str], tables: set[str]) -> Fi
                 "unique": unique,
                 "normalize": normalize,
                 "source": "agency",
-                "searchable": ftype in TEXTUAL,
-                "filterable": True,
+                "searchable": bool(body.get("searchable", ftype in TEXTUAL)),
+                "filterable": bool(body.get("filterable", True)),
                 **(
                     {k: v for k, v in preset.settings().items() if k != "type" and v is not None}
                     if preset
@@ -366,6 +369,14 @@ async def update_field(
             changes["options"] = []
         keeps = NORMALIZER.get(str(changes["type"])) or ("text" if f.unique else None)
         changes["normalize"] = keeps
+    for flag in ("unique", "searchable", "filterable"):
+        if flag in changes and not isinstance(changes[flag], bool):
+            raise _bad(flag, "must be on or off")
+    if changes.get("unique"):
+        if f.type in ("long_text", "tags", "boolean"):
+            raise _bad("unique", "cannot be used for this type of field", "unique_not_allowed")
+        if not f.normalize and "normalize" not in changes:
+            changes["normalize"] = NORMALIZER.get(str(changes.get("type", f.type))) or "text"
     if "label" in changes and not str(changes["label"]).strip():
         raise _bad("label", "is required", "required")
     if "label" in changes:
@@ -377,6 +388,16 @@ async def update_field(
                 "duplicate",
             )
     new = {**f.model_dump(mode="json"), **changes}
+    if "filterable" in changes:
+        # One meaning: the field-level flag and the table's "no filter on" list are set together.
+        feats = TableFeatures.model_validate(definition.get("features") or {})
+        no_filter = [k for k in feats.unfilterable if k != field_key]
+        if not changes["filterable"]:
+            no_filter.append(field_key)
+        definition = {
+            **definition,
+            "features": {**feats.model_dump(mode="json"), "unfilterable": no_filter},
+        }
     if new.get("hidden") and (new.get("required") or field_key == table.title_field):
         raise _bad("hidden", "a required field or the record's name cannot be hidden")
     try:
