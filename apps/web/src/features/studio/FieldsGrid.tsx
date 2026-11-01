@@ -1,16 +1,19 @@
 import { GripVertical } from 'lucide-react'
 import { Fragment, useState, type KeyboardEvent } from 'react'
 import type { FieldDef, StudioTable } from '@/api/types'
-import { Badge, Button, StageBadge, Table, Td, Th, cn, stageStripe } from '@/design-system'
+import { Badge, Button, Input, StageBadge, Table, Td, Th, cn, stageStripe } from '@/design-system'
+import { FeaturesCell } from './FeaturesCell'
 import { FieldDetails } from './FieldDetails'
 import { FieldMenu } from './FieldMenu'
 import { InlineLabel } from './InlineLabel'
 import { LengthCell } from './LengthCell'
 import { RequiredSwitch } from './RequiredSwitch'
 import { ValidationCell } from './ValidationCell'
+import { TableWideBar } from './TableWideBar'
 import { TypeCell } from './TypeCell'
 import { RemovedCount, UndoRemove } from './UndoRemove'
 import { useFieldOrder } from './useFieldOrder'
+import { useTableFeatures } from './useTableFeatures'
 import type { useStages } from './useStages'
 
 /** The Fields grid of the Studio (mockup board 1): one row per field, edited in place. */
@@ -30,6 +33,8 @@ export function FieldsGrid({
   onAddNew: () => void
 }) {
   const { move, note } = useFieldOrder(table)
+  const { features, patch } = useTableFeatures(table)
+  const [find, setFind] = useState('')
   const [dragKey, setDragKey] = useState<string | null>(null)
   const [overKey, setOverKey] = useState<string | null>(null)
   const [open, setOpen] = useState<Set<string>>(new Set())
@@ -53,9 +58,16 @@ export function FieldsGrid({
     }
   }
 
+  const q = find.trim().toLowerCase()
+  const shownFields = q ? table.fields.filter((f) => f.key.toLowerCase().includes(q) || f.label.toLowerCase().includes(q)) : table.fields
+
   return (
     <div className="overflow-x-auto">
       <p className="sr-only" role="status" aria-live="polite">{note}</p>
+      <div className="flex flex-wrap items-center gap-3 border-b border-line px-3 py-2">
+        <Input aria-label="Search fields" placeholder="Search fields" className="h-8 w-56" value={find} onChange={(e) => setFind(e.target.value)} />
+        <TableWideBar table={table} canEdit={canEdit} features={features} patch={patch} />
+      </div>
       <Table aria-label={`${table.label} fields`}>
         <thead>
           <tr>
@@ -67,11 +79,12 @@ export function FieldsGrid({
             <Th>Length</Th>
             <Th>Validation</Th>
             <Th>Required</Th>
+            <Th>Features</Th>
             {canEdit && <Th><span className="sr-only">Actions</span></Th>}
           </tr>
         </thead>
         <tbody>
-          {table.fields.map((f) => {
+          {shownFields.map((f) => {
             const stage = stages.field(table.key, f.key)
             return (
               <Fragment key={f.key}>
@@ -131,6 +144,9 @@ export function FieldsGrid({
                   <RequiredSwitch table={table} field={f} canEdit={canEdit} />
                   <span className="sr-only">{f.required ? 'Yes' : 'No'}</span>
                 </Td>
+                <Td className="py-1.5">
+                  <FeaturesCell table={table} field={f} f={features} patch={patch} canEdit={canEdit} />
+                </Td>
                 {canEdit && (
                   <Td className="py-1.5"><div className="flex items-center justify-end gap-1">
                     <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => onEdit(f)} aria-label={`Edit ${f.label}`}>
@@ -142,7 +158,7 @@ export function FieldsGrid({
               </tr>
               {open.has(f.key) && (
                 <tr data-details-of={f.key}>
-                  <Td colSpan={canEdit ? 9 : 7} className="p-0">
+                  <Td colSpan={canEdit ? 10 : 8} className="p-0">
                     <FieldDetails table={table} tables={tables} field={f} canEdit={canEdit} />
                   </Td>
                 </tr>
@@ -157,7 +173,7 @@ export function FieldsGrid({
               <Td>
                 <span className="line-through">{f.label}</span> <StageBadge stage="removed" className="ml-1 no-underline" />
               </Td>
-              <Td colSpan={canEdit ? 6 : 5} className="whitespace-normal">
+              <Td colSpan={canEdit ? 7 : 6} className="whitespace-normal">
                 <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <span>Deleted in the Draft; goes away when published.</span>
                   <RemovedCount table={table.key} fieldKey={f.key} />

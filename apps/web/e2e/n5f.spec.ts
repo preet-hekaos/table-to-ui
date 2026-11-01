@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { run, signUpWithPack } from './helpers'
+import { run, signUpWithPack, setTableWide } from './helpers'
 
 const tags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 
@@ -48,10 +48,6 @@ test('Group rows: choose a field, open and close headings, switch off', async ({
   })
 
   await test.step('Switching it off removes the control', async () => {
-    await page.goto('/studio?tab=data&table=candidate&part=features')
-    const panel = page.getByTestId('features-panel')
-    await panel.getByRole('switch', { name: /Group rows/ }).uncheck()
-    await panel.getByRole('button', { name: 'Save features' }).click()
-    await expect(page.getByText('Saved features for Candidate').first()).toBeVisible()
+    await setTableWide(page, 'Group rows', false)
   })
 })

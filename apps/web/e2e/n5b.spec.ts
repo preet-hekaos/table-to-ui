@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { run, signUpWithPack } from './helpers'
+import { run, signUpWithPack, setFieldFeature, expectFieldFeature, setTableWide } from './helpers'
 
 const tags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 
@@ -44,21 +44,15 @@ test('Sort and filter: header filters, chips, per-field settings, switch off', a
   })
 
   await test.step('Per-field settings and default order in Studio', async () => {
-    await page.goto('/studio?tab=data&table=candidate&part=features')
-    const panel = page.getByTestId('features-panel')
-    await panel.getByLabel('Filter by Email').uncheck()
-    await panel.getByLabel('Sort by Email').uncheck()
-    await panel.getByRole('button', { name: 'Save features' }).click()
-    await expect(page.getByText('Saved features for Candidate').first()).toBeVisible()
+    await page.goto('/studio?tab=data&table=candidate')
+    await setFieldFeature(page, 'Email', 'Filterable', false)
+    await setFieldFeature(page, 'Email', 'Sortable', false)
     await page.reload()
-    await expect(page.getByTestId('features-panel').getByLabel('Filter by Email')).not.toBeChecked()
+    await expectFieldFeature(page, 'Email', 'Filterable', false)
   })
 
   await test.step('Switching sort and filter off removes the controls', async () => {
-    const panel = page.getByTestId('features-panel')
-    await panel.getByRole('switch', { name: 'Sorting' }).uncheck()
-    await panel.getByRole('switch', { name: 'Filtering' }).uncheck()
-    await panel.getByRole('button', { name: 'Save features' }).click()
-    await expect(page.getByText('Saved features for Candidate').first()).toBeVisible()
+    await setTableWide(page, 'Sorting', false)
+    await setTableWide(page, 'Filtering', false)
   })
 })

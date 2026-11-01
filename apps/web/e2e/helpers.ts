@@ -99,3 +99,32 @@ export async function pickNewFieldType(page: Page, name: RegExp | string) {
   await picker.getByRole('option', { name }).click()
   await picker.getByRole('button', { name: /^Use / }).click()
 }
+
+/** In the Fields grid: open a field's Features cell and set one tick by its name in the dropdown. */
+export async function setFieldFeature(page: Page, fieldLabel: string, tick: string, on: boolean) {
+  await page.getByRole('button', { name: new RegExp(`Features of ${fieldLabel}$`) }).click()
+  const box = page.getByRole('checkbox', { name: new RegExp(`^${tick}`) })
+  if (on) await box.check()
+  else await box.uncheck()
+  await page.keyboard.press('Escape')
+}
+
+const wideBar = (page: Page) => page.getByRole('group', { name: 'Table-wide switches for Candidate' })
+
+/** Set one table-wide switch in the bar over the Fields grid and wait until it is saved. */
+export async function setTableWide(page: Page, name: string, on: boolean) {
+  await page.goto('/studio?tab=data&table=candidate')
+  const sw = wideBar(page).getByRole('switch', { name: new RegExp(`^${name}`) })
+  await expect(sw).toBeVisible()
+  if ((await sw.getAttribute('aria-checked')) !== String(on)) await sw.click()
+  await expect(sw).toHaveAttribute('aria-checked', String(on))
+}
+
+/** Read one tick of a field's Features cell. */
+export async function expectFieldFeature(page: Page, fieldLabel: string, tick: string, on: boolean) {
+  await page.getByRole('button', { name: new RegExp(`Features of ${fieldLabel}$`) }).click()
+  const box = page.getByRole('checkbox', { name: new RegExp(`^${tick}`) })
+  if (on) await expect(box).toBeChecked()
+  else await expect(box).not.toBeChecked()
+  await page.keyboard.press('Escape')
+}

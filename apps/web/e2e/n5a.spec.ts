@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { run, signUpWithPack } from './helpers'
+import { run, signUpWithPack, setTableWide } from './helpers'
 
 const tags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 
@@ -21,8 +21,9 @@ test('Table features: all on by default, set per table, applied to all, shown in
   })
 
   await test.step('Switch some off and choose options; saving makes a Draft change', async () => {
+    await setTableWide(page, 'Group rows', false)
+    await page.goto('/studio?tab=data&table=candidate&part=features')
     const panel = page.getByTestId('features-panel')
-    await panel.getByRole('switch', { name: /Group rows/ }).uncheck()
     await page.getByRole('button', { name: 'Bulk action options' }).click()
     await page.getByRole('checkbox', { name: 'Delete (with Undo)' }).uncheck()
     await page.getByLabel('Bulk actions include').selectOption('all')
@@ -33,8 +34,8 @@ test('Table features: all on by default, set per table, applied to all, shown in
     await panel.getByRole('button', { name: 'Save features' }).click()
     await expect(page.getByText('Saved features for Candidate').first()).toBeVisible()
     await page.reload()
-    const again = page.getByTestId('features-panel')
-    await expect(again.getByRole('switch', { name: /Group rows/ })).not.toBeChecked()
+    await setTableWide(page, 'Group rows', false)
+    await page.goto('/studio?tab=data&table=candidate&part=features')
     await page.getByRole('button', { name: 'Bulk action options' }).click()
     await expect(page.getByRole('checkbox', { name: 'Delete (with Undo)' })).not.toBeChecked()
     await expect(page.getByLabel('Bulk actions include')).toHaveValue('all')

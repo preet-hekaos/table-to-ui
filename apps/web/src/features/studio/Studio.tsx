@@ -175,6 +175,15 @@ function DraftBanner({ canPublish, onReview }: { canPublish: boolean; onReview: 
         ))}
       </ul>
     )}
+    {d.unique_blockers.length > 0 && (
+      <ul role="alert" aria-label="Duplicates block publishing" data-testid="unique-blockers" className="flex flex-col gap-1 rounded-lg border border-bad-soft bg-bad-soft px-4 py-3 text-sm text-bad-ink">
+        {d.unique_blockers.map((b) => (
+          <li key={`${b.table}.${b.field}`}>
+            <b>{b.label}</b> in {b.table_label} cannot be unique yet. Used more than once: {b.values.slice(0, 5).map((v) => `${v.value} (${v.count})`).join(', ')}. Change those records, then publish.
+          </li>
+        ))}
+      </ul>
+    )}
     <LinkHealth compact />
     </div>
   )

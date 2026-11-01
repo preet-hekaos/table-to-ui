@@ -19,7 +19,7 @@ const shot = async (page: Page, name: string) => {
   if (process.env.SHOTS_DIR) await page.screenshot({ path: `${process.env.SHOTS_DIR}/${name}.png`, fullPage: true })
 }
 
-test('Features tab: whole-table switches, defaults, and field options headed by on/off chips', async ({ page }, testInfo) => {
+test('Features: whole-table switches in the bar over the Fields grid and a Features cell on each row', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await signUpWithPack(page, `Layout Co ${run}`, `layout-${run}@layout.test`)
   await page.evaluate(async () => {
@@ -32,27 +32,27 @@ test('Features tab: whole-table switches, defaults, and field options headed by 
   await page.goto('/studio?tab=data&table=candidate&part=features')
   const panel = page.getByTestId('features-panel')
 
-  await test.step('Two sections, in this order', async () => {
+  await test.step('The Features tab keeps the table-wide section; the per-field grid is gone', async () => {
     await expect(panel.getByRole('heading', { name: 'For the whole table' })).toBeVisible()
-    await expect(panel.getByRole('heading', { name: 'Field options' })).toBeVisible()
+    await expect(panel.getByRole('heading', { name: 'Field options' })).toHaveCount(0)
     await expect(panel.getByText('No unsaved changes')).toBeVisible()
     await shot(page, 'r7-features-on')
-    await testInfo.attach('features-on', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' })
   })
 
-  await test.step('A heading chip switches an option off for the whole table and greys its chips', async () => {
-    const group = panel.getByRole('switch', { name: 'Group rows' })
+  await test.step('A table-wide switch greys that tick on every field and says why', async () => {
+    await page.goto('/studio?tab=data&table=candidate')
+    const bar = page.getByRole('group', { name: 'Table-wide switches for Candidate' })
+    const group = bar.getByRole('switch', { name: /^Group rows/ })
     await expect(group).toBeChecked()
-    await group.uncheck()
-    await expect(panel.getByText('1 unsaved change')).toBeVisible()
-    const chip = panel.getByRole('checkbox', { name: 'Group by Email' })
-    await expect(chip).toBeDisabled()
-    await chip.hover({ force: true })
-    await expect(page.getByRole('tooltip').filter({ hasText: 'Turn on Group rows first.' }).first()).toBeVisible()
-    await expectReadable(page, chip) // greyed chips stay legible
-    await panel.getByRole('switch', { name: 'Filtering' }).uncheck()
-    await panel.getByRole('button', { name: 'Save features' }).click()
-    await expect(page.getByText('Saved features for Candidate').first()).toBeVisible()
+    await group.click()
+    await expect(group).not.toBeChecked()
+    await page.getByRole('button', { name: /Features of Email$/ }).click()
+    const tick = page.getByRole('checkbox', { name: /^Groupable/ })
+    await expect(tick).toBeDisabled()
+    await expect(page.getByText('Turn on Group rows in the bar above first.')).toBeVisible()
+    await expectReadable(page, tick) // greyed ticks stay legible
+    await page.keyboard.press('Escape')
+    await bar.getByRole('switch', { name: /^Filtering/ }).click()
     await shot(page, 'r7-features-off')
     await goLive(page)
   })
@@ -65,7 +65,8 @@ test('Features tab: whole-table switches, defaults, and field options headed by 
   })
 
   await test.step('Accessibility', async () => {
-    await page.goto('/studio?tab=data&table=candidate&part=features')
+    await page.goto('/studio?tab=data&table=candidate')
+    await page.getByRole('button', { name: /Features of Email$/ }).click()
     const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()
     const bad = r.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')
     expect(bad.map((v) => `${v.id}: ${v.nodes.slice(0, 4).map((n) => `${n.target.join(' ')} ${n.any[0]?.message ?? ''}`).join(' | ')}`)).toEqual([])
@@ -81,11 +82,7 @@ test('The unsaved-changes count is honest: turning something off and on again is
   await expect(clean).toBeVisible()
 
   const flips: [string, () => ReturnType<typeof panel.getByRole>, string, string?][] = [
-    ['a switch', () => panel.getByRole('switch', { name: 'Group rows' }), 'Group rows'],
-    ['a Shown chip', () => panel.getByRole('checkbox', { name: 'Show Email by default' }), 'Show Email'],
-    ['a Sort chip', () => panel.getByRole('checkbox', { name: 'Sort by Email' }), 'Sort Email'],
-    ['a Filter chip', () => panel.getByRole('checkbox', { name: 'Filter by Phone' }), 'Filter Phone'],
-    ['a Summary chip', () => panel.getByRole('checkbox', { name: 'Summarise Total experience' }), 'Summary'],
+    ['a switch', () => panel.getByRole('switch', { name: 'Select rows and act on many' }), 'Select rows'],
     ['a bulk action chip', () => page.getByRole('checkbox', { name: 'Delete (with Undo)' }), 'Bulk action', 'Bulk action options'],
     ['an export format chip', () => page.getByRole('checkbox', { name: 'CSV' }), 'Format', 'Export options'],
   ]
@@ -104,19 +101,8 @@ test('The unsaved-changes count is honest: turning something off and on again is
     })
   }
 
-  await test.step('Several chips of one column, undone in a different order, leave nothing behind', async () => {
-    const email = panel.getByRole('checkbox', { name: 'Sort by Email' })
-    const phone = panel.getByRole('checkbox', { name: 'Sort by Phone' })
-    await email.click()
-    await phone.click()
-    await expect(panel.getByText('1 unsaved change', { exact: true })).toBeVisible() // one setting, two fields
-    await email.click()
-    await phone.click()
-    await expect(clean).toBeVisible()
-  })
-
   await test.step('Saving brings the count back to none', async () => {
-    await panel.getByRole('switch', { name: 'Group rows' }).click()
+    await panel.getByRole('switch', { name: 'Select rows and act on many' }).click()
     await panel.getByRole('button', { name: 'Save features' }).click()
     await expect(page.getByText('Saved features for Candidate').first()).toBeVisible()
     await expect(clean).toBeVisible()

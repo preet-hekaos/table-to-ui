@@ -39,11 +39,9 @@ test('Quiet scrollbars, and lists fade where there is more', async ({ page }) =>
     await page.keyboard.press('Escape')
   })
 
-  await test.step('A wide table fades at the right edge; nothing breaks for axe', async () => {
+  await test.step('Nothing breaks for axe on the Features tab', async () => {
     await page.getByRole('tab', { name: 'Features' }).click()
-    const grid = page.getByTestId('field-grid').locator('[data-fade="x"]')
     await page.setViewportSize({ width: 900, height: 800 })
-    await expect(grid).toHaveAttribute('data-fading', '')
     await shot(page, 'r9-grid')
     const r = await new AxeBuilder({ page }).analyze()
     expect(r.violations).toEqual([])
