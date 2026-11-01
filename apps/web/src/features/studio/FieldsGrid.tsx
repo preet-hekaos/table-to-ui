@@ -1,0 +1,138 @@
+import { GripVertical } from 'lucide-react'
+import { useState, type KeyboardEvent } from 'react'
+import type { FieldDef, StudioTable } from '@/api/types'
+import { Badge, Button, StageBadge, Table, Td, Th, cn, stageStripe } from '@/design-system'
+import { TYPE_LABELS } from './FieldDialog'
+import { InlineLabel } from './InlineLabel'
+import { RequiredSwitch } from './RequiredSwitch'
+import { useFieldOrder } from './useFieldOrder'
+import type { useStages } from './useStages'
+
+/** The Fields grid of the Studio (mockup board 1): one row per field, edited in place. */
+export function FieldsGrid({
+  table,
+  tables,
+  canEdit,
+  stages,
+  onEdit,
+}: {
+  table: StudioTable
+  tables: StudioTable[]
+  canEdit: boolean
+  stages: ReturnType<typeof useStages>
+  onEdit: (f: FieldDef) => void
+}) {
+  const { move, note } = useFieldOrder(table)
+  const [dragKey, setDragKey] = useState<string | null>(null)
+  const [overKey, setOverKey] = useState<string | null>(null)
+  const keys = table.fields.map((f) => f.key)
+
+  const onHandleKey = (e: KeyboardEvent<HTMLButtonElement>, key: string) => {
+    const i = keys.indexOf(key)
+    if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      move(key, i - 1)
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      move(key, i + 1)
+    } else if (e.key === 'Home') {
+      e.preventDefault()
+      move(key, 0)
+    } else if (e.key === 'End') {
+      e.preventDefault()
+      move(key, keys.length - 1)
+    }
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <p className="sr-only" role="status" aria-live="polite">{note}</p>
+      <Table aria-label={`${table.label} fields`}>
+        <thead>
+          <tr>
+            {canEdit && <Th className="w-8"><span className="sr-only">Move</span></Th>}
+            <Th>Field name</Th>
+            <Th>Label</Th>
+            <Th>Type</Th>
+            <Th>Required</Th>
+            {canEdit && <Th><span className="sr-only">Actions</span></Th>}
+          </tr>
+        </thead>
+        <tbody>
+          {table.fields.map((f) => {
+            const stage = stages.field(table.key, f.key)
+            return (
+              <tr
+                key={f.key}
+                className={cn(stageStripe(stage), dragKey && overKey === f.key && dragKey !== f.key && 'shadow-[inset_0_2px_0_0_var(--color-accent,#1d4fd7)]')}
+                data-stage={stage}
+                onDragOver={canEdit && dragKey ? (e) => { e.preventDefault(); setOverKey(f.key) } : undefined}
+                onDrop={
+                  canEdit && dragKey
+                    ? (e) => {
+                        e.preventDefault()
+                        if (dragKey !== f.key) move(dragKey, keys.indexOf(f.key))
+                        setDragKey(null)
+                        setOverKey(null)
+                      }
+                    : undefined
+                }
+              >
+                {canEdit && (
+                  <Td className="w-8 py-1.5">
+                    <button
+                      type="button"
+                      draggable
+                      aria-label={`Move ${f.label}. Drag, or use the up and down arrow keys.`}
+                      title="Drag to reorder"
+                      className="cursor-grab rounded p-0.5 text-muted hover:bg-soft hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+                      onKeyDown={(e) => onHandleKey(e, f.key)}
+                      onDragStart={(e) => {
+                        e.dataTransfer.effectAllowed = 'move'
+                        e.dataTransfer.setData('text/plain', f.key)
+                        setDragKey(f.key)
+                      }}
+                      onDragEnd={() => { setDragKey(null); setOverKey(null) }}
+                    >
+                      <GripVertical className="size-4" aria-hidden />
+                    </button>
+                  </Td>
+                )}
+                <Td className="py-1.5 font-mono text-xs text-muted">{f.key}</Td>
+                <Td className="py-1.5 font-medium text-ink">
+                  <InlineLabel table={table} field={f} canEdit={canEdit} /> {stage && stage !== 'live' && <StageBadge stage={stage} className="ml-1" />}
+                  {f.hidden && <Badge tone="warn" className="ml-1">Hidden</Badge>}
+                </Td>
+                <Td className="py-1.5">
+                  {TYPE_LABELS[f.type] ?? f.type}
+                  {f.ref_table && <span className="text-muted"> to {tables.find((t) => t.key === f.ref_table)?.label ?? f.ref_table}</span>}
+                </Td>
+                <Td className="py-1.5">
+                  <RequiredSwitch table={table} field={f} canEdit={canEdit} />
+                  <span className="sr-only">{f.required ? 'Yes' : 'No'}</span>
+                </Td>
+                {canEdit && (
+                  <Td className="py-1.5 text-right">
+                    <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => onEdit(f)} aria-label={`Edit ${f.label}`}>
+                      Edit
+                    </Button>
+                  </Td>
+                )}
+              </tr>
+            )
+          })}
+          {stages.removedFields(table.key).map((f) => (
+            <tr key={`removed-${f.key}`} className={cn(stageStripe('removed'), 'text-muted line-through')} data-stage="removed">
+              {canEdit && <Td />}
+              <Td className="font-mono text-xs">{f.key}</Td>
+              <Td>
+                {f.label} <StageBadge stage="removed" className="ml-1 no-underline" />
+              </Td>
+              <Td colSpan={canEdit ? 3 : 2}>Deleted in the Draft; goes away when published.</Td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+    </div>
+  )
+}

@@ -2,10 +2,9 @@ import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import type { ApiError } from '@/api/client'
 import type { FieldDef, StudioTable } from '@/api/types'
-import { Badge, Button, Card, ErrorState, LoadingState, StageBadge, Table, Tabs, TabsContent, TabsList, TabsTrigger, Td, Th, cn, stageStripe } from '@/design-system'
-import { FieldDialog, NewTableDialog, TYPE_LABELS } from './FieldDialog'
-import { InlineLabel } from './InlineLabel'
-import { RequiredSwitch } from './RequiredSwitch'
+import { Badge, Button, Card, ErrorState, LoadingState, StageBadge, Tabs, TabsContent, TabsList, TabsTrigger } from '@/design-system'
+import { FieldDialog, NewTableDialog } from './FieldDialog'
+import { FieldsGrid } from './FieldsGrid'
 import { FeaturesPanel } from './FeaturesPanel'
 import { SchemaExportDialog } from './SchemaExportDialog'
 import { SchemaImportDialog } from './SchemaImportDialog'
@@ -75,57 +74,7 @@ export function DataTab({
             </div>
           </div>
           <TabsContent value="fields">
-          <div className="overflow-x-auto">
-            <Table aria-label={`${current.label} fields`}>
-              <thead>
-                <tr>
-                  <Th>Field name</Th>
-                  <Th>Label</Th>
-                  <Th>Type</Th>
-                  <Th>Required</Th>
-                  {canEdit && <Th><span className="sr-only">Actions</span></Th>}
-                </tr>
-              </thead>
-              <tbody>
-                {current.fields.map((f) => {
-                  const stage = stages.field(current.key, f.key)
-                  return (
-                    <tr key={f.key} className={cn(stageStripe(stage))} data-stage={stage}>
-                      <Td className="py-1.5 font-mono text-xs text-muted">{f.key}</Td>
-                      <Td className="py-1.5 font-medium text-ink">
-                        <InlineLabel table={current as StudioTable} field={f} canEdit={canEdit} /> {stage && stage !== 'live' && <StageBadge stage={stage} className="ml-1" />}
-                        {f.hidden && <Badge tone="warn" className="ml-1">Hidden</Badge>}
-                      </Td>
-                      <Td className="py-1.5">
-                        {TYPE_LABELS[f.type] ?? f.type}
-                        {f.ref_table && <span className="text-muted"> to {all.find((t) => t.key === f.ref_table)?.label ?? f.ref_table}</span>}
-                      </Td>
-                      <Td className="py-1.5">
-                        <RequiredSwitch table={current as StudioTable} field={f} canEdit={canEdit} />
-                        <span className="sr-only">{f.required ? 'Yes' : 'No'}</span>
-                      </Td>
-                      {canEdit && (
-                        <Td className="py-1.5 text-right">
-                          <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => setEditing(f)} aria-label={`Edit ${f.label}`}>
-                            Edit
-                          </Button>
-                        </Td>
-                      )}
-                    </tr>
-                  )
-                })}
-                {stages.removedFields(current.key).map((f) => (
-                  <tr key={`removed-${f.key}`} className={cn(stageStripe('removed'), 'text-muted line-through')} data-stage="removed">
-                    <Td className="font-mono text-xs">{f.key}</Td>
-                    <Td>
-                      {f.label} <StageBadge stage="removed" className="ml-1 no-underline" />
-                    </Td>
-                    <Td colSpan={canEdit ? 3 : 2}>Deleted in the Draft; goes away when published.</Td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          </div>
+            <FieldsGrid table={current as StudioTable} tables={all} canEdit={canEdit} stages={stages} onEdit={setEditing} />
           </TabsContent>
           <TabsContent value="screens" className="p-3">
             <ScreensTab canEdit={canEdit} tableKey={current.key} />

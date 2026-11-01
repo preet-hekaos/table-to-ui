@@ -425,6 +425,38 @@ async def update_field(
     return nf.model_dump(mode="json")
 
 
+async def reorder_fields(
+    s: AsyncSession,
+    *,
+    tenant_id: uuid.UUID,
+    user_id: uuid.UUID,
+    table_key: str,
+    order: list[str],
+    request_id: str | None,
+) -> dict[str, Any]:
+    """The order fields are listed in; record forms follow it. Every field must appear exactly once."""
+    await _enter_tenant(s, tenant_id)
+    found = await _draft(s, "table", table_key)
+    if found is None:
+        raise NotFound(f"There is no table '{table_key}'.")
+    definition, source = found
+    table = TableDef.model_validate(definition)
+    have = [f.key for f in table.fields]
+    if sorted(order) != sorted(have) or len(set(order)) != len(order):
+        raise _bad("order", "must list every field of the table exactly once", "bad_order")
+    if order == have:
+        return table.model_dump(mode="json")
+    by_key = {x["key"]: x for x in definition["fields"]}
+    updated = TableDef.model_validate(
+        {**definition, "fields": [by_key[k] for k in order], "version": table.version + 1}
+    )
+    await _put(s, tenant_id, "table", table_key, updated.model_dump(mode="json"), source)
+    await _audit(
+        s, tenant_id, user_id, "metadata.field.reorder", table_key, {"order": order}, request_id
+    )
+    return updated.model_dump(mode="json")
+
+
 async def remove_field(
     s: AsyncSession,
     *,

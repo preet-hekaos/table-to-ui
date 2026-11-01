@@ -7,7 +7,7 @@ import { freshSession, publishLive } from './live-effect'
 test('S1.2 inline label: Enter saves, Esc cancels, leaving the cell saves, bad labels are refused', async ({ page }) => {
   await signUpWithPack(page, `S1 Co ${run}`, `s1a-${run}@studio.test`)
   await page.goto('/studio')
-  const row = (key: string) => page.getByRole('row', { name: new RegExp(`^${key} `) })
+  const row = (key: string) => page.getByRole('row', { name: new RegExp(`^(?:Move [^.]*\\. Drag, or use the up and down arrow keys\\. )?${key} `) })
   const rename = (key: string, label: string) => row(key).getByRole('button', { name: label, exact: true })
 
   await test.step('Enter saves the new label to the Draft', async () => {
@@ -59,10 +59,10 @@ test('S1.2 inline label: Enter saves, Esc cancels, leaving the cell saves, bad l
 test('S1 live effect: a label renamed in Studio shows on the live form and list', async ({ page, browser }) => {
   await signUpWithPack(page, `S1 Live ${run}`, `s1b-${run}@studio.test`)
   await page.goto('/studio')
-  await page.getByRole('row', { name: /^full_name / }).getByRole('button', { name: 'Full name', exact: true }).click()
+  await page.getByRole('row', { name: /^(?:Move [^.]*\. Drag, or use the up and down arrow keys\. )?full_name / }).getByRole('button', { name: 'Full name', exact: true }).click()
   await page.getByLabel('Label of full_name').fill('Candidate name')
   await page.getByLabel('Label of full_name').press('Enter')
-  await expect(page.getByRole('row', { name: /^full_name / })).toContainText('Candidate name')
+  await expect(page.getByRole('row', { name: /^(?:Move [^.]*\. Drag, or use the up and down arrow keys\. )?full_name / })).toContainText('Candidate name')
   await publishLive(page)
 
   const live = await freshSession(browser, page)
@@ -111,6 +111,51 @@ test('S1.3 required switch: one click saves to the Draft, and the live form then
     await live.getByLabel(/^Phone/).fill('+91 98450 66666')
     await live.getByRole('button', { name: 'Save candidate' }).click()
     await expect(live.getByText('Current employer is required')).toBeVisible()
+    await live.context().close()
+  })
+})
+
+test('S1.4 reorder: drag and keyboard moves save the order, and the live form follows it', async ({ page, browser }) => {
+  await signUpWithPack(page, `S1 Ord ${run}`, `s1d-${run}@studio.test`)
+  await page.goto('/studio')
+  const names = async () => (await page.locator('tbody tr td:nth-child(2)').allTextContents()).map((t) => t.trim())
+  const handle = (label: string) => page.getByRole('button', { name: new RegExp(`^Move ${label}\\.`) })
+
+  await test.step('Arrow Down on the handle moves the field one place and keeps focus', async () => {
+    await expect(handle('Email')).toBeVisible()
+    const before = await names()
+    expect(before.indexOf('email')).toBeGreaterThanOrEqual(0)
+    await handle('Email').focus()
+    await page.keyboard.press('ArrowDown')
+    await expect.poll(async () => (await names()).indexOf('email')).toBe(before.indexOf('email') + 1)
+    await expect(handle('Email')).toBeFocused()
+    await expect(page.getByText(/^Email moved to position/)).toBeAttached()
+    await expect(page.getByTestId('draft-banner')).toContainText('unpublished change')
+  })
+
+  await test.step('Dragging a field onto another puts it there', async () => {
+    const before = await names()
+    await handle('Phone').dragTo(page.getByRole('row', { name: /^(?:Move [^.]*\. Drag, or use the up and down arrow keys\. )?full_name / }))
+    await expect.poll(async () => (await names()).indexOf('phone')).toBe(before.indexOf('full_name'))
+  })
+
+  await test.step('The order survives a reload', async () => {
+    const order = await names()
+    await page.reload()
+    await expect.poll(names).toEqual(order)
+  })
+
+  await test.step('After publishing, a separate session sees the same order on the form', async () => {
+    const order = await names()
+    await publishLive(page)
+    const live = await freshSession(browser, page)
+    await live.goto('/records/candidate/new')
+    const email = await live.getByLabel(/^Email/).boundingBox()
+    const phone = await live.getByLabel(/^Phone/).boundingBox()
+    // email and phone share the Contact group; the Draft order decides which comes first.
+    const emailFirst = order.indexOf('email') < order.indexOf('phone')
+    expect(email && phone).toBeTruthy()
+    expect(email!.y < phone!.y).toBe(emailFirst)
     await live.context().close()
   })
 })

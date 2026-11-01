@@ -1,7 +1,7 @@
 import uuid
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Query, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from pydantic import BaseModel
 
 from tableui.identity.api.deps import PrincipalDep
@@ -87,6 +87,26 @@ async def update_field(
             table_key=table,
             field_key=field,
             body=body,
+            request_id=get_request_id(request),
+        )
+
+
+@router.put("/studio/tables/{table}/field-order")
+async def reorder_fields(
+    table: str, body: dict[str, Any], p: PrincipalDep, db: DbDep, request: Request
+) -> dict[str, Any]:
+    p.require("metadata.write")
+    assert p.tenant_id
+    order = body.get("order")
+    if not isinstance(order, list) or not all(isinstance(k, str) for k in order):
+        raise HTTPException(422, "order must be a list of field keys")
+    async with db.control() as s:
+        return await studio.reorder_fields(
+            s,
+            tenant_id=p.tenant_id,
+            user_id=p.user_id,
+            table_key=table,
+            order=order,
             request_id=get_request_id(request),
         )
 

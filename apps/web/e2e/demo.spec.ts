@@ -88,10 +88,9 @@ test('M0 demo script', async ({ browser }) => {
   await test.step('4. Ananya opens the Studio and sees the Candidate table and its fields', async () => {
     await a.page.goto('/studio')
     await expect(a.page.getByRole('heading', { name: 'Candidate', exact: true })).toBeVisible()
-    const row = a.page.getByRole('row', { name: /^email Email Email address Yes/ })
+    const row = a.page.getByRole('row', { name: /^(?:Move [^.]*\. Drag, or use the up and down arrow keys\. )?email Email Email address/ })
     await expect(row).toContainText('Email address')
-    await expect(row).toContainText('Yes')
-    await expect(row).toContainText('Pack')
+    await expect(row.getByRole('switch', { name: 'Email is required' })).toHaveAttribute('aria-checked', 'true')
     await expect(a.page.getByRole('group', { name: 'Environments' })).toContainText('Live v1')
   })
 
