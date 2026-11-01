@@ -99,8 +99,14 @@ FIELD: dict[str, Setting] = {
         stage="S2",
         note="Studio sets it (Length column arrives in S2.4); text, email, phone and web address all obey it",
     ),
-    "type_name": gap(
-        (), "S2", "the real-world type name; shown in the grid and the field panel from S2.3"
+    "type_name": Setting(
+        "live",
+        (),
+        (
+            "e2e:s1-fields-grid.spec.ts::S2.7 the grid and the field panel show the same real-world type name",
+        ),
+        "S2",
+        "the real-world type name; the grid and the field panel show the same name",
     ),
     "save_as": server(
         (FORM, IMPORT, API, INLINE, BULK),
