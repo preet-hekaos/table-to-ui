@@ -14,7 +14,7 @@ E2E = TESTS.parents[1] / "web" / "e2e"
 LEVELS = {"live", "server", "gap"}
 STAGES = {"S1", "S2", "S3", "S4", "S5", "S6"}
 # The number of gaps may only go down. Lower this when a gap is closed; S6 sets it to 0.
-GAP_BUDGET = 23
+GAP_BUDGET = 21
 
 
 def _functions(path: Path) -> set[str]:

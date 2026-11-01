@@ -53,7 +53,21 @@ async def test_a_length_set_in_studio_stops_longer_web_addresses_too(
     assert long.status_code == 422
 
 
-@pytest.mark.xfail(strict=True, reason="S2: min and max are enforced for whole numbers only")
+async def test_a_minimum_set_in_studio_stops_smaller_decimals(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    f = await _add(client, a, label="Rating", type="decimal")
+    assert (await _patch(client, a, f["key"], min=1.5)).status_code == 200
+    await a.publish_live()
+    low = await a.create_candidate(
+        candidate(rating=1.2, phone="+91 98450 10005", email="l5@x.test")
+    )
+    assert low.status_code == 422
+    ok = await a.create_candidate(candidate(rating=1.5, phone="+91 98450 10006", email="l6@x.test"))
+    assert ok.status_code == 201, ok.text
+
+
 async def test_a_maximum_set_in_studio_stops_larger_decimals(
     client: httpx.AsyncClient, agency: Agency
 ) -> None:

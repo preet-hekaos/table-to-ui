@@ -91,3 +91,11 @@ export async function putFeatures(page: Page, table: string, body: Record<string
   )
   expect(status).toBe(200)
 }
+
+/** In the Add field dialog: open the Type picker, choose a type by its name, and confirm. */
+export async function pickNewFieldType(page: Page, name: RegExp | string) {
+  await page.getByRole('dialog', { name: /^Add a field to/ }).getByRole('button', { name: /^Type: / }).click()
+  const picker = page.getByRole('dialog', { name: 'Type picker' })
+  await picker.getByRole('option', { name }).click()
+  await picker.getByRole('button', { name: /^Use / }).click()
+}

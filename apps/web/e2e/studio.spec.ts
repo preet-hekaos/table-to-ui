@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { run, signUpWithPack, openSection, expectSection } from './helpers'
+import { run, signUpWithPack, openSection, expectSection, pickNewFieldType } from './helpers'
 
 const tags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 
@@ -21,7 +21,7 @@ test('Studio: fields, tables, map, screens, menu, preview and versions', async (
     await page.getByRole('button', { name: 'Add field' }).click()
     const dialog = page.getByRole('dialog')
     await dialog.getByLabel(/^Label/).fill('Preferred shift')
-    await dialog.getByLabel('Type').selectOption('select')
+    await pickNewFieldType(page, /^Choice from a list/)
     await dialog.getByLabel(/^Choices/).fill('Day, Night')
     await dialog.getByRole('button', { name: 'Add field' }).click()
     await expect(page.getByRole('row', { name: /^(?:Move [^.]*\. Drag, or use the up and down arrow keys\. )?preferred_shift Preferred shift Draft/ })).toBeVisible()

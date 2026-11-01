@@ -133,6 +133,10 @@ def _coerce_type(field: FieldDef, value: Any) -> tuple[Any, str | None]:
     if t == "decimal":
         if isinstance(value, bool) or not isinstance(value, int | float):
             return None, "must be a number"
+        if field.min is not None and value < field.min:
+            return None, f"must be at least {field.min:g}"
+        if field.max is not None and value > field.max:
+            return None, f"must be at most {field.max:g}"
         return value, None
     if t == "boolean":
         return (value, None) if isinstance(value, bool) else (None, "must be true or false")

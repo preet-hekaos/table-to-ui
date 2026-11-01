@@ -80,15 +80,17 @@ FIELD: dict[str, Setting] = {
         "api:test_studio.py::test_removing_a_choice_in_use_is_refused_and_deleting_a_field_cleans_settings",
         stage="S1",
     ),
-    "min": gap(
+    "min": server(
         (FORM, IMPORT, API, INLINE, BULK),
-        "S2",
-        "Partly: Studio sets it, only whole numbers obey it",
+        "api:live_effects/test_live_effects_audit.py::test_a_minimum_set_in_studio_stops_smaller_decimals",
+        stage="S2",
+        note="Studio sets it; whole numbers and decimals both obey it",
     ),
-    "max": gap(
+    "max": server(
         (FORM, IMPORT, API, INLINE, BULK),
-        "S2",
-        "Partly: Studio sets it, only whole numbers obey it",
+        "api:live_effects/test_live_effects_audit.py::test_a_maximum_set_in_studio_stops_larger_decimals",
+        stage="S2",
+        note="Studio sets it; whole numbers and decimals both obey it",
     ),
     "max_length": server(
         (FORM, IMPORT, API, INLINE, BULK),

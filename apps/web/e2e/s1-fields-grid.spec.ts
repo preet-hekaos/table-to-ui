@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { run, signUpWithPack } from './helpers'
+import { pickNewFieldType, run, signUpWithPack } from './helpers'
 import { freshSession, publishLive } from './live-effect'
 
 /** S1 of the Studio table redesign: the inline-editable Fields grid (mockup board 1). */
@@ -412,4 +412,31 @@ test('S2.5 shrinking a length asks first, names how many records are affected, a
     await expect(live.getByText('Senior Recruiter').first()).toBeVisible()
     await live.context().close()
   })
+})
+
+test('S2.6 the Add field dialog uses the Type picker, and a PAN field added there behaves as PAN on the live form', async ({ page, browser }) => {
+  await signUpWithPack(page, `S2 Add ${run}`, `s2d-${run}@studio.test`)
+  await page.goto('/studio')
+  await page.getByRole('button', { name: 'Add field' }).click()
+  const dialog = page.getByRole('dialog', { name: /^Add a field to/ })
+  await dialog.getByLabel(/^Label/).fill('Tax ID')
+  await expect(dialog.getByRole('button', { name: /^Type: Short text/ })).toBeVisible()
+  await pickNewFieldType(page, /PAN \(India\)/)
+  await expect(dialog.getByRole('button', { name: /^Type: PAN \(India\)/ })).toBeVisible()
+  await page.screenshot({ path: '../../docs/screens/studio-table/s2/after-add-field.png' })
+  await dialog.getByRole('button', { name: 'Add field' }).click()
+  const row = page.getByRole('row', { name: /^(?:Move [^.]*\. Drag, or use the up and down arrow keys\. )?tax_id /})
+  await expect(row).toContainText('PAN (India)')
+  await expect(row.locator('code')).toHaveText('text')
+
+  await publishLive(page)
+  const live = await freshSession(browser, page)
+  await live.goto('/records/candidate/new')
+  await live.getByLabel(/^Full name/).fill('Add Check')
+  await live.getByLabel(/^Email/).fill(`s2d-${run}@pan.test`)
+  await live.getByLabel(/^Phone/).fill('+91 98450 55555')
+  await live.getByLabel(/^Tax ID/).fill('abcde1234f')
+  await live.getByRole('button', { name: 'Save candidate' }).click()
+  await expect(live.getByText('ABCDE1234F').first()).toBeVisible()
+  await live.context().close()
 })
