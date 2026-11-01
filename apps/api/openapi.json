@@ -8655,6 +8655,34 @@
         ]
       }
     },
+    "/v1/studio/standard-values": {
+      "get": {
+        "operationId": "standard_values_v1_studio_standard_values_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "type": "object"
+                  },
+                  "title": "Response Standard Values V1 Studio Standard Values Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Standard Values",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
     "/v1/studio/status": {
       "get": {
         "description": "Whether the Draft differs from Live, and how.",
@@ -9205,6 +9233,72 @@
           }
         },
         "summary": "Rules Check Existing",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
+    "/v1/studio/tables/{table}/fields/{field}/transform-preview": {
+      "post": {
+        "description": "Try a value: what the drafted transformation rules do to sample values, and whether the result is then valid.",
+        "operationId": "transform_preview_v1_studio_tables__table__fields__field__transform_preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "table",
+            "required": true,
+            "schema": {
+              "title": "Table",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "field",
+            "required": true,
+            "schema": {
+              "title": "Field",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Transform Preview V1 Studio Tables  Table  Fields  Field  Transform Preview Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Transform Preview",
         "tags": [
           "studio"
         ]

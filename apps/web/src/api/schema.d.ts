@@ -2371,6 +2371,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/studio/standard-values": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Standard Values */
+        get: operations["standard_values_v1_studio_standard_values_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/studio/status": {
         parameters: {
             query?: never;
@@ -2529,6 +2546,26 @@ export interface paths {
         put?: never;
         /** Rules Check Existing */
         post: operations["rules_check_existing_v1_studio_tables__table__fields__field__rules_check_existing_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/studio/tables/{table}/fields/{field}/transform-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Transform Preview
+         * @description Try a value: what the drafted transformation rules do to sample values, and whether the result is then valid.
+         */
+        post: operations["transform_preview_v1_studio_tables__table__fields__field__transform_preview_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -8483,6 +8520,28 @@ export interface operations {
             };
         };
     };
+    standard_values_v1_studio_standard_values_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    }[];
+                };
+            };
+        };
+    };
     studio_status_v1_studio_status_get: {
         parameters: {
             query?: never;
@@ -8847,6 +8906,46 @@ export interface operations {
                 content: {
                     "application/json": {
                         [key: string]: number;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    transform_preview_v1_studio_tables__table__fields__field__transform_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                table: string;
+                field: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
                     };
                 };
             };
