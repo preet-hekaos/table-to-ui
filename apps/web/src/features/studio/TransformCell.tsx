@@ -4,6 +4,9 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { studio } from '@/api/endpoints'
 import type { FieldDef, StudioTable, TransformDo, TransformRule, TransformWhen } from '@/api/types'
 import { Button, Dialog, DialogContent, Input, Select, Switch, cn } from '@/design-system'
+import { useQuery as useQ } from '@tanstack/react-query'
+import { ai } from '@/api/endpoints'
+import { WordsPanel } from './WordsPanel'
 import { CASES, DO, WHEN, describeRule, emptyRule, isComplete } from './transforms'
 import { useSaveField } from './useSaveField'
 
@@ -62,6 +65,7 @@ function TransformDialog({ table, field, canEdit, onClose }: { table: StudioTabl
   const [bDo, setBDo] = useState<TransformDo | ''>('')
   const [samples, setSamples] = useState<string[]>([''])
   const id = useId()
+  const aiSetting = useQ({ queryKey: ['ai', 'settings'], queryFn: ai.settings, staleTime: 60_000, retry: false })
   const others = table.fields.filter((f) => f.key !== field.key)
 
   const put = (i: number, c: Partial<TransformRule>) => setRules((all) => all.map((r, j) => (j === i ? { ...r, ...c } : r)))
@@ -74,6 +78,7 @@ function TransformDialog({ table, field, canEdit, onClose }: { table: StudioTabl
       return n
     })
   }
+  const addMany = (rs: TransformRule[]) => setRules((all) => [...all, ...rs.map((r) => ({ ...r, id: next.current++ }))])
   const add = (w: TransformWhen, d: TransformDo) => {
     setRules((all) => [...all, { ...emptyRule(w, d), id: next.current++ }])
     setBWhen('')
@@ -217,6 +222,7 @@ function TransformDialog({ table, field, canEdit, onClose }: { table: StudioTabl
               </ul>
               <Button type="button" size="sm" variant="ghost" className="mt-1" onClick={() => setSamples((all) => [...all, ''])}>+ Another value</Button>
             </section>
+            {canEdit && <WordsPanel aiOn={!!aiSetting.data?.enabled} label={field.label} type={field.type} describe={(r) => describeRule(r, table.fields, Object.fromEntries(standard.map((x) => [x.key, x.label])))} onUse={addMany} />}
           </div>
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-line pt-3">

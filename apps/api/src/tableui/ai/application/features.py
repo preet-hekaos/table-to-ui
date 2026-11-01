@@ -16,7 +16,16 @@ from tableui.files.public import get_parse, mapped_values
 from tableui.identity.public import Principal
 from tableui.insights.public import snapshot
 from tableui.matching.public import matches
-from tableui.metadata.public import Pack, RuntimeApp, TableDef, check_pattern, rule_problem
+from tableui.metadata.public import (
+    FieldDef,
+    Pack,
+    RuntimeApp,
+    TableDef,
+    TransformRule,
+    apply_field_rules,
+    check_pattern,
+    rule_problem,
+)
 from tableui.platform.db import Database
 from tableui.platform.errors import NotFound, ValidationFailed
 from tableui.query.public import get_record
@@ -312,4 +321,61 @@ async def pattern_from_words(ctx: Ctx, p: Principal, description: str) -> dict[s
     return await ctx.run(
         p, "pattern", PATTERN_BASE, f"Description: <data>{redact(text_)}</data>", shape,
         permission="metadata.write", max_tokens=400,
+    )  # fmt: skip
+
+
+# ---- 9. describe a transformation rule in words (suggestion only) -------------------------------------
+
+TRANSFORM_BASE = (
+    "You turn a plain description into one or two transformation rules for a field. A rule is: "
+    '{"when": one of blank, equals_any, contains, starts_with, ends_with, matches, above, below; '
+    '"args": [values to compare with]; "do": one of set, set_standard, keep_match, trim, case, remove_chars, clear; '
+    '"value": what the action uses; "stop": true or false}. '
+    'Reply as JSON: {"rules": [...], "explanation": "one plain sentence", "tries": ["2 example values"]}.'
+)
+
+
+async def transform_from_words(
+    ctx: Ctx, p: Principal, description: str, label: str, ftype: str
+) -> dict[str, Any]:
+    """Rules for a field. The engine, not the model, decides what is usable: each rule must be a valid rule, and the
+    examples are run through the real transformation function. Nothing is saved here."""
+    text_ = description.strip()
+    if not text_ or len(text_) > 300:
+        raise ValidationFailed(
+            errors=[
+                {
+                    "field": "description",
+                    "code": "invalid",
+                    "message": "Describe it in 1 to 300 characters.",
+                }
+            ]  # fmt: skip
+        )
+    stub = FieldDef(key="probe", label=label[:80] or "Field", type=ftype)
+
+    def shape(v: Any) -> dict[str, Any]:
+        o = need_object(v)
+        raw = o.get("rules")
+        if not isinstance(raw, list) or not 1 <= len(raw) <= 2:
+            raise BadReply("Expected one or two rules.")
+        try:
+            rules = [TransformRule.model_validate(r) for r in raw]
+        except ValueError as e:
+            raise BadReply(str(e)) from None
+        tries = [str(x) for x in (o.get("tries") or []) if isinstance(x, str | int | float)][:4]
+        probe = stub.model_copy(update={"transforms": rules})
+        samples = []
+        for t in tries:
+            res = apply_field_rules(probe, t, {"probe": t})
+            samples.append({"input": t, "output": res.value})
+        return {
+            "rules": [r.model_dump(mode="json") for r in rules],
+            "explanation": need_text(o, "explanation", limit=300),
+            "samples": samples,
+        }
+
+    return await ctx.run(
+        p, "transform", TRANSFORM_BASE,
+        f"Field: <data>{redact(label)} ({ftype})</data>\nDescription: <data>{redact(text_)}</data>", shape,
+        permission="metadata.write", max_tokens=500,
     )  # fmt: skip

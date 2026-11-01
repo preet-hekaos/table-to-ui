@@ -661,6 +661,8 @@ export const ai = {
   setupDiscard: (id: string) => send<void>('POST', `/v1/ai/setup/plans/${id}/discard`),
   pattern: (description: string) =>
     send<{ pattern: string; explanation: string; samples: { value: string; allowed: boolean }[] }>('POST', '/v1/ai/pattern', { description }),
+  transform: (description: string, label: string, type: string) =>
+    send<{ rules: TransformRule[]; explanation: string; samples: { input: string; output: unknown }[] }>('POST', '/v1/ai/transform', { description, label, type }),
   settings: () => g<AiSettings>('/v1/ai/settings'),
   saveSettings: (body: { enabled?: boolean; tables?: string[]; monthly_token_cap?: number }) => send<AiSettings>('PUT', '/v1/ai/settings', body),
   extract: (screen: string, file_id: string) => send<AiSuggestions>('POST', '/v1/ai/extract', { screen, file_id }),

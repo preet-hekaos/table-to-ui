@@ -47,10 +47,12 @@ from tableui.metadata.domain.models import (
     StatCard,
     TableDef,
     TableFeatures,
+    TransformRule,
     WorkflowDef,
     features_of,
 )
 from tableui.metadata.domain.patterns import check_pattern, rule_problem
+from tableui.metadata.domain.transforms import apply_field_rules
 from tableui.metadata.domain.values import (
     normalise,
     search_document,
@@ -59,6 +61,7 @@ from tableui.metadata.domain.values import (
 )
 
 __all__ = [
+    "apply_field_rules",
     "check_pattern",
     "rule_problem",
     "features_of",
@@ -85,6 +88,7 @@ __all__ = [
     "table_ddl_sql",
     "ContextLoader",
     "FieldDef",
+    "TransformRule",
     "FixtureDef",
     "MeasureDef",
     "Pack",

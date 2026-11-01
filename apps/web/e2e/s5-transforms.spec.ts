@@ -99,3 +99,45 @@ test('S5.2 the Transformation rules panel: build three rules, try values, order,
     await other.context().close()
   })
 })
+
+test('S5.3 say it in words: disabled with AI off, a checked suggestion with AI on, added only by Use as rule', async ({ page }) => {
+  await page.setViewportSize({ width: 1500, height: 1100 })
+  await signUpWithPack(page, `S5 Words ${run}`, `s5w-${run}@studio.test`)
+  await page.goto('/studio')
+
+  await test.step('With AI off the panel is disabled and says why', async () => {
+    await cell(page).click()
+    const p = panel(page)
+    await expect(p.getByText('AI is off for this workspace, so this panel is disabled')).toBeVisible()
+    await expect(p.getByLabel('Describe what should happen')).toBeDisabled()
+    await p.getByRole('button', { name: 'Cancel' }).click()
+  })
+
+  await test.step('An admin turns AI on', async () => {
+    const status = await page.evaluate(async () => {
+      const r = await fetch('/v1/ai/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionStorage.getItem('tableui.token')}` }, body: JSON.stringify({ enabled: true, tables: [] }) })
+      return r.status
+    })
+    expect(status).toBe(200)
+    await page.goto('/studio')
+  })
+
+  await test.step('A description makes a checked suggestion; nothing is added until Use as rule', async () => {
+    await cell(page).click()
+    const p = panel(page)
+    await p.getByLabel('Describe what should happen').fill('if it says two months, save 60')
+    await p.getByRole('button', { name: 'Make a rule' }).click()
+    const prop = p.getByTestId('words-proposal')
+    await expect(prop).toContainText('two months')
+    await expect(prop.getByRole('list', { name: 'Examples' })).toContainText('two months→60')
+    await expect(p.getByRole('list', { name: 'Rules' }).getByRole('listitem')).toHaveCount(0)
+    await page.screenshot({ path: `${SHOTS}/after-words.png` })
+    await prop.getByRole('button', { name: 'Use as rule' }).click()
+    await expect(p.getByRole('list', { name: 'Rules' }).getByRole('listitem')).toHaveCount(1)
+    await expect(p.getByLabel('Rule 1 condition')).toHaveValue('equals_any')
+    await p.getByLabel('Value to try 1').fill('two months')
+    await expect(p.getByTestId('try-result-0')).toContainText('60')
+    await p.getByRole('button', { name: 'Done' }).click()
+    await expect(cell(page)).not.toContainText('Add')
+  })
+})

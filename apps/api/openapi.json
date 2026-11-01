@@ -1469,6 +1469,29 @@
         "title": "TokenBody",
         "type": "object"
       },
+      "TransformBody": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "label": {
+            "default": "",
+            "title": "Label",
+            "type": "string"
+          },
+          "type": {
+            "default": "text",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "description"
+        ],
+        "title": "TransformBody",
+        "type": "object"
+      },
       "Undo": {
         "properties": {
           "ids": {
@@ -2432,6 +2455,50 @@
           }
         },
         "summary": "Summary",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/v1/ai/transform": {
+      "post": {
+        "description": "Suggested transformation rules from a description. Nothing is saved; the builder presses Use as rule.",
+        "operationId": "transform_v1_ai_transform_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransformBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Transform V1 Ai Transform Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Transform",
         "tags": [
           "ai"
         ]

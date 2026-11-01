@@ -201,6 +201,22 @@ async def pattern(
     return await features.pattern_from_words(await _ctx(req, p, db, an, s), p, body.description)
 
 
+class TransformBody(BaseModel):
+    description: str
+    label: str = ""
+    type: str = "text"
+
+
+@router.post("/transform")
+async def transform(
+    body: TransformBody, req: Request, p: PrincipalDep, db: DbDep, an: AnalyticsDep, s: SettingsDep
+) -> dict[str, Any]:
+    """Suggested transformation rules from a description. Nothing is saved; the builder presses Use as rule."""
+    return await features.transform_from_words(
+        await _ctx(req, p, db, an, s), p, body.description, body.label, body.type
+    )
+
+
 @router.post("/explain-number")
 async def explain_number(
     body: NumberBody,

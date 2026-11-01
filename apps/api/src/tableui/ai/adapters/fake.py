@@ -41,6 +41,8 @@ def demo_answer(system: str, user: str) -> object:
             if len(chunk) == 3:
                 out[f["key"]] = {"value": " ".join(chunk), "quote": " ".join(chunk)}
         return {"fields": out}
+    if "transformation rules for a field" in system:
+        return _demo_transform(user.rsplit("<data>", 1)[1].split("</data>")[0].strip())
     if "regular expression" in system:
         return _demo_pattern(data)
     if "Describe the data tables" in system:
@@ -179,3 +181,40 @@ def _demo_pattern(words: str) -> object:
         "good": [good],
         "bad": [good.lower(), good + "!"],
     }
+
+
+def _demo_transform(words: str) -> object:
+    """Rules from a description such as "if it says two months, save 60" or "if it is blank, use 30"."""
+    import re
+
+    low = words.lower()
+    m = re.search(
+        r"if (?:it )?says ['\"]?(.+?)['\"]?,?\s+(?:save|set|use|make it)\s+['\"]?([^'\"]+?)['\"]?\.?\s*$",
+        low,
+    )
+    if m:
+        return {
+            "rules": [
+                {
+                    "when": "equals_any",
+                    "args": [m.group(1)],
+                    "do": "set",
+                    "value": m.group(2),
+                    "stop": False,
+                }
+            ],
+            "explanation": f"Demo rule: when the value is “{m.group(1)}”, save {m.group(2)}.",
+            "tries": [m.group(1), "something else"],
+        }
+    m = re.search(
+        r"(?:blank|empty).*?(?:save|set|use|make it)\s+['\"]?([^'\"]+?)['\"]?\.?\s*$", low
+    )
+    if m:
+        return {
+            "rules": [
+                {"when": "blank", "args": [], "do": "set", "value": m.group(1), "stop": True}
+            ],
+            "explanation": f"Demo rule: when left blank, save {m.group(1)}.",
+            "tries": ["", "keep me"],
+        }
+    return {"rules": [], "explanation": "Demo could not read that.", "tries": []}
