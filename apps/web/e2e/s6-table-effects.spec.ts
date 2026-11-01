@@ -128,7 +128,7 @@ test('S6.2 table settings: values reach the live list for a second session', asy
   await test.step('The same session, after a reload, sees none of them', async () => {
     await s.goto('/s/candidates')
     await expect(s.getByRole('row')).toHaveCount(4)
-    await expect(s.locator('th[aria-sort]')).toHaveCount(0)
+    await expect(s.locator('th button')).toHaveCount(0)
     await expect(s.getByRole('button', { name: /^Filter / })).toHaveCount(0)
     await expect(s.getByRole('checkbox', { name: 'Select all rows shown' })).toHaveCount(0)
     await expect(s.getByRole('button', { name: 'Export', exact: true })).toHaveCount(0)
