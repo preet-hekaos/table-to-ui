@@ -12,8 +12,6 @@ import { TableActions, TablePicker } from './TablePicker'
 import { useDraftTables } from './useDraftTables'
 import { useStages } from './useStages'
 
-const origin = (s?: string) => <Badge tone={s === 'agency' ? 'neutral' : 'accent'}>{s === 'agency' ? 'Workspace' : 'Pack'}</Badge>
-
 
 /** Screen 2.4: pick a table from the header; its fields, screens and features sit below. */
 export type TablePart = 'fields' | 'screens' | 'features'
@@ -55,7 +53,6 @@ export function DataTab({
               current={{ key: current.key, label: current.label, fields: current.fields.length, stage: stages.of('tables', current.key) ?? undefined }}
               onSelect={onSelect}
             />
-            {origin(current.source)}
             {stages.of('tables', current.key) && <StageBadge stage={stages.of('tables', current.key)!} isNew={stages.isNew('tables', current.key)} />}
             <Badge>{current.fields.length} fields</Badge>
             <div className="ml-auto flex flex-wrap items-center gap-3">
@@ -80,42 +77,45 @@ export function DataTab({
             <Table aria-label={`${current.label} fields`}>
               <thead>
                 <tr>
-                  <Th>Field</Th>
+                  <Th>Field name</Th>
+                  <Th>Label</Th>
                   <Th>Type</Th>
                   <Th>Required</Th>
-                  <Th>Comes from</Th>
-                  <Th>On screens</Th>
                   {canEdit && <Th><span className="sr-only">Actions</span></Th>}
                 </tr>
               </thead>
               <tbody>
-                {current.fields.map((f) => (
-                  <tr key={f.key} className={cn(stageStripe(stages.field(current.key, f.key)))} data-stage={stages.field(current.key, f.key)}>
-                    <Td className="py-1.5 font-medium text-ink">
-                      {f.label} {stages.field(current.key, f.key) && stages.field(current.key, f.key) !== 'live' && <StageBadge stage={stages.field(current.key, f.key)!} className="ml-1" />}
-                    </Td>
-                    <Td className="py-1.5">
-                      {TYPE_LABELS[f.type] ?? f.type}
-                      {f.ref_table && <span className="text-muted"> to {all.find((t) => t.key === f.ref_table)?.label ?? f.ref_table}</span>}
-                    </Td>
-                    <Td className="py-1.5">{f.required ? 'Yes' : 'No'}</Td>
-                    <Td className="py-1.5">{origin(f.source)}</Td>
-                    <Td className="py-1.5">{f.hidden ? <Badge tone="warn">Hidden</Badge> : 'Shown'}</Td>
-                    {canEdit && (
-                      <Td className="py-1.5 text-right">
-                        <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => setEditing(f)} aria-label={`Edit ${f.label}`}>
-                          Edit
-                        </Button>
+                {current.fields.map((f) => {
+                  const stage = stages.field(current.key, f.key)
+                  return (
+                    <tr key={f.key} className={cn(stageStripe(stage))} data-stage={stage}>
+                      <Td className="py-1.5 font-mono text-xs text-muted">{f.key}</Td>
+                      <Td className="py-1.5 font-medium text-ink">
+                        {f.label} {stage && stage !== 'live' && <StageBadge stage={stage} className="ml-1" />}
+                        {f.hidden && <Badge tone="warn" className="ml-1">Hidden</Badge>}
                       </Td>
-                    )}
-                  </tr>
-                ))}
+                      <Td className="py-1.5">
+                        {TYPE_LABELS[f.type] ?? f.type}
+                        {f.ref_table && <span className="text-muted"> to {all.find((t) => t.key === f.ref_table)?.label ?? f.ref_table}</span>}
+                      </Td>
+                      <Td className="py-1.5">{f.required ? 'Yes' : 'No'}</Td>
+                      {canEdit && (
+                        <Td className="py-1.5 text-right">
+                          <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => setEditing(f)} aria-label={`Edit ${f.label}`}>
+                            Edit
+                          </Button>
+                        </Td>
+                      )}
+                    </tr>
+                  )
+                })}
                 {stages.removedFields(current.key).map((f) => (
                   <tr key={`removed-${f.key}`} className={cn(stageStripe('removed'), 'text-muted line-through')} data-stage="removed">
+                    <Td className="font-mono text-xs">{f.key}</Td>
                     <Td>
                       {f.label} <StageBadge stage="removed" className="ml-1 no-underline" />
                     </Td>
-                    <Td colSpan={canEdit ? 5 : 4}>Deleted in the Draft; goes away when published.</Td>
+                    <Td colSpan={canEdit ? 3 : 2}>Deleted in the Draft; goes away when published.</Td>
                   </tr>
                 ))}
               </tbody>

@@ -24,7 +24,7 @@ test('Studio: fields, tables, map, screens, menu, preview and versions', async (
     await dialog.getByLabel('Type').selectOption('select')
     await dialog.getByLabel(/^Choices/).fill('Day, Night')
     await dialog.getByRole('button', { name: 'Add field' }).click()
-    await expect(page.getByRole('row', { name: /^Preferred shift Draft Choice from a list No Workspace/ })).toBeVisible()
+    await expect(page.getByRole('row', { name: /^preferred_shift Preferred shift Draft Choice from a list No/ })).toBeVisible()
     await expect(page.getByTestId('draft-banner')).toContainText('1 unpublished change')
     await page.goto('/records/candidate/new')
     await expect(page.getByLabel(/^Preferred shift/)).toHaveCount(0)
@@ -38,7 +38,7 @@ test('Studio: fields, tables, map, screens, menu, preview and versions', async (
     await expect(dialog.getByRole('button', { name: 'Delete field' })).toHaveCount(0)
     await dialog.getByLabel(/^Label/).fill('Employer')
     await dialog.getByRole('button', { name: 'Save' }).click()
-    await expect(page.getByRole('row', { name: /^Employer Draft Short text/ })).toBeVisible()
+    await expect(page.getByRole('row', { name: /^current_employer Employer Draft Short text/ })).toBeVisible()
   })
 
   await test.step('S12. Create a new table; it gets a screen and a menu entry', async () => {

@@ -88,7 +88,7 @@ test('M0 demo script', async ({ browser }) => {
   await test.step('4. Ananya opens the Studio and sees the Candidate table and its fields', async () => {
     await a.page.goto('/studio')
     await expect(a.page.getByRole('heading', { name: 'Candidate', exact: true })).toBeVisible()
-    const row = a.page.getByRole('row', { name: /^Email Email address Yes/ })
+    const row = a.page.getByRole('row', { name: /^email Email Email address Yes/ })
     await expect(row).toContainText('Email address')
     await expect(row).toContainText('Yes')
     await expect(row).toContainText('Pack')

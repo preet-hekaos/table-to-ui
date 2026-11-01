@@ -18,7 +18,7 @@ test('live effect: a field made required in Studio is required on the live form'
     await dialog.getByLabel(/^Label/).fill('Badge number')
     await dialog.getByLabel('Required').check()
     await dialog.getByRole('button', { name: 'Add field' }).click()
-    await expect(page.getByRole('row', { name: /^Badge number/ })).toBeVisible()
+    await expect(page.getByRole('row', { name: /^badge_number / })).toBeVisible()
     await page.goto('/records/candidate/new')
     await expect(page.getByLabel(/^Badge number/)).toHaveCount(0)
   })
