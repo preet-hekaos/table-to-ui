@@ -8,7 +8,7 @@ import { InlineLabel } from './InlineLabel'
 import { LengthCell } from './LengthCell'
 import { RequiredSwitch } from './RequiredSwitch'
 import { TypeCell } from './TypeCell'
-import { UndoRemove } from './UndoRemove'
+import { RemovedCount, UndoRemove } from './UndoRemove'
 import { useFieldOrder } from './useFieldOrder'
 import type { useStages } from './useStages'
 
@@ -146,15 +146,18 @@ export function FieldsGrid({
             )
           })}
           {stages.removedFields(table.key).map((f) => (
-            <tr key={`removed-${f.key}`} className={cn(stageStripe('removed'), 'text-muted line-through')} data-stage="removed">
+            <tr key={`removed-${f.key}`} className={cn(stageStripe('removed'), 'text-muted')} data-stage="removed">
               {canEdit && <Td />}
-              <Td className="font-mono text-xs">{f.key}</Td>
+              <Td className="font-mono text-xs line-through">{f.key}</Td>
               <Td>
-                {f.label} <StageBadge stage="removed" className="ml-1 no-underline" />
+                <span className="line-through">{f.label}</span> <StageBadge stage="removed" className="ml-1 no-underline" />
               </Td>
-              <Td colSpan={canEdit ? 4 : 3}>
-                <span className="mr-3">Deleted in the Draft; goes away when published.</span>
-                {canEdit && <UndoRemove table={table.key} fieldKey={f.key} label={f.label} />}
+              <Td colSpan={canEdit ? 5 : 4} className="whitespace-normal">
+                <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <span>Deleted in the Draft; goes away when published.</span>
+                  <RemovedCount table={table.key} fieldKey={f.key} />
+                  {canEdit && <UndoRemove table={table.key} fieldKey={f.key} label={f.label} />}
+                </span>
               </Td>
             </tr>
           ))}

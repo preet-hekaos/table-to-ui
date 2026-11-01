@@ -458,3 +458,26 @@ test('S2.7 the grid and the field panel show the same real-world type name', asy
   await expect(panel).toContainText('text')
   await page.screenshot({ path: '../../docs/screens/studio-table/s2/after-type-name-panel.png' })
 })
+
+test('S2.8 a deleted field tells how many records hold a value in it, and Undo clears the note', async ({ page }) => {
+  await signUpWithPack(page, `S2 Rm ${run}`, `s2r-${run}@studio.test`)
+  await page.goto('/records/candidate/new')
+  await page.getByLabel(/^Full name/).fill('Count Check')
+  await page.getByLabel(/^Email/).fill(`s2r-${run}@cnt.test`)
+  await page.getByLabel(/^Phone/).fill('+91 98450 55555')
+  await page.getByLabel(/^Location/).fill('Pune')
+  await page.getByRole('button', { name: 'Save candidate' }).click()
+  await expect(page.getByText('Pune').first()).toBeVisible()
+
+  await page.goto('/studio')
+  await page.getByRole('button', { name: 'Edit Location' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Delete field' }).click()
+  const note = page.getByTestId('removed-count-location')
+  await expect(note).toContainText('1 record has a value here')
+  await note.scrollIntoViewIfNeeded()
+  await expect(page.getByText('Saved in Draft. Publish to make it live.')).toHaveCount(0, { timeout: 15000 })
+  await page.screenshot({ path: '../../docs/screens/studio-table/s2/after-removed-count.png' })
+
+  await page.getByRole('button', { name: 'Undo delete of Location' }).click()
+  await expect(page.locator('tr[data-stage="removed"]')).toHaveCount(0)
+})

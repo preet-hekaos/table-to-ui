@@ -103,6 +103,14 @@ async def length_impact(
         )
 
 
+@router.get("/studio/tables/{table}/fields/{field}/value-count")
+async def value_count(table: str, field: str, p: PrincipalDep, db: DbDep) -> dict[str, int]:
+    p.require("metadata.write")
+    assert p.tenant_id
+    async with db.control() as s:
+        return await studio.value_count(s, tenant_id=p.tenant_id, table_key=table, field_key=field)
+
+
 @router.put("/studio/tables/{table}/field-order")
 async def reorder_fields(
     table: str, body: dict[str, Any], p: PrincipalDep, db: DbDep, request: Request

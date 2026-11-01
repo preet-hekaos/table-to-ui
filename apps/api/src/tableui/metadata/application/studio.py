@@ -576,6 +576,29 @@ async def length_impact(
     return {"count": int(n or 0)}
 
 
+async def value_count(
+    s: AsyncSession, *, tenant_id: uuid.UUID, table_key: str, field_key: str
+) -> dict[str, int]:
+    """How many records hold a value in a field, including a field removed in the Draft (the values stay stored)."""
+    await _enter_tenant(s, tenant_id)
+    if await _draft(s, "table", table_key) is None:
+        raise NotFound(f"There is no table '{table_key}'.")
+    if not re.fullmatch(r"[a-z][a-z0-9_]{0,49}", field_key):
+        raise NotFound(f"There is no field '{field_key}' on '{table_key}'.")
+    exists = (await s.execute(text("SELECT to_regclass(:t)"), {"t": f'"{table_key}"'})).scalar()
+    if not exists:
+        return {"count": 0}
+    n = (
+        await s.execute(
+            text(
+                f'SELECT count(*) FROM "{table_key}" '  # noqa: S608 - both identifiers are checked above
+                f"WHERE COALESCE(data->>'{field_key}', '') <> ''"
+            )
+        )
+    ).scalar()
+    return {"count": int(n or 0)}
+
+
 async def restore_field(
     s: AsyncSession,
     *,

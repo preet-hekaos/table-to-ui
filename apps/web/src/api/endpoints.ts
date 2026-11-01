@@ -208,6 +208,7 @@ export const studio = {
     send<FieldDef>('PATCH', `/v1/studio/tables/${table}/fields/${field}`, body),
   restoreField: (table: string, field: string) => send<FieldDef>('POST', `/v1/studio/tables/${table}/fields/${field}/restore`),
   typePresets: () => cast<TypePresets>(api.GET('/v1/studio/type-presets' as never, {} as never)),
+  valueCount: (table: string, field: string) => g<{ count: number }>(`/v1/studio/tables/${table}/fields/${field}/value-count`),
   lengthImpact: (table: string, field: string, maxLength: number) =>
     g<{ count: number }>(`/v1/studio/tables/${table}/fields/${field}/length-impact?max_length=${maxLength}`),
   reorderFields: (table: string, order: string[]) => send<StudioTable>('PUT', `/v1/studio/tables/${table}/field-order`, { order }),

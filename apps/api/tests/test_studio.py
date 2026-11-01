@@ -544,3 +544,23 @@ async def test_length_impact_counts_records_longer_than_a_new_maximum(
         headers=a.h(),
     )
     assert gone.status_code == 404
+
+
+async def test_value_count_counts_records_with_a_value_even_after_the_field_is_removed(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    for name, phone, loc in (
+        ("Ann", "+91 98450 11111", "Pune"),
+        ("Bo", "+91 98450 22222", "Delhi"),
+        ("Cy", "+91 98450 33333", None),
+    ):
+        r = await a.create_candidate(candidate(full_name=name, phone=phone, location=loc))
+        assert r.status_code == 201, r.text
+    base = "/v1/studio/tables/candidate/fields/location/value-count"
+    assert (await client.get(base, headers=a.h())).json() == {"count": 2}
+    gone = await client.delete("/v1/studio/tables/candidate/fields/location", headers=a.h())
+    assert gone.status_code == 204, gone.text
+    assert (await client.get(base, headers=a.h())).json() == {"count": 2}
+    bad = await client.get("/v1/studio/tables/candidate/fields/x'--/value-count", headers=a.h())
+    assert bad.status_code == 404
