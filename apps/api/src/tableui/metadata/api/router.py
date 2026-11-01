@@ -129,6 +129,28 @@ async def remove_field(
     return Response(status_code=204)
 
 
+@router.post("/studio/tables/{table}/fields/{field}/restore")
+async def restore_field(
+    table: str, field: str, p: PrincipalDep, db: DbDep, request: Request
+) -> dict[str, Any]:
+    """Undo a field deletion that has not been published yet."""
+    p.require("metadata.write")
+    assert p.tenant_id
+    async with db.control() as s:
+        test = await releases.environment_manifest(s, p.tenant_id, "test")
+        live = await releases.environment_manifest(s, p.tenant_id, "live")
+    async with db.control() as s:
+        return await studio.restore_field(
+            s,
+            tenant_id=p.tenant_id,
+            user_id=p.user_id,
+            table_key=table,
+            field_key=field,
+            earlier=[test[1] if test else None, live[1] if live else None],
+            request_id=get_request_id(request),
+        )
+
+
 @router.get("/studio/relationships")
 async def relationships(p: PrincipalDep, db: DbDep) -> list[dict[str, Any]]:
     p.require("metadata.read")

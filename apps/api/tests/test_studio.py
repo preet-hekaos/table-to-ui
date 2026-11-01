@@ -461,3 +461,25 @@ async def test_field_cannot_become_required_while_records_lack_it(
         "/v1/studio/tables/candidate/fields/badge", headers=a.h(), json={"required": True}
     )
     assert no.status_code == 422 and "no badge" in no.text, no.text
+
+
+async def test_a_deleted_field_comes_back_with_undo_until_it_is_published(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    base = "/v1/studio/tables/candidate/fields"
+    await a.publish_live()
+    r = await client.delete(f"{base}/notice_period_days", headers=a.h())
+    assert r.status_code == 204
+    stages = (await client.get("/v1/studio/stages", headers=a.h())).json()
+    assert [x["key"] for x in stages["items"]["tables"]["candidate"]["removed_fields"]] == [
+        "notice_period_days"
+    ]
+    r = await client.post(f"{base}/notice_period_days/restore", headers=a.h())
+    assert r.status_code == 200 and r.json()["key"] == "notice_period_days"
+    stages = (await client.get("/v1/studio/stages", headers=a.h())).json()
+    assert stages["items"]["tables"]["candidate"].get("removed_fields") == []
+    again = await client.post(f"{base}/notice_period_days/restore", headers=a.h())
+    assert again.status_code == 422 and again.json()["errors"][0]["code"] == "already_there"
+    gone = await client.post(f"{base}/never_existed/restore", headers=a.h())
+    assert gone.status_code == 404

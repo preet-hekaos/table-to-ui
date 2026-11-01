@@ -5,6 +5,7 @@ import { Badge, Button, StageBadge, Table, Td, Th, cn, stageStripe } from '@/des
 import { TYPE_LABELS } from './FieldDialog'
 import { InlineLabel } from './InlineLabel'
 import { RequiredSwitch } from './RequiredSwitch'
+import { UndoRemove } from './UndoRemove'
 import { useFieldOrder } from './useFieldOrder'
 import type { useStages } from './useStages'
 
@@ -128,7 +129,10 @@ export function FieldsGrid({
               <Td>
                 {f.label} <StageBadge stage="removed" className="ml-1 no-underline" />
               </Td>
-              <Td colSpan={canEdit ? 3 : 2}>Deleted in the Draft; goes away when published.</Td>
+              <Td colSpan={canEdit ? 3 : 2}>
+                <span className="mr-3">Deleted in the Draft; goes away when published.</span>
+                {canEdit && <UndoRemove table={table.key} fieldKey={f.key} label={f.label} />}
+              </Td>
             </tr>
           ))}
         </tbody>

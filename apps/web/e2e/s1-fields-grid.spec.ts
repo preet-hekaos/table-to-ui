@@ -175,3 +175,32 @@ test('S1.5 a pack field is deleted like any other, and the live form no longer a
   await expect(live.getByLabel(/^Notice period/)).toHaveCount(0)
   await live.context().close()
 })
+
+test('S1.6 a deleted field stays as a struck row with Undo until it is published', async ({ page, browser }) => {
+  await signUpWithPack(page, `S1 Undo ${run}`, `s1f-${run}@studio.test`)
+  await page.goto('/studio')
+  await page.getByRole('switch', { name: 'Current employer is required' }).click() // something to publish
+  await expect(page.getByTestId('draft-banner')).toContainText('unpublished change')
+  await publishLive(page)
+  await page.goto('/studio')
+
+  await test.step('Deleting shows a removed row with Undo, and the live form still has the field', async () => {
+    await page.getByRole('button', { name: 'Edit Notice period (days)' }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Delete field' }).click()
+    const removed = page.getByRole('row', { name: /notice_period_days/ })
+    await expect(removed).toContainText('Deleted in the Draft')
+    const live = await freshSession(browser, page)
+    await live.goto('/records/candidate/new')
+    await expect(live.getByLabel(/^Notice period/)).toBeVisible()
+    await live.context().close()
+  })
+
+  await test.step('Undo puts the field back in the grid and the Draft has no pending change for it', async () => {
+    await page.getByRole('button', { name: 'Undo delete of Notice period (days)' }).click()
+    await expect(page.locator('tr[data-stage="removed"]')).toHaveCount(0)
+    await expect(page.getByRole('row', { name: /notice_period_days/ })).toHaveCount(1)
+    await expect(page.getByRole('switch', { name: 'Notice period (days) is required' })).toBeVisible()
+    await page.reload()
+    await expect(page.getByRole('button', { name: 'Edit Notice period (days)' })).toBeVisible()
+  })
+})

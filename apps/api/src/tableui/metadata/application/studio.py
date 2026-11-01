@@ -522,6 +522,50 @@ async def remove_field(
     )
 
 
+async def restore_field(
+    s: AsyncSession,
+    *,
+    tenant_id: uuid.UUID,
+    user_id: uuid.UUID,
+    table_key: str,
+    field_key: str,
+    earlier: list[dict[str, Any] | None],
+    request_id: str | None,
+) -> dict[str, Any]:
+    """Undo a deletion that is still only in the Draft: bring the field back as Test or Live have it."""
+    await _enter_tenant(s, tenant_id)
+    found = await _draft(s, "table", table_key)
+    if found is None:
+        raise NotFound(f"There is no table '{table_key}'.")
+    definition, source = found
+    if any(x["key"] == field_key for x in definition["fields"]):
+        raise _bad("field", "this field is already in the Draft", "already_there")
+    old: dict[str, Any] | None = None
+    for manifest in earlier:
+        t = ((manifest or {}).get("tables") or {}).get(table_key)
+        if t:
+            old = next((x for x in t["definition"].get("fields", []) if x["key"] == field_key), None)
+        if old:
+            break
+    if old is None:
+        raise NotFound(f"Test and Live have no field '{field_key}' on '{table_key}' to bring back.")
+    wanted = str(old.get("label", "")).strip().casefold()
+    if any(str(x.get("label", "")).strip().casefold() == wanted for x in definition["fields"]):
+        raise _bad("label", f"another field is already called {old.get('label')}", "duplicate")
+    restored = FieldDef.model_validate(old)
+    updated = {
+        **definition,
+        "fields": [*definition["fields"], restored.model_dump(mode="json")],
+        "version": TableDef.model_validate(definition).version + 1,
+    }
+    TableDef.model_validate(updated)
+    await _put(s, tenant_id, "table", table_key, updated, source)
+    await _audit(
+        s, tenant_id, user_id, "metadata.field.restore", f"{table_key}.{field_key}", {}, request_id
+    )
+    return restored.model_dump(mode="json")
+
+
 async def save_screen(
     s: AsyncSession,
     *,
