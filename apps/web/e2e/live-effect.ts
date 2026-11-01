@@ -1,5 +1,4 @@
 import { expect, type Browser, type Page } from '@playwright/test'
-import { PASSWORD } from './helpers'
 
 /**
  * Studio-to-live helpers (S0 of the Studio table redesign).
@@ -17,14 +16,17 @@ export async function publishLive(page: Page) {
   await expect(page.getByText(/is now Live/).first()).toBeVisible()
 }
 
-/** A brand new browser session signed in as the given user: it knows nothing the owner's page cached. */
-export async function freshSession(browser: Browser, email: string): Promise<Page> {
+/**
+ * A brand new browser session for the same signed-in user: its own context and an empty cache, so it knows nothing
+ * the owner's page held in memory. The sign-in token is carried over because sign-in itself may ask for a second step.
+ */
+export async function freshSession(browser: Browser, owner: Page): Promise<Page> {
+  const token = await owner.evaluate(() => sessionStorage.getItem('tableui.token'))
+  expect(token, 'the owner is signed in').toBeTruthy()
   const context = await browser.newContext()
+  await context.addInitScript((t) => sessionStorage.setItem('tableui.token', t as string), token)
   const page = await context.newPage()
-  await page.goto('/sign-in')
-  await page.getByLabel('Email').fill(email)
-  await page.getByLabel(/^Password/).fill(PASSWORD)
-  await page.getByRole('button', { name: 'Sign in' }).click()
+  await page.goto('/')
   await expect(page.getByTestId('app-name')).toBeVisible()
   return page
 }

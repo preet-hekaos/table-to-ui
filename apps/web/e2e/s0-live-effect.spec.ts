@@ -28,7 +28,7 @@ test('live effect: a field made required in Studio is required on the live form'
   })
 
   await test.step('A fresh session sees the field marked required and cannot save without it', async () => {
-    const live = await freshSession(browser, email)
+    const live = await freshSession(browser, page)
     await live.goto('/records/candidate/new')
     await expect(live.getByLabel(/^Badge number/)).toBeVisible()
     await expect(live.getByText('Badge number').first()).toBeVisible()
