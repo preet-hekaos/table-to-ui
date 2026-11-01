@@ -2,6 +2,10 @@
 
 Trunk-based development with short-lived branches and squash merges. The goal is a `main` that reads like a changelog and a branch list that only shows work in flight.
 
+## Current exception: one branch for the Studio table redesign
+
+Until every stage of the Studio table redesign (S2 to S6 and any sub-stage) is finished, all of that work goes on the single branch `phase/studio-redesign`, cut from `main`. Commits are prefixed with the stage (`feat(S2.4): ...`). One pull request is opened when the whole redesign is done, or earlier as a draft to run CI. Once it is merged this exception ends and the rules below apply again.
+
 ## Rules
 
 1. **`main` is the only long-lived branch.** It always builds and passes the tests.
