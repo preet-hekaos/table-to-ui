@@ -16,6 +16,6 @@
 
 ## Gaps
 - Mockup example rule "No spaces / Remove the spaces" is a transformation: belongs to S5.
-- "Check existing records" shows the count; it does not yet open the list filtered to the failing records (needs list filter by record set — your decision).
+- "Check existing records" shows the count; it does not yet open the list filtered to the failing records (decided: stays a count).
 - "Date not in the future" is a built-in kind, not a regex.
 - Real AI provider not exercised.
