@@ -6,6 +6,7 @@ KINDS = ("tables", "screens", "navs", "rules", "measures", "automations")
 _FIELD_ATTRS = (
     "label",
     "type",
+    "group",
     "required",
     "hidden",
     "options",
@@ -71,6 +72,11 @@ def diff_manifests(before: dict[str, Any], after: dict[str, Any]) -> dict[str, A
                     for x in (a[k].keys() | b[k].keys()) - {"fields", "version"}
                     if a[k].get(x) != b[k].get(x)
                 )
+                bo = [f["key"] for f in b[k].get("fields", [])]
+                ao = [f["key"] for f in a[k].get("fields", [])]
+                common = set(bo) & set(ao)
+                if [x for x in bo if x in common] != [x for x in ao if x in common]:
+                    other.append("field order")
                 if other:
                     entry["attributes"] = other
             else:

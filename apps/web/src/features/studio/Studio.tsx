@@ -1,3 +1,4 @@
+import { describeFieldChange, describeTableAttribute } from './changeWords'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { formatDateTime } from '@/patterns/format'
 import { useNavigate } from '@tanstack/react-router'
@@ -103,7 +104,7 @@ export function DiffList({ diff }: { diff: ManifestDiff }) {
                 <li key={d.key}>
                   <Badge tone={d.change === 'added' ? 'ok' : d.change === 'removed' ? 'bad' : 'warn'}>{d.change}</Badge>{' '}
                   <b className="text-ink">{d.key}</b>
-                  {d.attributes && d.attributes.length > 0 && <span className="text-muted"> ({d.attributes.join(', ')})</span>}
+                  {d.attributes && d.attributes.length > 0 && <span className="text-muted"> ({d.attributes.map(describeTableAttribute).join(', ')})</span>}
                   {d.fields && d.fields.length > 0 && (
                     <ul className="mt-1 ml-5 list-disc text-body">
                       {d.fields.map((f) => (
@@ -112,7 +113,7 @@ export function DiffList({ diff }: { diff: ManifestDiff }) {
                           {f.attributes &&
                             ' — ' +
                               Object.entries(f.attributes)
-                                .map(([k, v]) => (k === 'rules' ? `rules ${(v.from as unknown[] | null)?.length ?? 0} → ${(v.to as unknown[] | null)?.length ?? 0}` : `${k} ${JSON.stringify(v.from)} → ${JSON.stringify(v.to)}`))
+                                .map(([k, v]) => describeFieldChange(k, v.from, v.to))
                                 .join('; ')}
                         </li>
                       ))}

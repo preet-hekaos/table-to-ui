@@ -280,10 +280,29 @@ _TABLE_PROOF: dict[str, tuple[str, ...]] = {
     **{
         k: (_MAIN,)
         for k in (
-            "sort_filter", "sortable", "filterable", "unsortable", "unfilterable", "default_sort",
-            "select_bulk", "bulk_scope", "import_data", "export_data", "export_formats",
-            "export_email", "inline_edit", "grouping", "statistics", "stat_cards", "stat_scope",
-            "default_columns", "density", "uneditable", "ungroupable", "unexported", "nobulk",
+            "sort_filter",
+            "sortable",
+            "filterable",
+            "unsortable",
+            "unfilterable",
+            "default_sort",
+            "select_bulk",
+            "bulk_scope",
+            "import_data",
+            "export_data",
+            "export_formats",
+            "export_email",
+            "inline_edit",
+            "grouping",
+            "statistics",
+            "stat_cards",
+            "stat_scope",
+            "default_columns",
+            "density",
+            "uneditable",
+            "ungroupable",
+            "unexported",
+            "nobulk",
             "row_order",
         )
     },  # fmt: skip
