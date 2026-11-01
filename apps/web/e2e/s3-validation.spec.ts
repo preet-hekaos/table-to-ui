@@ -139,3 +139,64 @@ test('S3.4 existing records: the popover counts them, publish warns with the cou
     await live.context().close()
   })
 })
+
+test('S3.5 describe it in words: disabled with AI off, a checked suggestion with AI on, added only by Use as rule', async ({ page, browser }) => {
+  await page.setViewportSize({ width: 1400, height: 1100 })
+  await signUpWithPack(page, `S3 Ai ${run}`, `s3d-${run}@studio.test`)
+  await page.goto('/studio')
+  const fx = () => page.getByRole('button', { name: /^(Add|\d+ rules?)\. Validation of Current title/ })
+  const pop = page.getByRole('dialog', { name: 'Validation for Current title' })
+
+  await test.step('With AI off the panel is disabled with the reason, and the library still saves a rule', async () => {
+    await fx().click()
+    await expect(pop.getByLabel('Describe the allowed values')).toBeDisabled()
+    await expect(pop.getByRole('button', { name: 'Make a pattern' })).toBeDisabled()
+    await expect(pop.getByText('AI is off for this workspace, so this panel is disabled')).toBeVisible()
+    await pop.getByRole('button', { name: 'Web link' }).click()
+    await expect(pop.getByRole('list', { name: 'Rules' }).getByRole('listitem')).toHaveCount(1)
+    await pop.getByRole('button', { name: 'Cancel' }).click()
+  })
+
+  await test.step('An admin turns AI on in Settings', async () => {
+    const status = await page.evaluate(async () => {
+      const r = await fetch('/v1/ai/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionStorage.getItem('tableui.token')}` }, body: JSON.stringify({ enabled: true, tables: [] }) })
+      return r.status
+    })
+    expect(status).toBe(200)
+    await page.goto('/studio')
+  })
+
+  await test.step('A description makes a checked suggestion; nothing is added until Use as rule', async () => {
+    await fx().click()
+    await pop.getByLabel('Describe the allowed values').fill('5 capital letters, then 4 digits, then 1 capital letter')
+    await pop.getByRole('button', { name: 'Make a pattern' }).click()
+    const proposal = pop.getByTestId('proposal')
+    await expect(proposal).toContainText('^[A-Z]{5}[0-9]{4}[A-Z]{1}$')
+    await expect(proposal.getByText('Allowed').first()).toBeVisible()
+    await expect(proposal.getByText('Not allowed').first()).toBeVisible()
+    await expect(pop.getByRole('list', { name: 'Rules' }).getByRole('listitem')).toHaveCount(0)
+    await proposal.getByLabel('Try your own value').fill('ZZZZZ9999Z')
+    await expect(proposal.getByRole('status')).toContainText('Allowed')
+    await proposal.getByLabel('Try your own value').fill('zzzzz9999z')
+    await expect(proposal.getByRole('status')).toContainText('Not allowed')
+    await page.screenshot({ path: '../../docs/screens/studio-table/s3/after-describe.png' })
+    await proposal.getByRole('button', { name: 'Use as rule' }).click()
+    await expect(pop.getByRole('list', { name: 'Rules' }).getByRole('listitem')).toHaveCount(1)
+    await expect(page.getByTestId('draft-banner')).toHaveCount(0) // still nothing saved
+  })
+
+  await test.step('Done saves it, and after publishing the live form follows the described rule', async () => {
+    await pop.getByLabel(/^Message of /).fill('Use the format ABCDE1234F.')
+    await pop.getByRole('button', { name: 'Done' }).click()
+    await publishLive(page)
+    const live = await freshSession(browser, page)
+    await live.goto('/records/candidate/new')
+    await live.getByLabel(/^Full name/).fill('Ai Check')
+    await live.getByLabel(/^Email/).fill(`s3d-${run}@ai.test`)
+    await live.getByLabel(/^Phone/).fill('+91 98450 77777')
+    await live.getByLabel(/^Current title/).fill('abcde1234f')
+    await live.getByRole('button', { name: 'Save candidate' }).click()
+    await expect(live.getByText('Use the format ABCDE1234F.')).toBeVisible()
+    await live.context().close()
+  })
+})

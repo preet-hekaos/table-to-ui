@@ -1,10 +1,12 @@
 import * as Popover from '@radix-ui/react-popover'
 import { ArrowDown, ArrowUp, Delete, X } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { useId, useRef, useState } from 'react'
 import { ApiError } from '@/api/client'
-import { studio, type LibraryRule } from '@/api/endpoints'
+import { ai, studio, type LibraryRule } from '@/api/endpoints'
 import type { FieldDef, FieldRule, StudioTable } from '@/api/types'
 import { Button, Switch, Tooltip, cn } from '@/design-system'
+import { DescribePanel } from './DescribePanel'
 import { useSaveField } from './useSaveField'
 import { useValidationLibrary } from './useValidationLibrary'
 
@@ -25,6 +27,8 @@ interface Staged extends FieldRule {
 /** The Validation cell of the Fields grid: an fx button with "Add" or "N rules" that opens the rule list. */
 export function ValidationCell({ table, field, canEdit }: { table: StudioTable; field: FieldDef; canEdit: boolean }) {
   const library = useValidationLibrary()
+  const aiSetting = useQuery({ queryKey: ['ai', 'settings'], queryFn: ai.settings, staleTime: 60_000, retry: false })
+  const aiOn = !!aiSetting.data?.enabled
   const save = useSaveField(table.key, field.key, 'validation rules')
   const [open, setOpen] = useState(false)
   const [rules, setRules] = useState<Staged[]>([])
@@ -67,6 +71,10 @@ export function ValidationCell({ table, field, canEdit }: { table: StudioTable; 
   }
   const addOwn = () => {
     setRules((all) => [...all, { id: nextId.current++, name: 'My pattern', kind: 'pattern', pattern: '', message: 'Enter a valid value.', enabled: true, editing: true }])
+    setCheck(null)
+  }
+  const addDescribed = (name: string, pattern: string, edit: boolean) => {
+    setRules((all) => [...all, { id: nextId.current++, name, kind: 'pattern', pattern, message: 'Enter a valid value.', enabled: true, editing: edit }])
     setCheck(null)
   }
   const checkPattern = async (r: Staged) => {
@@ -178,15 +186,21 @@ export function ValidationCell({ table, field, canEdit }: { table: StudioTable; 
                 <button type="button" onClick={addOwn} className="rounded-full border border-dashed border-accent px-3 py-1 text-sm font-medium text-accent-ink hover:bg-accent-soft">+ Write my own pattern</button>
               )}
             </div>
+            {field.type !== 'date' && <DescribePanel aiOn={aiOn} onUse={addDescribed} />}
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <Button size="sm" variant="secondary" onClick={countExisting} aria-describedby={`${id}-check`}>Check existing records</Button>
               <span id={`${id}-check`} role="status" className="text-xs text-body">{check}</span>
             </div>
             {problem && <p role="alert" className="mt-3 rounded-md border border-bad bg-bad-soft px-3 py-2 text-xs text-bad-ink">{problem}</p>}
           </div>
-          <div className="flex items-center justify-end gap-2 border-t border-line px-4 py-3">
+          <div className="flex items-center justify-between gap-3 border-t border-line px-4 py-3">
+            <p className="text-xs text-muted">
+              {aiOn ? 'AI is on for this workspace (Settings › AI).' : 'AI is off for this workspace (Settings › AI).'} Without it, library and manual patterns still work.
+            </p>
+            <div className="flex shrink-0 items-center gap-2">
             <Button variant="secondary" size="sm" onClick={() => setOpen(false)}>Cancel</Button>
             <Button variant="primary" size="sm" onClick={done} loading={save.isPending}>Done</Button>
+            </div>
           </div>
         </Popover.Content>
       </Popover.Portal>

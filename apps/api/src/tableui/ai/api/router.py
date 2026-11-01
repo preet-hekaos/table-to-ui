@@ -189,6 +189,18 @@ async def draft(
     )
 
 
+class PatternBody(BaseModel):
+    description: str
+
+
+@router.post("/pattern")
+async def pattern(
+    body: PatternBody, req: Request, p: PrincipalDep, db: DbDep, an: AnalyticsDep, s: SettingsDep
+) -> dict[str, Any]:
+    """A suggested validation pattern from a description. Nothing is saved; the builder presses Use as rule."""
+    return await features.pattern_from_words(await _ctx(req, p, db, an, s), p, body.description)
+
+
 @router.post("/explain-number")
 async def explain_number(
     body: NumberBody,

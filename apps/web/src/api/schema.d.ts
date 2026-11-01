@@ -143,6 +143,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/ai/pattern": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pattern
+         * @description A suggested validation pattern from a description. Nothing is saved; the builder presses Use as rule.
+         */
+        post: operations["pattern_v1_ai_pattern_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/ai/schema-from-document": {
         parameters: {
             query?: never;
@@ -3360,6 +3380,11 @@ export interface components {
              */
             b: string;
         };
+        /** PatternBody */
+        PatternBody: {
+            /** Description */
+            description: string;
+        };
         /** PrefsBody */
         PrefsBody: {
             /** Channels */
@@ -3884,6 +3909,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ExtractBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pattern_v1_ai_pattern_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatternBody"];
             };
         };
         responses: {

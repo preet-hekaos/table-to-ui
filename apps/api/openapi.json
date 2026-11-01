@@ -1015,6 +1015,19 @@
         "title": "PairBody",
         "type": "object"
       },
+      "PatternBody": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          }
+        },
+        "required": [
+          "description"
+        ],
+        "title": "PatternBody",
+        "type": "object"
+      },
       "PrefsBody": {
         "properties": {
           "channels": {
@@ -2005,6 +2018,50 @@
           }
         },
         "summary": "Extract",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/v1/ai/pattern": {
+      "post": {
+        "description": "A suggested validation pattern from a description. Nothing is saved; the builder presses Use as rule.",
+        "operationId": "pattern_v1_ai_pattern_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatternBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Pattern V1 Ai Pattern Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Pattern",
         "tags": [
           "ai"
         ]

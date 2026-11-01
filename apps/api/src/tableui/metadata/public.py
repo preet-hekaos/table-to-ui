@@ -50,6 +50,7 @@ from tableui.metadata.domain.models import (
     WorkflowDef,
     features_of,
 )
+from tableui.metadata.domain.patterns import check_pattern, rule_problem
 from tableui.metadata.domain.values import (
     normalise,
     search_document,
@@ -58,6 +59,8 @@ from tableui.metadata.domain.values import (
 )
 
 __all__ = [
+    "check_pattern",
+    "rule_problem",
     "features_of",
     "create_table",
     "read_draft",

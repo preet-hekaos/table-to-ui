@@ -16,7 +16,7 @@ from tableui.files.public import get_parse, mapped_values
 from tableui.identity.public import Principal
 from tableui.insights.public import snapshot
 from tableui.matching.public import matches
-from tableui.metadata.public import Pack, RuntimeApp, TableDef
+from tableui.metadata.public import Pack, RuntimeApp, TableDef, check_pattern, rule_problem
 from tableui.platform.db import Database
 from tableui.platform.errors import NotFound, ValidationFailed
 from tableui.query.public import get_record
@@ -265,3 +265,51 @@ async def explain_number(
                     lambda v: {"text": need_text(v, "text", limit=700)}, subject=key, table=m.get("table"))  # fmt: skip
     r["figures"] = {"value": m["value"], "series": series[:60]}
     return r
+
+
+# ---- 8. describe a validation pattern in words (suggestion only) ---------------------------------------
+
+PATTERN_BASE = (
+    "You turn a plain description of what a value may look like into one regular expression. "
+    "Use only simple, portable syntax: anchors ^ and $, character classes, fixed counts like {5}, and groups; "
+    "no look-behind, no back-references and no repeats inside repeats. At most 300 characters. "
+    'Reply as JSON: {"pattern": "...", "explanation": "one plain sentence", "good": ["2 values it allows"], '
+    '"bad": ["2 values it refuses"]}.'
+)
+
+
+async def pattern_from_words(ctx: Ctx, p: Principal, description: str) -> dict[str, Any]:
+    """A pattern for a validation rule. The engine, not the model, decides whether it is usable: the pattern must
+    pass the safety checks, every sample must behave as claimed, and nothing is saved here."""
+    text_ = description.strip()
+    if not text_ or len(text_) > 300:
+        raise ValidationFailed(
+            errors=[
+                {
+                    "field": "description",
+                    "code": "invalid",
+                    "message": "Describe it in 1 to 300 characters.",
+                }
+            ]  # fmt: skip
+        )
+
+    def shape(v: Any) -> dict[str, Any]:
+        o = need_object(v)
+        pattern = need_text(o, "pattern", limit=300)
+        problem = check_pattern(pattern)
+        if problem:
+            raise BadReply(problem)
+        good = [str(x) for x in (o.get("good") or []) if isinstance(x, str | int | float)][:4]
+        bad = [str(x) for x in (o.get("bad") or []) if isinstance(x, str | int | float)][:4]
+        samples = [
+            {"value": g, "allowed": True} for g in good if not rule_problem("pattern", pattern, g)
+        ]
+        samples += [{"value": b, "allowed": False} for b in bad if rule_problem("pattern", pattern, b)]  # fmt: skip
+        if not any(x["allowed"] for x in samples):
+            raise BadReply("No sample matched the pattern.")
+        return {"pattern": pattern, "explanation": need_text(o, "explanation", limit=300), "samples": samples}  # fmt: skip
+
+    return await ctx.run(
+        p, "pattern", PATTERN_BASE, f"Description: <data>{redact(text_)}</data>", shape,
+        permission="metadata.write", max_tokens=400,
+    )  # fmt: skip

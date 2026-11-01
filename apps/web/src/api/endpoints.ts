@@ -653,6 +653,8 @@ export const ai = {
   setupApply: (id: string, steps: number[]) => send<SetupPlan>('POST', `/v1/ai/setup/plans/${id}/apply`, { steps }),
   setupUndo: (id: string) => send<SetupPlan>('POST', `/v1/ai/setup/plans/${id}/undo`),
   setupDiscard: (id: string) => send<void>('POST', `/v1/ai/setup/plans/${id}/discard`),
+  pattern: (description: string) =>
+    send<{ pattern: string; explanation: string; samples: { value: string; allowed: boolean }[] }>('POST', '/v1/ai/pattern', { description }),
   settings: () => g<AiSettings>('/v1/ai/settings'),
   saveSettings: (body: { enabled?: boolean; tables?: string[]; monthly_token_cap?: number }) => send<AiSettings>('PUT', '/v1/ai/settings', body),
   extract: (screen: string, file_id: string) => send<AiSuggestions>('POST', '/v1/ai/extract', { screen, file_id }),

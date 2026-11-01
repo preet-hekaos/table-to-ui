@@ -41,6 +41,8 @@ def demo_answer(system: str, user: str) -> object:
             if len(chunk) == 3:
                 out[f["key"]] = {"value": " ".join(chunk), "quote": " ".join(chunk)}
         return {"fields": out}
+    if "regular expression" in system:
+        return _demo_pattern(data)
     if "Describe the data tables" in system:
         return _demo_schema(data)
     if "You plan changes to the setup" in system:
@@ -145,3 +147,35 @@ def _demo_schema(words: str) -> object:
                 ):
                     f["links_to"] = labels[lab]
     return {"tables": tables}
+
+
+_COUNT = {"one": 1, "a": 1, "an": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6}
+
+
+def _demo_pattern(words: str) -> object:
+    """A pattern from a description such as "5 capital letters, then 4 digits, then 1 capital letter"."""
+    import re
+
+    kinds = {
+        "capital": ("[A-Z]", "A"),
+        "digit": ("[0-9]", "1"),
+        "lowercase": ("[a-z]", "a"),
+        "letter": ("[A-Za-z]", "a"),
+    }
+    parts = re.findall(
+        r"(\d+|one|an?|two|three|four|five|six)\s+(capital|lowercase|digit|letter)", words.lower()
+    )
+    if not parts:
+        return {"pattern": "(", "explanation": "Demo could not read that.", "good": [], "bad": []}
+    pattern, good = "^", ""
+    for count, kind in parts:
+        n = int(count) if count.isdigit() else _COUNT[count]
+        pattern += f"{kinds[kind][0]}{{{n}}}"
+        good += kinds[kind][1] * n
+    pattern += "$"
+    return {
+        "pattern": pattern,
+        "explanation": "Demo pattern built from the counts and kinds named in the description.",
+        "good": [good],
+        "bad": [good.lower(), good + "!"],
+    }
