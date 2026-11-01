@@ -1,0 +1,8 @@
+key: submission_to_interview
+label: Submission to interview
+table: interview
+aggregate: ratio
+ratio_of: [submissions_interviewed, submissions_sent]
+unit: "%"
+help: Of the submissions sent in the chosen dates, how many got as far as an interview.
+order: 76

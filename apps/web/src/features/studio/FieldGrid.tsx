@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { studio } from '@/api/endpoints'
 import type { StudioTable } from '@/api/types'
-import { Chip, cn } from '@/design-system'
+import { Chip, ScrollArea, cn } from '@/design-system'
 import type { TableFeatures } from './features'
 
 const NUMERIC = ['integer', 'decimal', 'money', 'months']
+const CHARTABLE = ['select', 'text', 'boolean', 'date', ...NUMERIC]
 
 /** The fields shown when the owner has not chosen: the table screen's own columns, else the first six. */
 function automaticColumns(table: StudioTable, screenColumns: string[] | undefined): string[] {
@@ -36,6 +37,7 @@ const COLUMNS: Column[] = [
   { short: 'Export', follows: { flag: 'export_data', label: 'Export data' } },
   { short: 'Bulk', follows: { flag: 'select_bulk', label: 'Select rows' } },
   { short: 'Summary', master: { flag: 'statistics', label: 'Numbers above the table' } },
+  { short: 'Chart' },
 ]
 
 /**
@@ -55,6 +57,7 @@ export function FieldGrid({
 }) {
   const screens = useQuery({ queryKey: ['studio-screens'], queryFn: studio.screens, retry: false })
   const own = screens.data?.find((x) => x.table === table.key && x.pattern === 'searchable_table')
+  const listless = !!screens.data && !own
   const automatic = automaticColumns(table, (own?.config.columns as string[] | undefined) ?? undefined)
   const shown = f.default_columns ?? automatic
   const fields = table.fields.filter((x) => !x.hidden)
@@ -66,6 +69,8 @@ export function FieldGrid({
   const blocked = (c: Column): string | null => {
     if (c.master && !f[c.master.flag]) return `Turn on ${c.master.label} first.`
     if (c.follows && !f[c.follows.flag]) return `Turn on ${c.follows.label} first.`
+    if (listless && ['Shown', 'Group', 'Bulk'].includes(c.short)) return 'This table has no table screen, so there are no rows to show, group or tick.'
+    if (c.short === 'Chart' && !f.statistics) return 'Turn on Numbers above the table first.'
     return null
   }
 
@@ -79,7 +84,7 @@ export function FieldGrid({
   }
   const col = (short: string) => COLUMNS.find((c) => c.short === short)!
 
-  const rowGrid = 'grid grid-cols-[13rem_repeat(8,minmax(0,1fr))] items-center px-5'
+  const rowGrid = 'grid grid-cols-[13rem_repeat(9,minmax(0,1fr))] items-center px-5'
 
   return (
     <section className="flex flex-col gap-4" aria-labelledby="field-grid-title" data-testid="field-grid">
@@ -89,8 +94,8 @@ export function FieldGrid({
           Each heading turns that option on or off for the whole table. Hover a chip for details. The title always shows, because it opens the record.
         </p>
       </div>
-      <div className="overflow-x-auto rounded-xl border border-line bg-surface">
-        <div className="min-w-[60rem]" role="table" aria-label="Field options">
+      <ScrollArea axis="x" className="rounded-xl border border-line bg-surface">
+        <div className="min-w-[66rem]" role="table" aria-label="Field options">
           <div role="row" className={cn(rowGrid, 'h-[4.5rem] border-b border-line bg-soft')}>
             <span role="columnheader" className="text-xs font-semibold text-ink">Field</span>
             {COLUMNS.map((c) => (
@@ -109,7 +114,7 @@ export function FieldGrid({
                     {f[c.master.flag] ? 'On' : 'Off'}
                   </Chip>
                 ) : (
-                  <span className="text-center text-[11px] leading-tight text-body">{c.follows ? `Follows ${c.follows.label}` : 'Default columns'}</span>
+                  <span className="text-center text-[11px] leading-tight text-body">{c.follows ? `Follows ${c.follows.label}` : c.short === 'Chart' ? 'Chart axes' : 'Default columns'}</span>
                 )}
               </span>
             ))}
@@ -149,11 +154,18 @@ export function FieldGrid({
                     <span className="text-sm text-muted" aria-label="Not available">–</span>
                   )}
                 </span>
+                <span role="cell" className="flex justify-center">
+                  {CHARTABLE.includes(x.type) ? (
+                    chip(col('Chart'), `Chart ${x.label}`, `Offering ${x.label} to ${numeric ? 'measure' : 'group'} the chart.`, !f.nochart.includes(x.key), (on) => set('nochart', toggle(f.nochart, x.key, !on)))
+                  ) : (
+                    <span className="text-sm text-muted" aria-label="Not available">–</span>
+                  )}
+                </span>
               </div>
             )
           })}
         </div>
-      </div>
+      </ScrollArea>
       {f.default_columns !== null && (
         <button type="button" className="self-start text-xs font-medium text-accent underline" disabled={!canEdit} onClick={() => set('default_columns', null)}>
           Go back to the automatic columns

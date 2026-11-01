@@ -10,3 +10,6 @@ Status: accepted
 
 ## Consequences
 Three stacked layers at the top become two. A new section costs one line in the map instead of a tab that no longer fits. Tests move between sections with the `openSection` helper rather than clicking a tab.
+
+## Update (R9)
+The section switcher moved up into the header row beside "Set up by chat", because it applies to every section while the table controls only apply to Tables. The toolbar below now exists only in Tables and holds just the table picker, Fields / Screens / Features, Add field and New table. Field rows are compact (about 37 px).

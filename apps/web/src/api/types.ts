@@ -18,6 +18,8 @@ export interface FieldDef {
   filterable?: boolean
   source?: 'pack' | 'agency'
   help?: string | null
+  /** For a stage field: what each stored stage is called now (stages can be renamed). */
+  option_labels?: Record<string, string>
 }
 export interface TableDef {
   key: string
@@ -120,6 +122,9 @@ export interface Measure {
   source: 'pack' | 'agency'
   home: boolean
   series: MeasurePoint[] | null
+  unit?: '%' | 'days' | null
+  previous?: number | null
+  trend?: number[] | null
 }
 export interface MeasureRecords {
   table: string

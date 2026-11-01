@@ -16,3 +16,11 @@ The approved requirement documents live as shared Claude docs, which stay the ed
 | M6 PRD: Operator console and client lifecycle | https://claude.ai/artifact/PmRYwg4tMm8mB513Sqige2 |
 | N1 to N5 plan: new requirements, step by step | https://claude.ai/artifact/GaSQHxCnqrRAMs1yR47175 |
 | HLD and LLD (Recruitment Pack) | https://claude.ai/code/artifact/af67be98-273f-4744-a2e7-eebe04cc1f56 |
+| Studio table redesign: index and test standard | https://claude.ai/artifact/B8RnLzLpQQikg9eS47TeWR |
+| S0 PRD: Live-effect gate and audit | https://claude.ai/artifact/8q5acX9YfNDDBPmeDnG4y7 |
+| S1 PRD: Fields table (inline grid) | https://claude.ai/artifact/V6YpNkFCuLPVp3gT4gT1nr |
+| S2 PRD: Real-world types, core type and length | https://claude.ai/artifact/HWXcBWuqqFYWgnCvH3cCN3 |
+| S3 PRD: Validation rules (fx) | https://claude.ai/artifact/WR8xSxLzyRbk1YYsYWv9Md |
+| S4 PRD: Features dropdown | https://claude.ai/artifact/PonWM48M9nCr6KmP7iRKE9 |
+| S5 PRD: Transformation rules | https://claude.ai/artifact/ER86VNxJWiutY8SDNap7of |
+| S6 PRD: Release, migration and full journey tests | https://claude.ai/artifact/BNEByck3UpbSC4xLNNjygL |

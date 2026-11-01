@@ -1,6 +1,6 @@
 import * as Popover from '@radix-ui/react-popover'
 import { Columns3 } from 'lucide-react'
-import { Button } from '@/design-system'
+import { Button, ScrollArea } from '@/design-system'
 
 export interface ColumnChoice {
   key: string
@@ -22,7 +22,7 @@ export function ColumnsMenu({ columns, hidden, changes = hidden.length, onChange
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Content align="end" sideOffset={6} className="z-50 w-64 rounded-lg border border-line bg-surface p-2 shadow-lg">
-          <fieldset className="flex max-h-72 flex-col gap-0.5 overflow-y-auto">
+          <ScrollArea as="fieldset" className="flex max-h-72 flex-col gap-0.5">
             <legend className="px-2 pb-1 text-[11px] font-semibold tracking-wide text-muted uppercase">Columns shown</legend>
             {columns.map((c) => (
               <label key={c.key} className="flex min-h-8 items-center gap-2 rounded-md px-2 text-sm text-body hover:bg-soft">
@@ -30,7 +30,7 @@ export function ColumnsMenu({ columns, hidden, changes = hidden.length, onChange
                 {c.label}
               </label>
             ))}
-          </fieldset>
+          </ScrollArea>
           <div className="mt-1 flex justify-end border-t border-line pt-2">
             <Button size="sm" variant="ghost" onClick={onReset} disabled={changes === 0}>Reset to default</Button>
           </div>

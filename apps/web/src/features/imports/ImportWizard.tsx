@@ -231,9 +231,10 @@ function Check({ job, onJob }: { job: ImportJob; onJob: (j: ImportJob) => void }
       )}
       {dups.length > 0 && (
         <Card className="p-0">
-          <h2 className="border-b border-line p-3 text-sm font-bold text-ink">Possible duplicates ({r.duplicates_total})</h2>
+          <h2 className="border-b border-line p-3 text-sm font-bold text-ink">Rows to review ({r.duplicates_total})</h2>
+          <p className="border-b border-line px-3 py-2 text-xs text-muted">Your rules flagged these rows: possible duplicates, or rows that break a rule (the reason is shown). Rows you skip are left out.</p>
           <div className="overflow-x-auto">
-            <Table aria-label="Possible duplicates">
+            <Table aria-label="Rows to review">
               <thead><tr><Th>Row</Th><Th>Name</Th><Th>Why</Th><Th>What to do</Th></tr></thead>
               <tbody>{dups.map((d) => <DuplicateRow key={d.row} d={d} value={choice[String(d.row)]!} onChange={(v) => setChoice({ ...choice, [String(d.row)]: v })} />)}</tbody>
             </Table>

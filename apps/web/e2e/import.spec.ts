@@ -29,7 +29,7 @@ test('Import a spreadsheet of candidates and undo it', async ({ page }) => {
     const rep = page.getByTestId('validation-report')
     await expect(rep).toContainText('Ready3')
     await expect(rep).toContainText('With problems1')
-    await expect(page.getByRole('table', { name: 'Possible duplicates' })).toContainText('R-01.phone')
+    await expect(page.getByRole('table', { name: 'Rows to review' })).toContainText('R-01.phone')
     await page.getByLabel('What to do with row 4').selectOption('create')
     await page.getByLabel('Reason for row 4').fill('Twins share one phone')
     await page.getByRole('button', { name: /^Load/ }).click()

@@ -1,44 +1,45 @@
 @import 'tailwindcss';
 
-/* Design tokens taken from the approved Miro mockups (screens 0.x to 3.x). Light mode now;
+/* Design tokens taken from the approved v2 mockups (Table to UI Mockups v2, Oct 2026). Light mode now;
    every colour is a CSS variable so a dark theme only needs a second set of values. */
 :root {
   --font-sans: 'Inter', system-ui, sans-serif;
-  --color-ink: #0f172a;
-  --color-body: #334155;
-  --color-muted: #64748b;
-  --color-line: #e2e8f0;
-  --color-soft: #f1f5f9;
-  --color-canvas: #f8fafc;
+  --color-ink: #0b1220;
+  --color-body: #3b4558;
+  --color-muted: #5b6475;
+  --color-line: #e4e8ef;
+  --color-soft: #f1f4f9;
+  --color-canvas: #f4f6f9;
+  --color-head: #f7f9fc;
   --color-surface: #ffffff;
-  --color-accent: #4f46e5;
-  --color-accent-strong: #4338ca;
-  --color-accent-soft: #eef2ff;
-  --color-accent-ink: #3730a3;
-  --color-ok: #16a34a;
-  --color-ok-soft: #dcfce7;
-  --color-ok-ink: #166534;
+  --color-accent: #1f4fd8;
+  --color-accent-strong: #1a42b5;
+  --color-accent-soft: #e6eeff;
+  --color-accent-ink: #1f3fa8;
+  --color-ok: #1e9e4a;
+  --color-ok-soft: #daf3e5;
+  --color-ok-ink: #0f5f3a;
   --color-warn: #d97706;
   --color-warn-soft: #fef3c7;
-  --color-warn-ink: #92400e;
-  --color-bad: #dc2626;
-  --color-bad-soft: #fee2e2;
-  --color-bad-ink: #991b1b;
-  --color-stage-draft: #d97706;
+  --color-warn-ink: #7a5200;
+  --color-bad: #b42318;
+  --color-bad-soft: #fee4e2;
+  --color-bad-ink: #912018;
+  --color-stage-draft: #b45309;
   --color-stage-draft-soft: #fef3c7;
   --color-stage-draft-ink: #92400e;
-  --color-stage-test: #0284c7;
-  --color-stage-test-soft: #e0f2fe;
+  --color-stage-test: #1b7fb5;
+  --color-stage-test-soft: #e3f2fa;
   --color-stage-test-ink: #075985;
-  --color-stage-live: #16a34a;
-  --color-stage-live-soft: #dcfce7;
+  --color-stage-live: #1e9e4a;
+  --color-stage-live-soft: #d7f3e1;
   --color-stage-live-ink: #166534;
   --color-stage-removed: #94a3b8;
   --color-stage-removed-soft: #f1f5f9;
   --color-stage-removed-ink: #475569;
-  --color-nav: #0f172a;
-  --color-nav-active: #1e293b;
-  --color-nav-text: #94a3b8;
+  --color-nav: #0b1220;
+  --color-nav-active: #1b2740;
+  --color-nav-text: #a3acbd;
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
@@ -61,6 +62,7 @@
   --color-line: var(--color-line);
   --color-soft: var(--color-soft);
   --color-canvas: var(--color-canvas);
+  --color-head: var(--color-head);
   --color-surface: var(--color-surface);
   --color-accent: var(--color-accent);
   --color-accent-strong: var(--color-accent-strong);
@@ -119,4 +121,149 @@ body {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Quiet scrollbars: a slim rounded thumb with no arrows and no track, darker on hover.
+   Lists that scroll also fade at the edge that has more (see ScrollArea). */
+:root {
+  --scroll-thumb: #b6c0cf;
+  --scroll-thumb-hover: #8c99ad;
+}
+.bg-nav {
+  --scroll-thumb: rgb(255 255 255 / 0.22);
+  --scroll-thumb-hover: rgb(255 255 255 / 0.45);
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  background-clip: content-box;
+  border: 3px solid transparent;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scroll-thumb-hover);
+  background-clip: content-box;
+}
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scroll-thumb) transparent;
+  }
+}
+[data-fade='y'][data-fading] {
+  mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade-a, 0px), #000 calc(100% - var(--fade-b, 0px)), transparent 100%);
+}
+[data-fade='x'][data-fading] {
+  mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-a, 0px), #000 calc(100% - var(--fade-b, 0px)), transparent 100%);
+}
+
+/* Charts: bars grow, lines draw themselves; both are off for people who ask for less motion. */
+@keyframes chart-grow {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+@keyframes chart-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes chart-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.chart-bar {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: chart-grow 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.chart-hbar {
+  transform-box: fill-box;
+  transform-origin: 0 50%;
+  animation: chart-grow-x 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes chart-grow-x {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.chart-line {
+  stroke-dasharray: 1;
+  animation: chart-draw 0.9s ease-out both;
+}
+.chart-fade {
+  animation: chart-fade 0.7s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .chart-bar, .chart-hbar, .chart-line, .chart-fade { animation: none; }
+}
+
+/* The Draft node breathes while changes wait in it. */
+@keyframes env-pulse {
+  0% { box-shadow: 0 0 0 0 rgb(245 158 11 / 0.45); }
+  70% { box-shadow: 0 0 0 10px rgb(245 158 11 / 0); }
+  100% { box-shadow: 0 0 0 0 rgb(245 158 11 / 0); }
+}
+.env-pulse { animation: env-pulse 2.2s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .env-pulse { animation: none; }
+}
+
+/* Canvas: a table that is hovered or chosen lifts a little, glows in the accent colour, and the lines that touch it flow in the direction they point. */
+.map-card {
+  transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.22s ease, border-color 0.22s ease;
+  transform-origin: 50% 100%;
+  will-change: transform;
+}
+.map-card:hover,
+.map-card[data-lit='true'] {
+  transform: perspective(700px) translateY(-4px) rotateX(4deg);
+  border-color: var(--color-accent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--color-accent) 55%, transparent),
+    0 0 20px 2px color-mix(in srgb, var(--color-accent) 38%, transparent),
+    0 16px 24px -12px rgb(15 23 42 / 0.35);
+}
+.map-card[data-lit='true'] {
+  box-shadow:
+    0 0 0 2px var(--color-accent),
+    0 0 24px 4px color-mix(in srgb, var(--color-accent) 42%, transparent),
+    0 16px 24px -12px rgb(15 23 42 / 0.35);
+}
+.map-dot { transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.22s ease; }
+.map-dot:hover,
+.map-dot[data-lit='true'] {
+  transform: scale(1.14);
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--color-accent) 22%, transparent),
+    0 0 20px 4px color-mix(in srgb, var(--color-accent) 55%, transparent);
+}
+.map-dot[data-lit='true'] {
+  box-shadow:
+    0 0 0 2px var(--color-surface),
+    0 0 0 4px var(--color-accent),
+    0 0 24px 6px color-mix(in srgb, var(--color-accent) 55%, transparent);
+}
+@keyframes map-flow {
+  from { stroke-dashoffset: 10; }
+  to { stroke-dashoffset: 0; }
+}
+.react-flow__edge.map-flow .react-flow__edge-path {
+  stroke-dasharray: 6 4;
+  stroke-linecap: round;
+  animation: map-flow 0.9s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .map-card, .map-dot { transition: none; }
+  .map-card:hover, .map-card[data-lit='true'], .map-dot:hover, .map-dot[data-lit='true'] { transform: none; }
+  .react-flow__edge.map-flow .react-flow__edge-path { animation: none; }
 }

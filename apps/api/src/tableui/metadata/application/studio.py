@@ -18,6 +18,7 @@ from tableui.audit.public import write_audit
 from tableui.metadata.domain.ddl import add_field_index_sql, add_shadow_column_sql, table_ddl_sql
 from tableui.metadata.domain.links import describe_cycle, required_cycle
 from tableui.metadata.domain.models import (
+    CHART_X_TYPES,
     FieldDef,
     NavItem,
     RuleDef,
@@ -325,7 +326,8 @@ async def update_field(
     if refused:
         raise _bad(
             refused[0],
-            "cannot be changed on a field that comes with the pack"
+            "this field comes with the pack, so only its name, help text and visibility can change; "
+            "add a new field if you need something different"
             if f.source == "pack"
             else "cannot be changed",
             "not_editable",
@@ -350,6 +352,45 @@ async def update_field(
         )
     except ValidationError as e:
         raise _pydantic_errors(e) from None
+    if f.type == "select" and "options" in changes:
+        gone = sorted(set(f.options) - set(nf.options))
+        exists = (await s.execute(text("SELECT to_regclass(:t)"), {"t": f'"{table_key}"'})).scalar()
+        if gone and exists:
+            used = (
+                await s.execute(
+                    text(
+                        f"SELECT data->>'{field_key}' AS v, count(*) AS n FROM \"{table_key}\" "  # noqa: S608 - identifiers are validated metadata keys
+                        f"WHERE data->>'{field_key}' = ANY(CAST(:g AS text[])) GROUP BY 1 ORDER BY 1"
+                    ),
+                    {"g": gone},
+                )
+            ).all()
+            if used:
+                detail = ", ".join(f"{r.v} ({r.n})" for r in used)
+                raise _bad(
+                    "options",
+                    f"records still use {detail}; change those records before removing the choice",
+                    "in_use",
+                )
+    if nf.required and not f.required and nf.type != "reference":  # links are reported by Health
+        exists = (await s.execute(text("SELECT to_regclass(:t)"), {"t": f'"{table_key}"'})).scalar()
+        if exists:
+            blank = (
+                await s.execute(
+                    text(
+                        f'SELECT count(*) FROM "{table_key}" '  # noqa: S608 - identifiers are validated metadata keys
+                        f"WHERE COALESCE(data->>'{field_key}', '') = ''"
+                    )
+                )
+            ).scalar() or 0
+            if blank:
+                raise _bad(
+                    "required",
+                    f"{blank} existing record{'s have' if blank != 1 else ' has'} no "
+                    f"{f.label.lower()}; fill {'them' if blank != 1 else 'it'} in first, "
+                    "or leave the field optional",
+                    "blank_records",
+                )
     if nf.type == "reference" and nf.required and not f.required:
         rows = await s.execute(text("SELECT definition FROM metadata_object WHERE kind = 'table'"))
         others = [
@@ -412,7 +453,34 @@ async def remove_field(
         "fields": [x for x in definition["fields"] if x["key"] != field_key],
         "version": table.version + 1,
     }
+    if table.features is not None:  # settings that named the field must not point at nothing
+        left = TableDef.model_validate(updated)
+        updated["features"] = _fit_features(table.features, left, strict=False).model_dump(
+            mode="json"
+        )
     await _put(s, tenant_id, "table", table_key, updated, source)
+    for sc in await s.execute(
+        text("SELECT key, definition, source FROM metadata_object WHERE kind = 'screen'")
+    ):
+        d = sc.definition
+        if d.get("table") != table_key:
+            continue
+        cfg = dict(d.get("config") or {})
+        before = json.dumps(cfg, sort_keys=True)
+        for name in ("columns", "filters", "fields", "facets"):
+            if isinstance(cfg.get(name), list):
+                cfg[name] = [k for k in cfg[name] if k != field_key]
+        if cfg.get("group_by") == field_key:
+            cfg.pop("group_by")
+        if json.dumps(cfg, sort_keys=True) != before:
+            await _put(
+                s,
+                tenant_id,
+                "screen",
+                sc.key,
+                {**d, "config": cfg, "version": d.get("version", 1) + 1},
+                sc.source,
+            )
     await _audit(
         s, tenant_id, user_id, "metadata.field.delete", f"{table_key}.{field_key}", {}, request_id
     )
@@ -513,8 +581,10 @@ async def save_navigation(
             raise _pydantic_errors(e) from None
         if n.screen not in screens:
             raise _bad(f"items.{i}.screen", "must be a screen in this app")
-        if n.section not in {"main", "more"}:
-            raise _bad(f"items.{i}.section", "must be main or more")
+        if not re.fullmatch(r"[a-z][a-z0-9_]{0,30}", n.section):
+            raise _bad(
+                f"items.{i}.section", "must be a short name in lower case, like main or more"
+            )
         out.append(n)
     await s.execute(text("DELETE FROM metadata_object WHERE kind = 'nav'"))
     for n in out:
@@ -693,6 +763,7 @@ def _fit_features(f: TableFeatures, table: TableDef, *, strict: bool) -> TableFe
         *f.ungroupable,
         *f.unexported,
         *f.nobulk,
+        *f.nochart,
         *(f.default_columns or []),
     ]
     bad = [k for k in per_field if k not in have]
@@ -707,6 +778,22 @@ def _fit_features(f: TableFeatures, table: TableDef, *, strict: bool) -> TableFe
             return c.field in numeric
         return by_type.get(c.field or "") in ("select", "boolean", "text")
 
+    def _chart_ok(c: Any) -> bool:
+        if c is None:
+            return True
+        if (
+            c.x is not None
+            and c.x not in ("created_at", "updated_at")
+            and by_type.get(c.x) not in CHART_X_TYPES
+        ):
+            return False
+        return all(m.agg == "count" or m.field in numeric for m in c.measures)
+
+    chart_bad = not _chart_ok(f.chart)
+    if chart_bad and f.chart is not None:
+        bad.append(
+            f.chart.x or next((m.field for m in f.chart.measures if m.field), None) or "chart"
+        )
     bad_cards = [c for c in (f.stat_cards or []) if not _card_ok(c)]
     bad += [c.field for c in bad_cards if c.field]
     if (
@@ -731,6 +818,8 @@ def _fit_features(f: TableFeatures, table: TableDef, *, strict: bool) -> TableFe
             "ungroupable": [k for k in f.ungroupable if k in have],
             "unexported": [k for k in f.unexported if k in have],
             "nobulk": [k for k in f.nobulk if k in have],
+            "nochart": [k for k in f.nochart if k in have],
+            "chart": None if chart_bad else f.chart,
             "default_columns": [k for k in f.default_columns if k in have]
             if f.default_columns is not None
             else None,

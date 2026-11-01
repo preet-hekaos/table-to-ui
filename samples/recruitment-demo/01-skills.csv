@@ -1,0 +1,38 @@
+Name,Category
+Python,Backend
+Django,Backend
+FastAPI,Backend
+Java,Backend
+Spring Boot,Backend
+Node.js,Backend
+Go,Backend
+PostgreSQL,Backend
+Kafka,Backend
+Redis,Backend
+React,Frontend
+TypeScript,Frontend
+Next.js,Frontend
+Tailwind,Frontend
+GraphQL,Frontend
+Spark,Data
+Airflow,Data
+SQL,Data
+dbt,Data
+Snowflake,Data
+Power BI,Data
+AWS,Cloud and DevOps
+Kubernetes,Cloud and DevOps
+Terraform,Cloud and DevOps
+Docker,Cloud and DevOps
+CI/CD,Cloud and DevOps
+Selenium,Quality
+Cypress,Quality
+API testing,Quality
+Product strategy,Product and design
+Figma,Product and design
+User research,Product and design
+Roadmapping,Product and design
+Enterprise sales,Business
+Account management,Business
+Talent acquisition,Business
+Financial modelling,Business

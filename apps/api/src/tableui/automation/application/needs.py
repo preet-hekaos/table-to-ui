@@ -26,6 +26,37 @@ def _todo(app: RuntimeApp) -> Any:
     return next((t for t in app.tables.values() if t.todo is not None), None)
 
 
+async def _subtitles(
+    db: Database, p: Principal, app: RuntimeApp, todo: Any, rows: Any
+) -> dict[str, str]:
+    """For each to-do, the names of what it is about (the records its reference fields point at)."""
+    assert p.tenant_id
+    refs = [f for f in todo.fields if f.type == "reference" and f.ref_table in app.tables]
+    refs = [f for f in refs if p.allows(f"record.{f.ref_table}.read")][:2]
+    out: dict[str, list[str]] = {str(r.id): [] for r in rows}
+    for f in refs:
+        target = app.tables[f.ref_table]
+        ids = sorted({str(r.data.get(f.key)) for r in rows if r.data.get(f.key)})
+        if not ids:
+            continue
+        async with db.tenant(p.tenant_id) as s:
+            found = (
+                await s.execute(
+                    text(
+                        f"SELECT id::text AS id, data ->> '{target.title_field}' AS label FROM \"{target.key}\" "  # noqa: S608 - validated metadata keys
+                        "WHERE id::text = ANY(CAST(:ids AS text[]))"
+                    ),
+                    {"ids": ids},
+                )
+            ).all()
+        names: dict[str, str] = {str(x.id): str(x.label) for x in found if x.label}
+        for r in rows:
+            n = names.get(str(r.data.get(f.key)))
+            if n:
+                out[str(r.id)].append(n)
+    return {k: ", ".join(v) for k, v in out.items() if v}
+
+
 async def needs_me(db: Database, p: Principal, app: RuntimeApp) -> dict[str, Any]:
     """My open to-dos (soonest first), changes waiting for my decision, and what I have not read."""
     assert p.tenant_id
@@ -55,6 +86,7 @@ async def needs_me(db: Database, p: Principal, app: RuntimeApp) -> dict[str, Any
                 )
             ).scalar_one()
         today = datetime.now(UTC).date()
+        subtitles = await _subtitles(db, p, app, todo, rows)
         tasks = {
             "table": todo.key,
             "label": todo.plural_label,
@@ -64,6 +96,7 @@ async def needs_me(db: Database, p: Principal, app: RuntimeApp) -> dict[str, Any
                     "id": str(r.id),
                     "title": r.data.get(todo.title_field, ""),
                     "due_on": r.due.isoformat() if r.due else None,
+                    "subtitle": subtitles.get(str(r.id)),
                     "overdue": bool(r.due and r.due < today),
                     "can_finish": p.allows(f"record.{todo.key}.update"),
                 }

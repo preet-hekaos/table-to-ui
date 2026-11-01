@@ -29,7 +29,7 @@ def test_pack_loads_candidate_table_rule_and_measure() -> None:
         "R-14",
     ]
     assert [m.key for m in pack.measures][:2] == ["active_candidates", "open_jobs"]
-    assert len(pack.measures) == 9
+    assert len(pack.measures) == 14
 
 
 def test_core_code_contains_no_recruitment_terms() -> None:

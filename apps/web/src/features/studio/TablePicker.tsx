@@ -1,7 +1,7 @@
 import * as Popover from '@radix-ui/react-popover'
 import { Check, ChevronDown, FileDown, FileUp, MoreHorizontal, Plus, Search } from 'lucide-react'
 import { useState } from 'react'
-import { Button, StageDot, cn } from '@/design-system'
+import { Button, ScrollArea, StageDot, cn } from '@/design-system'
 
 type Stage = Parameters<typeof StageDot>[0]['stage']
 
@@ -44,7 +44,7 @@ export function TablePicker({ items, current, onSelect }: { items: Item[]; curre
             />
           </div>
           <nav aria-label="Tables">
-            <ul className="mt-1 flex max-h-72 flex-col gap-0.5 overflow-y-auto">
+            <ScrollArea axis="y" className="mt-1 max-h-[min(32rem,calc(var(--radix-popover-content-available-height)-5rem))]"><ul className="flex flex-col gap-0.5">
               {shown.map((t) => (
                 <li key={t.key}>
                   <button
@@ -65,7 +65,7 @@ export function TablePicker({ items, current, onSelect }: { items: Item[]; curre
                 </li>
               ))}
               {shown.length === 0 && <li className="px-3 py-2 text-sm text-muted">No table matches "{q}".</li>}
-            </ul>
+            </ul></ScrollArea>
           </nav>
         </Popover.Content>
       </Popover.Portal>

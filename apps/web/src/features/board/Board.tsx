@@ -1,108 +1,266 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link } from '@tanstack/react-router'
-import { useMemo, useState } from 'react'
-import { ApiError } from '@/api/client'
-import { app, flow, type OverrideInput } from '@/api/endpoints'
-import type { BoardColumn, FieldDef, RecordRow, RuleOutcome, TableDef } from '@/api/types'
-import { can, useMe } from '@/features/auth/useMe'
-import { RequestApproval } from '@/features/approvals/RequestApproval'
-import { Badge, Button, Dialog, DialogContent, EmptyState, ErrorState, Field, Input, LoadingState, Select, useToast } from '@/design-system'
-import { AskFields } from './AskFields'
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Avatar } from '@/patterns/Avatar'
+import { Link } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { ApiError } from "@/api/client";
+import { app, flow, type OverrideInput } from "@/api/endpoints";
+import type {
+  BoardColumn,
+  FieldDef,
+  RecordRow,
+  RuleOutcome,
+  TableDef,
+} from "@/api/types";
+import { can, useMe } from "@/features/auth/useMe";
+import { RequestApproval } from "@/features/approvals/RequestApproval";
+import { Plus } from "lucide-react";
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  EmptyState,
+  ErrorState,
+  Field,
+  Input,
+  LoadingState,
+  useToast,
+} from "@/design-system";
+import { AskFields } from "./AskFields";
 
-type Move = { card: RecordRow; to: string; extra?: Record<string, unknown> }
-type Blocked = Move & { violations: RuleOutcome[] }
-type NeedsApproval = Move & { checks: RuleOutcome[] }
+type Move = { card: RecordRow; to: string; extra?: Record<string, unknown> };
+type Blocked = Move & { violations: RuleOutcome[] };
+type NeedsApproval = Move & { checks: RuleOutcome[] };
+
+const DOTS = [
+  "bg-slate-500",
+  "bg-emerald-500",
+  "bg-blue-500",
+  "bg-violet-500",
+  "bg-orange-500",
+  "bg-pink-500",
+  "bg-teal-500",
+  "bg-amber-500",
+  "bg-rose-500",
+  "bg-cyan-500",
+];
+function updatedAgo(iso: string) {
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  return days <= 0
+    ? "Updated today"
+    : days === 1
+      ? "Updated 1 day ago"
+      : `Updated ${days} days ago`;
+}
 
 /** Pattern: stages as columns, one card per record. Drag a card, or use its "Move to" menu. */
-export function Board({ tableKey, title, filter }: { tableKey: string; title: string; filter?: { ref: string; id: string } }) {
-  const qc = useQueryClient()
-  const toast = useToast()
-  const me = useMe()
-  const [chosen, setChosen] = useState<string>(filter?.id ?? '')
-  const refField = filter?.ref
-  const [q, setQ] = useState('')
-  const table = useQuery({ queryKey: ['table', tableKey], queryFn: () => app.table(tableKey), retry: false })
-  const refs = useMemo(() => (table.data?.table.fields ?? []).filter((f) => f.type === 'reference' && f.filterable), [table.data])
-  const [refKey, setRefKey] = useState<string>(refField ?? '')
-  const activeRef = refKey || refs.find((f) => f.key === 'requirement')?.key || refs[0]?.key || ''
-  const filters: Record<string, string> = chosen && activeRef ? { [activeRef]: chosen } : {}
-  const board = useQuery({ queryKey: ['board', tableKey, filters, q], queryFn: () => flow.board(tableKey, filters, q), retry: false })
+export function Board({
+  tableKey,
+  title,
+  filter,
+}: {
+  tableKey: string;
+  title: string;
+  filter?: { ref: string; id: string };
+}) {
+  const qc = useQueryClient();
+  const toast = useToast();
+  const me = useMe();
+  const [chosen, setChosen] = useState<string>(filter?.id ?? "");
+  const refField = filter?.ref;
+  const [q, setQ] = useState("");
+  const table = useQuery({
+    queryKey: ["table", tableKey],
+    queryFn: () => app.table(tableKey),
+    retry: false,
+  });
+  const refs = useMemo(
+    () =>
+      (table.data?.table.fields ?? []).filter(
+        (f) => f.type === "reference" && f.filterable,
+      ),
+    [table.data],
+  );
+  const [refKey, setRefKey] = useState<string>(refField ?? "");
+  const activeRef =
+    refKey ||
+    refs.find((f) => f.key === "requirement")?.key ||
+    refs[0]?.key ||
+    "";
+  const filters: Record<string, string> =
+    chosen && activeRef ? { [activeRef]: chosen } : {};
+  const board = useQuery({
+    queryKey: ["board", tableKey, filters, q],
+    queryFn: () => flow.board(tableKey, filters, q),
+    retry: false,
+  });
   const options = useQuery({
-    queryKey: ['board-options', tableKey, activeRef],
+    queryKey: ["board-options", tableKey, activeRef],
     queryFn: () => app.facets(tableKey, { fields: [activeRef] }),
     enabled: !!activeRef,
-  })
+  });
 
-  const [ask, setAsk] = useState<Move | null>(null)
-  const [blocked, setBlocked] = useState<Blocked | null>(null)
-  const [approval, setApproval] = useState<NeedsApproval | null>(null)
-  const [dragging, setDragging] = useState<string | null>(null)
+  const [ask, setAsk] = useState<Move | null>(null);
+  const [blocked, setBlocked] = useState<Blocked | null>(null);
+  const [approval, setApproval] = useState<NeedsApproval | null>(null);
+  const [dragging, setDragging] = useState<string | null>(null);
 
-  if (table.isLoading || board.isLoading) return <LoadingState label="Loading the pipeline" />
-  if (board.error instanceof ApiError && board.error.status === 403) return <div role="alert">Your role cannot see this board.</div>
-  if (board.isError || !board.data || !table.data) return <ErrorState requestId={(board.error as ApiError | null)?.requestId} onRetry={() => void board.refetch()} />
-  const def: TableDef = table.data.table
-  const data = board.data
-  const refresh = () => qc.invalidateQueries({ queryKey: ['board', tableKey] })
-  const refLabel = (c: RecordRow) => Object.entries(c.refs ?? {}).filter(([k]) => k !== activeRef || !chosen).map(([, v]) => v.label).filter(Boolean)
+  if (table.isLoading || board.isLoading)
+    return <LoadingState label="Loading the pipeline" />;
+  if (board.error instanceof ApiError && board.error.status === 403)
+    return <div role="alert">Your role cannot see this board.</div>;
+  if (board.isError || !board.data || !table.data)
+    return (
+      <ErrorState
+        requestId={(board.error as ApiError | null)?.requestId}
+        onRetry={() => void board.refetch()}
+      />
+    );
+  const def: TableDef = table.data.table;
+  const data = board.data;
+  const refresh = () => qc.invalidateQueries({ queryKey: ["board", tableKey] });
+  const refLabel = (c: RecordRow) =>
+    Object.entries(c.refs ?? {})
+      .filter(([k]) => k !== activeRef || !chosen)
+      .map(([, v]) => v.label)
+      .filter(Boolean);
 
   async function move(m: Move, override?: OverrideInput) {
     try {
-      const body = { [data.field]: m.to, ...(m.extra ?? {}) }
-      const rec = await flow.move(tableKey, m.card.id, m.card.version, body, override)
-      const warn = (rec as RecordRow & { warnings?: RuleOutcome[] }).warnings ?? []
-      toast({ title: `Moved to ${m.to}${warn.length ? `. ${warn[0]!.message}` : ''}`, tone: 'ok' })
-      setBlocked(null)
-      await refresh()
+      const body = { [data.field]: m.to, ...(m.extra ?? {}) };
+      const rec = await flow.move(
+        tableKey,
+        m.card.id,
+        m.card.version,
+        body,
+        override,
+      );
+      const warn =
+        (rec as RecordRow & { warnings?: RuleOutcome[] }).warnings ?? [];
+      toast({
+        title: `Moved to ${m.to}${warn.length ? `. ${warn[0]!.message}` : ""}`,
+        tone: "ok",
+      });
+      setBlocked(null);
+      await refresh();
     } catch (e) {
-      if (!(e instanceof ApiError)) return toast({ title: 'Something went wrong. Nothing was moved.', tone: 'bad' })
-      if (e.is('rule-blocked')) {
-        setBlocked({ ...m, violations: (e.body.violations as RuleOutcome[] | undefined) ?? [e.body.rule as RuleOutcome] })
-      } else if (e.is('approval-required')) {
-        setApproval({ ...m, checks: (e.body.approval as { checks: RuleOutcome[] }).checks })
-      } else if (e.is('version-conflict')) {
-        toast({ title: 'Someone else changed this card. The board is reloaded.', tone: 'neutral' })
-        await refresh()
+      if (!(e instanceof ApiError))
+        return toast({
+          title: "Something went wrong. Nothing was moved.",
+          tone: "bad",
+        });
+      if (e.is("rule-blocked")) {
+        setBlocked({
+          ...m,
+          violations: (e.body.violations as RuleOutcome[] | undefined) ?? [
+            e.body.rule as RuleOutcome,
+          ],
+        });
+      } else if (e.is("approval-required")) {
+        setApproval({
+          ...m,
+          checks: (e.body.approval as { checks: RuleOutcome[] }).checks,
+        });
+      } else if (e.is("version-conflict")) {
+        toast({
+          title: "Someone else changed this card. The board is reloaded.",
+          tone: "neutral",
+        });
+        await refresh();
       } else {
-        toast({ title: e.message, tone: 'bad' })
+        toast({ title: e.message, tone: "bad" });
       }
     }
   }
 
   function attempt(card: RecordRow, to: string) {
-    const col = data.columns.find((c) => c.stage === to)
-    if (!col || String(card.data[data.field]) === to) return
-    if (col.ask.length) setAsk({ card, to })
-    else void move({ card, to })
+    const col = data.columns.find((c) => c.stage === to);
+    if (!col || String(card.data[data.field]) === to) return;
+    if (col.ask.length) setAsk({ card, to });
+    else void move({ card, to });
   }
 
-  const canOverride = can(me.data?.permissions, 'rule.override')
+  const canOverride = can(me.data?.permissions, "rule.override");
+  const canMove = can(me.data?.permissions, `record.${tableKey}.update`);
   return (
     <div className="flex min-w-0 max-w-full flex-col gap-4">
-      <div className="flex flex-wrap items-end gap-3">
-        <h1 className="mr-auto text-xl font-bold text-ink">{title}</h1>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-[22px] leading-[30px] font-semibold text-ink">
+            {title}
+          </h1>
+          <p className="text-sm text-muted">
+            {data.total} {def.plural_label.toLowerCase()}
+            {refs.length > 0 && options.data
+              ? ` across ${options.data.facets[activeRef]?.values.length ?? 0} ${(refs.find((f) => f.key === activeRef)?.label ?? "").toLowerCase()}s`
+              : ""}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div
+            className="inline-flex rounded-lg border border-line bg-surface p-0.5 text-sm font-semibold"
+            aria-label="Pipeline view"
+          >
+            <span
+              aria-current="page"
+              className="rounded-md bg-accent-soft px-3 py-1 text-accent-ink"
+            >
+              Board
+            </span>
+            <Link
+              to="/records/$table"
+              params={{ table: tableKey }}
+              className="rounded-md px-3 py-1 text-body hover:bg-soft"
+            >
+              List
+            </Link>
+          </div>
+          {can(me.data?.permissions, `record.${tableKey}.create`) && (
+            <Button asChild variant="primary">
+              <Link to="/records/$table/new" params={{ table: tableKey }}>
+                <Plus className="size-4" aria-hidden /> Add to pipeline
+              </Link>
+            </Button>
+          )}
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
         {refs.length > 0 && (
-          <Field label={`Show ${(refs.find((f) => f.key === activeRef)?.label ?? 'all').toLowerCase()}`}>
-            <Select value={chosen} onChange={(e) => setChosen(e.target.value)}>
+          <label className="inline-flex h-9 items-center gap-2 rounded-full border border-line bg-surface pr-2 pl-3.5 text-sm focus-within:ring-2 focus-within:ring-accent">
+            <span className="text-body">
+              {refs.find((f) => f.key === activeRef)?.label ?? "All"}
+            </span>
+            <select
+              aria-label={`Show ${(refs.find((f) => f.key === activeRef)?.label ?? "all").toLowerCase()}`}
+              className="max-w-56 cursor-pointer bg-transparent py-1 font-semibold text-ink outline-none"
+              value={chosen}
+              onChange={(e) => setChosen(e.target.value)}
+            >
               <option value="">All</option>
               {options.data?.facets[activeRef]?.values.map((v) => (
                 <option key={v.value} value={v.value}>
                   {v.label} ({v.count})
                 </option>
               ))}
-            </Select>
-          </Field>
+            </select>
+          </label>
         )}
-        <Field label="Search the board">
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name or role" />
-        </Field>
+        <Input
+          aria-label="Search the board"
+          className="h-9 w-56 rounded-full"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search the board"
+        />
         {refs.length > 1 && (
-          <Field label="Group by">
-            <Select
+          <label className="inline-flex h-9 items-center gap-2 rounded-full border border-line bg-surface pr-2 pl-3.5 text-sm focus-within:ring-2 focus-within:ring-accent">
+            <span className="text-body">Group by</span>
+            <select
+              aria-label="Group by"
+              className="cursor-pointer bg-transparent py-1 font-semibold text-ink outline-none"
               value={activeRef}
               onChange={(e) => {
-                setRefKey(e.target.value)
-                setChosen('')
+                setRefKey(e.target.value);
+                setChosen("");
               }}
             >
               {refs.map((f: FieldDef) => (
@@ -110,29 +268,57 @@ export function Board({ tableKey, title, filter }: { tableKey: string; title: st
                   {f.label}
                 </option>
               ))}
-            </Select>
-          </Field>
+            </select>
+          </label>
         )}
       </div>
+      <p className="flex flex-wrap items-center gap-2 text-sm text-muted">
+        Drag a card, or use its Move to menu (keyboard friendly)
+        {!canMove && (
+          <span className="rounded-full bg-warn-soft px-2.5 py-0.5 text-xs font-semibold text-warn-ink">
+            Read-only roles see cards without drag or Move to
+          </span>
+        )}
+      </p>
       {data.total === 0 ? (
-        <EmptyState title="Nothing in the pipeline yet" action={<Button asChild variant="primary"><Link to="/records/$table/new" params={{ table: tableKey }}>Add to pipeline</Link></Button>}>
-          Add a candidate to a requirement and they appear here, one column per stage.
+        <EmptyState
+          title="Nothing in the pipeline yet"
+          action={
+            <Button asChild variant="primary">
+              <Link to="/records/$table/new" params={{ table: tableKey }}>
+                Add to pipeline
+              </Link>
+            </Button>
+          }
+        >
+          Add a candidate to a requirement and they appear here, one column per
+          stage.
         </EmptyState>
       ) : (
-        <div className="relative flex w-full max-w-full gap-3 overflow-x-auto pb-3" role="list" aria-label="Stages">
-          {data.columns.map((col) => (
+        <div
+          className="relative flex w-full max-w-full gap-3 overflow-x-auto pb-3"
+          role="list"
+          aria-label="Stages"
+        >
+          {data.columns.map((col, idx) => (
             <Column
               key={col.stage}
+              tone={idx}
               col={col}
               title={def.title_field}
               field={data.field}
               refLabel={refLabel}
-              labels={Object.fromEntries(data.columns.map((c) => [c.stage, c.label]))}
+              labels={Object.fromEntries(
+                data.columns.map((c) => [c.stage, c.label]),
+              )}
+              canMove={canMove}
               dragging={dragging}
               setDragging={setDragging}
               onDropCard={(id) => {
-                const card = data.columns.flatMap((c) => c.cards).find((c) => c.id === id)
-                if (card) attempt(card, col.stage)
+                const card = data.columns
+                  .flatMap((c) => c.cards)
+                  .find((c) => c.id === id);
+                if (card) attempt(card, col.stage);
               }}
               onMove={attempt}
             />
@@ -142,14 +328,19 @@ export function Board({ tableKey, title, filter }: { tableKey: string; title: st
 
       <Dialog open={!!ask} onOpenChange={(o) => !o && setAsk(null)}>
         {ask && (
-          <DialogContent title={`Move to ${ask.to}`} description="Add details for this stage. You can leave them empty unless a rule asks for them.">
+          <DialogContent
+            title={`Move to ${ask.to}`}
+            description="Add details for this stage. You can leave them empty unless a rule asks for them."
+          >
             <AskFields
-              fields={(data.columns.find((c) => c.stage === ask.to)?.ask ?? []).map((k) => def.fields.find((f) => f.key === k)!).filter(Boolean)}
+              fields={(data.columns.find((c) => c.stage === ask.to)?.ask ?? [])
+                .map((k) => def.fields.find((f) => f.key === k)!)
+                .filter(Boolean)}
               onCancel={() => setAsk(null)}
               onSubmit={(extra) => {
-                const m = { ...ask, extra }
-                setAsk(null)
-                void move(m)
+                const m = { ...ask, extra };
+                setAsk(null);
+                void move(m);
               }}
               submitLabel={`Move to ${ask.to}`}
             />
@@ -158,7 +349,20 @@ export function Board({ tableKey, title, filter }: { tableKey: string; title: st
       </Dialog>
 
       <Dialog open={!!blocked} onOpenChange={(o) => !o && setBlocked(null)}>
-        {blocked && <BlockedDialog blocked={blocked} canOverride={canOverride} onOverride={(reason) => void move(blocked, { checks: blocked.violations.filter((v) => v.overridable).map((v) => v.check), reason })} />}
+        {blocked && (
+          <BlockedDialog
+            blocked={blocked}
+            canOverride={canOverride}
+            onOverride={(reason) =>
+              void move(blocked, {
+                checks: blocked.violations
+                  .filter((v) => v.overridable)
+                  .map((v) => v.check),
+                reason,
+              })
+            }
+          />
+        )}
       </Dialog>
 
       {approval && (
@@ -167,7 +371,7 @@ export function Board({ tableKey, title, filter }: { tableKey: string; title: st
           onOpenChange={(o) => !o && setApproval(null)}
           request={{
             table: tableKey,
-            action: 'update',
+            action: "update",
             record_id: approval.card.id,
             version: approval.card.version,
             data: { [data.field]: approval.to, ...(approval.extra ?? {}) },
@@ -177,120 +381,190 @@ export function Board({ tableKey, title, filter }: { tableKey: string; title: st
         />
       )}
     </div>
-  )
+  );
 }
 
-function BlockedDialog({ blocked, canOverride, onOverride }: { blocked: Blocked; canOverride: boolean; onOverride: (reason: string) => void }) {
-  const [reason, setReason] = useState('')
-  const overridable = blocked.violations.every((v) => v.overridable)
+function BlockedDialog({
+  blocked,
+  canOverride,
+  onOverride,
+}: {
+  blocked: Blocked;
+  canOverride: boolean;
+  onOverride: (reason: string) => void;
+}) {
+  const [reason, setReason] = useState("");
+  const overridable = blocked.violations.every((v) => v.overridable);
   return (
-    <DialogContent title={`Cannot move to ${blocked.to}`} description="A rule stopped this move.">
+    <DialogContent
+      title={`Cannot move to ${blocked.to}`}
+      description="A rule stopped this move."
+    >
       <ul className="flex flex-col gap-2 text-sm">
         {blocked.violations.map((v) => (
-          <li key={v.check} role="alert" className="rounded-md bg-bad-soft p-2 text-bad-ink">
+          <li
+            key={v.check}
+            role="alert"
+            className="rounded-md bg-bad-soft p-2 text-bad-ink"
+          >
             <span className="font-semibold">Rule {v.rule}</span>: {v.message}
           </li>
         ))}
       </ul>
       {overridable && canOverride && (
         <div className="mt-4 flex flex-col gap-2">
-          <Field label="Override with a reason" hint="The reason is kept in the audit trail." required>
+          <Field
+            label="Override with a reason"
+            hint="The reason is kept in the audit trail."
+            required
+          >
             <Input value={reason} onChange={(e) => setReason(e.target.value)} />
           </Field>
-          <Button variant="danger" disabled={!reason.trim()} onClick={() => onOverride(reason)}>
+          <Button
+            variant="danger"
+            disabled={!reason.trim()}
+            onClick={() => onOverride(reason)}
+          >
             Move anyway
           </Button>
         </div>
       )}
-      {overridable && !canOverride && <p className="mt-3 text-xs text-muted">A manager can override this rule with a reason.</p>}
+      {overridable && !canOverride && (
+        <p className="mt-3 text-xs text-muted">
+          A manager can override this rule with a reason.
+        </p>
+      )}
     </DialogContent>
-  )
+  );
 }
 
 function Column({
+  tone,
   col,
   title,
   field,
   refLabel,
   labels,
+  canMove,
   dragging,
   setDragging,
   onDropCard,
   onMove,
 }: {
-  col: BoardColumn
-  title: string
-  field: string
-  refLabel: (c: RecordRow) => (string | null)[]
-  labels: Record<string, string>
-  dragging: string | null
-  setDragging: (id: string | null) => void
-  onDropCard: (id: string) => void
-  onMove: (card: RecordRow, to: string) => void
+  tone: number;
+  col: BoardColumn;
+  title: string;
+  field: string;
+  refLabel: (c: RecordRow) => (string | null)[];
+  labels: Record<string, string>;
+  canMove: boolean;
+  dragging: string | null;
+  setDragging: (id: string | null) => void;
+  onDropCard: (id: string) => void;
+  onMove: (card: RecordRow, to: string) => void;
 }) {
-  const [over, setOver] = useState(false)
+  const [over, setOver] = useState(false);
   return (
     <section
       role="listitem"
-      aria-label={`${col.label}, ${col.count} ${col.count === 1 ? 'card' : 'cards'}`}
+      aria-label={`${col.label}, ${col.count} ${col.count === 1 ? "card" : "cards"}`}
       onDragOver={(e) => {
-        if (dragging) {
-          e.preventDefault()
-          setOver(true)
+        if (dragging && canMove) {
+          e.preventDefault();
+          setOver(true);
         }
       }}
       onDragLeave={() => setOver(false)}
       onDrop={(e) => {
-        e.preventDefault()
-        setOver(false)
-        const id = e.dataTransfer.getData('text/plain') || dragging
-        setDragging(null)
-        if (id) onDropCard(id)
+        e.preventDefault();
+        setOver(false);
+        const id = e.dataTransfer.getData("text/plain") || dragging;
+        setDragging(null);
+        if (id && canMove) onDropCard(id);
       }}
-      className={`flex w-64 shrink-0 flex-col gap-2 rounded-lg border bg-canvas p-2 ${over ? 'border-accent bg-accent-soft' : 'border-line'}`}
+      className={`flex w-64 shrink-0 flex-col gap-2 rounded-xl border p-2 ${over ? "border-accent bg-accent-soft" : "border-transparent bg-soft"}`}
     >
-      <h2 className="flex items-center justify-between px-1 text-xs font-bold text-ink">
+      <h2 className="flex items-center gap-2 px-1 py-1 text-sm font-semibold text-ink">
+        <span
+          className={`size-2.5 rounded-full ${DOTS[tone % DOTS.length]}`}
+          aria-hidden
+        />
         {col.label}
-        <Badge tone={col.end ? 'neutral' : 'accent'}>{col.count}</Badge>
+        <span className="rounded-full bg-surface px-2 text-xs font-semibold text-body tabular-nums">
+          {col.count}
+        </span>
       </h2>
-      {col.cards.length === 0 && <p className="px-1 py-3 text-xs text-muted">No one at this stage.</p>}
-      {col.cards.map((c) => (
-        <article
-          key={c.id}
-          draggable
-          onDragStart={(e) => {
-            e.dataTransfer.setData('text/plain', c.id)
-            setDragging(c.id)
-          }}
-          onDragEnd={() => setDragging(null)}
-          className="flex cursor-grab flex-col gap-1.5 rounded-md border border-line bg-surface p-2.5 shadow-sm"
-        >
-          <Link to="/records/$table/$id" params={{ table: c.table, id: c.id }} className="text-sm font-semibold text-ink hover:underline">
-            {String(c.data[title] ?? 'Untitled')}
-          </Link>
-          {refLabel(c).map((l) => (
-            <p key={l} className="text-xs text-muted">{l}</p>
-          ))}
-          {col.next.length > 0 && (
-            <>
-              <label className="sr-only" htmlFor={`mv-${c.id}`}>{`Move ${String(c.data[title])} to`}</label>
-              <select
-                id={`mv-${c.id}`}
-                value=""
-                onChange={(e) => e.target.value && onMove(c, e.target.value)}
-                className="h-7 rounded-md border border-line bg-surface px-1 text-xs text-body"
-              >
-                <option value="">Move to…</option>
-                {col.next.map((s) => (
-                  <option key={s} value={s}>{labels[s] ?? s}</option>
+      {col.cards.length === 0 && (
+        <p className="px-1 py-3 text-xs text-muted">No one at this stage.</p>
+      )}
+      {col.cards.map((c) => {
+        const lines = refLabel(c);
+        const who = String(lines[0] ?? c.data[title] ?? "?");
+        return (
+          <article
+            key={c.id}
+            draggable={canMove}
+            onDragStart={(e) => {
+              e.dataTransfer.setData("text/plain", c.id);
+              setDragging(c.id);
+            }}
+            onDragEnd={() => setDragging(null)}
+            className={`flex flex-col gap-2 rounded-xl border border-line bg-surface p-3 shadow-[0_1px_2px_rgb(11_18_32/0.04)] ${canMove ? "cursor-grab" : ""}`}
+          >
+            <div className="flex items-start gap-2.5">
+              <Avatar name={who} />
+              <div className="min-w-0 flex-1">
+                <Link
+                  to="/records/$table/$id"
+                  params={{ table: c.table, id: c.id }}
+                  className="block truncate text-sm font-semibold text-ink hover:underline"
+                  title={String(c.data[title] ?? "Untitled")}
+                >
+                  {String(c.data[title] ?? "Untitled")}
+                </Link>
+                {lines.map((l) => (
+                  <p key={l} className="truncate text-xs text-muted">
+                    {l}
+                  </p>
                 ))}
-              </select>
-            </>
-          )}
-          <span className="sr-only">{field}</span>
-        </article>
-      ))}
-      {col.count > col.cards.length && <p className="px-1 text-xs text-muted">Showing {col.cards.length} of {col.count}. Narrow the board to see the rest.</p>}
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs text-muted">{updatedAgo(c.updated_at)}</p>
+              {canMove && col.next.length > 0 && (
+                <>
+                  <label
+                    className="sr-only"
+                    htmlFor={`mv-${c.id}`}
+                  >{`Move ${String(c.data[title])} to`}</label>
+                  <select
+                    id={`mv-${c.id}`}
+                    value=""
+                    onChange={(e) =>
+                      e.target.value && onMove(c, e.target.value)
+                    }
+                    className="h-7 w-[6.5rem] shrink-0 rounded-md border border-line bg-surface px-1 text-xs font-medium text-body"
+                  >
+                    <option value="">Move to…</option>
+                    {col.next.map((s) => (
+                      <option key={s} value={s}>
+                        {labels[s] ?? s}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              )}
+            </div>
+            <span className="sr-only">{field}</span>
+          </article>
+        );
+      })}
+      {col.count > col.cards.length && (
+        <p className="px-1 text-xs text-muted">
+          Showing {col.cards.length} of {col.count}. Narrow the board to see the
+          rest.
+        </p>
+      )}
     </section>
-  )
+  );
 }

@@ -1,0 +1,11 @@
+key: offers_made_in_range
+label: Offers sent (total)
+table: offer
+aggregate: count
+help: Offers sent in the chosen dates, as one number.
+order: 51
+hidden: true
+time_field: sent_on
+where:
+  - field: sent_on
+    op: not_empty

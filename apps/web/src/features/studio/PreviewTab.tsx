@@ -21,9 +21,9 @@ interface FixtureRun {
 export function PreviewTab() {
   const roles = useQuery({ queryKey: ['roles'], queryFn: admin.roles, retry: false })
   const [role, setRole] = useState('recruiter')
-  const [env, setEnv] = useState<'test' | 'live'>('test')
+  const [env, setEnv] = useState<'draft' | 'test' | 'live'>('draft')
   const [device, setDevice] = useState<keyof typeof DEVICES>('desktop')
-  const run = useMutation({ mutationFn: () => studio.runFixtures(env) as Promise<FixtureRun> })
+  const run = useMutation({ mutationFn: () => studio.runFixtures(env === 'draft' ? 'test' : env) as Promise<FixtureRun> })
   const d = DEVICES[device]
   const scale = device === 'desktop' ? 0.6 : 0.85
   const src = `/?preview_role=${encodeURIComponent(role)}&preview_env=${env}`
@@ -39,7 +39,8 @@ export function PreviewTab() {
         </div>
         <div className="w-36">
           <Field label="Version">
-            <Select value={env} onChange={(e) => setEnv(e.target.value as 'test' | 'live')}>
+            <Select value={env} onChange={(e) => setEnv(e.target.value as 'draft' | 'test' | 'live')}>
+              <option value="draft">Draft (not yet sent to Test)</option>
               <option value="test">Test</option>
               <option value="live">Live</option>
             </Select>
@@ -53,7 +54,7 @@ export function PreviewTab() {
           ))}
         </div>
         <Button className="ml-auto" onClick={() => run.mutate()} loading={run.isPending}>
-          Run pack fixtures on {env === 'test' ? 'Test' : 'Live'}
+          Run pack fixtures on {env === 'live' ? 'Live' : 'Test'}
         </Button>
       </div>
       {run.error && <p role="alert" className="text-sm text-bad-ink">{(run.error as Error).message}</p>}

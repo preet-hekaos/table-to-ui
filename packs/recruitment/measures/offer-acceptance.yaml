@@ -1,0 +1,8 @@
+key: offer_acceptance
+label: Offer acceptance
+table: offer
+aggregate: ratio
+ratio_of: [offers_accepted, offers_made_in_range]
+unit: "%"
+help: Of the offers sent in the chosen dates, how many were accepted.
+order: 77

@@ -1,5 +1,9 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { ApiError } from '@/api/client'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import * as Popover from '@radix-ui/react-popover'
+import { Link } from '@tanstack/react-router'
+import { SlidersHorizontal } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
 import { studio } from '@/api/endpoints'
 import type { StudioTable } from '@/api/types'
 import { Button, Chip, Input, Select, cn, useToast } from '@/design-system'
@@ -19,17 +23,40 @@ const FORMATS: Group<'export_formats'>[] = [
   { value: 'xlsx', label: 'Excel' },
 ]
 
-/** Switch at the top right of a card. */
-function Master({ title, on, canEdit, onChange, help }: { title: string; on: boolean; canEdit: boolean; onChange: (on: boolean) => void; help: string }) {
+/** A feature switch in the bar: it is on when it carries the tick. `title` is its accessible name. */
+function Master({ title, label, on, canEdit, onChange, help, unavailable }: { title: string; label: string; on: boolean; canEdit: boolean; onChange: (on: boolean) => void; help: string; unavailable?: string | false }) {
   return (
-    <Chip role="switch" label={title} checked={on} disabled={!canEdit} onChange={onChange} hint={`${on ? 'Turn off' : 'Turn on'}: ${help}`}>
-      {on ? 'On' : 'Off'}
+    <Chip role="switch" label={title} checked={on} disabled={!canEdit || !!unavailable} onChange={onChange} hint={unavailable || `${on ? 'Turn off' : 'Turn on'}: ${help}`}>
+      {label}
     </Chip>
   )
 }
 
-const card = 'flex flex-col gap-4 rounded-xl border border-line bg-surface p-5'
-const cardHead = 'flex items-start justify-between gap-4'
+/** The extra choices of a feature, in a small pop-over so the bar stays one line. */
+function Options({ label, disabled, children }: { label: string; disabled: boolean; children: ReactNode }) {
+  return (
+    <Popover.Root>
+      <Popover.Trigger asChild>
+        <button
+          type="button"
+          aria-label={label}
+          disabled={disabled}
+          title={disabled ? 'Turn the feature on first.' : label}
+          className="-ml-1.5 inline-flex size-7 items-center justify-center rounded-full text-muted hover:bg-soft hover:text-ink disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          <SlidersHorizontal className="size-3.5" aria-hidden />
+        </button>
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content align="start" sideOffset={6} aria-label={label} className="z-50 flex w-72 flex-col gap-2 rounded-lg border border-line bg-surface p-3 shadow-lg">
+          {children}
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
+  )
+}
+
+const rowLabel = 'w-44 shrink-0 text-xs font-bold tracking-wide text-muted uppercase'
 const smallLabel = 'text-xs font-semibold text-muted'
 
 /** Per-table features: switches for the whole table, defaults, and the field options grid. */
@@ -37,6 +64,11 @@ export function FeaturesPanel({ table, canEdit }: { table: StudioTable; canEdit:
   const qc = useQueryClient()
   const toast = useToast()
   const saved = featuresOf(table)
+  // Rows to tick, group or drag exist only on a table screen; a table shown only as master-detail has none.
+  const screens = useQuery({ queryKey: ['studio-screens'], queryFn: studio.screens, retry: false })
+  const noList = screens.data && !screens.data.some((x) => x.table === table.key && x.pattern === 'searchable_table')
+    ? 'This table has no table screen, only master-detail and other layouts, so there are no rows to tick or drag. Add a Searchable table screen to use this.'
+    : false
   const [f, setF] = useState<TableFeatures>(saved)
   // A list of keys is the same whatever order it was ticked in; switching something off and on again is no change.
   const same = (a: unknown, b: unknown) =>
@@ -52,147 +84,81 @@ export function FeaturesPanel({ table, canEdit }: { table: StudioTable; canEdit:
     toast({ title, description, tone: 'ok' })
     await Promise.all(['studio-tables', 'studio-status'].map((k) => qc.invalidateQueries({ queryKey: [k] })))
   }
+  const failed = (e: unknown) => {
+    const first = e instanceof ApiError ? e.errors[0] : undefined
+    const why = first ? `${first.field ? `${first.field}: ` : ''}${first.message}` : (e as Error).message
+    const stale = e instanceof ApiError && e.status === 422 ? ' If you just updated the code, restart the API and try again.' : ''
+    toast({ title: 'Could not save features', description: `${why}.${stale}`.replace(/\.\./g, '.'), tone: 'bad' })
+  }
   const save = useMutation({
     mutationFn: () => studio.setFeatures(table.key, f),
     onSuccess: () => done(`Saved features for ${table.label}`, 'Saved in Draft. Publish to make it live.'),
+    onError: failed,
   })
   const all = useMutation({
     mutationFn: () => studio.setAllFeatures(f),
     onSuccess: (r) => done('Applied to every table', `${r.tables.length} ${r.tables.length === 1 ? 'table' : 'tables'} changed in Draft.`),
+    onError: failed,
   })
 
   return (
-    <div className="flex flex-col gap-6" data-testid="features-panel">
-      <section className="flex flex-col gap-4" aria-labelledby="feat-table">
-        <div>
-          <h3 id="feat-table" className="text-base font-bold text-ink">For the whole table</h3>
-          <p className="mt-1 text-sm text-muted">Turn off the features this table doesn&apos;t use. Changes stay in Draft until you publish.</p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className={card}>
-            <div className={cardHead}>
-              <div>
-                <h4 className="text-[15px] font-semibold text-ink">Select rows, act on many</h4>
-                <p className="mt-1 text-sm text-muted">Select rows on a page or every match, then act on them.</p>
-              </div>
-              <Master title="Select rows and act on many" on={f.select_bulk} canEdit={canEdit} onChange={(on) => set('select_bulk', on)} help="select rows on a page or every match, then act on them." />
-            </div>
-            {f.select_bulk && (
-              <div className="mt-auto flex flex-col gap-2">
-                <span className={smallLabel}>Actions</span>
-                <fieldset className="flex flex-wrap gap-2" disabled={!canEdit}>
-                  <legend className="sr-only">Bulk actions allowed</legend>
-                  {BULK.map((b) => (
-                    <Chip key={b.value} checked={f.bulk_actions.includes(b.value)} disabled={!canEdit} onChange={(on) => set('bulk_actions', toggle(f.bulk_actions, b.value, on))}>
-                      {b.label}
-                    </Chip>
-                  ))}
-                </fieldset>
-                <label className="mt-1 flex flex-col gap-1.5 text-xs font-semibold text-muted">
-                  Bulk actions include
-                  <Select aria-label="Bulk actions include" disabled={!canEdit} value={f.bulk_scope} onChange={(e) => set('bulk_scope', e.target.value as TableFeatures['bulk_scope'])}>
-                    <option value="view">Shown columns only</option>
-                    <option value="all">Every field</option>
-                  </Select>
-                </label>
-              </div>
-            )}
-          </div>
-
-          <div className={card}>
-            <div className={cardHead}>
-              <div>
-                <h4 className="text-[15px] font-semibold text-ink">Export data</h4>
-                <p className="mt-1 text-sm text-muted">Download rows or share them as an email link.</p>
-              </div>
-              <Master title="Export data" on={f.export_data} canEdit={canEdit} onChange={(on) => set('export_data', on)} help="download rows or share them as an email link." />
-            </div>
-            {f.export_data && (
-              <div className="mt-auto flex flex-col gap-2">
-                <span className={smallLabel}>Formats</span>
-                <fieldset className="flex flex-wrap gap-2" disabled={!canEdit}>
-                  <legend className="sr-only">Export formats</legend>
-                  {FORMATS.map((b) => (
-                    <Chip key={b.value} checked={f.export_formats.includes(b.value)} disabled={!canEdit} onChange={(on) => set('export_formats', toggle(f.export_formats, b.value, on))}>
-                      {b.label}
-                    </Chip>
-                  ))}
-                  <Chip checked={f.export_email} disabled={!canEdit} onChange={(on) => set('export_email', on)} hint="Share an export as a link by email.">
-                    Allow sending by email
-                  </Chip>
-                </fieldset>
-              </div>
-            )}
-          </div>
-
-          <div className="flex flex-col divide-y divide-line rounded-xl border border-line bg-surface">
-            <div className={cn(cardHead, 'flex-1 p-5')}>
-              <div>
-                <h4 className="text-[15px] font-semibold text-ink">Import data</h4>
-                <p className="mt-1 text-sm text-muted">CSV, JSON or Excel from the toolbar.</p>
-              </div>
-              <Master title="Import data" on={f.import_data} canEdit={canEdit} onChange={(on) => set('import_data', on)} help="CSV, JSON or Excel from the toolbar." />
-            </div>
-            <div className={cn(cardHead, 'flex-1 p-5')}>
-              <div>
-                <h4 className="text-[15px] font-semibold text-ink">Drag to reorder</h4>
-                <p className="mt-1 text-sm text-muted">The order is shared across all users.</p>
-              </div>
-              <Master title="Drag to reorder" on={f.row_order} canEdit={canEdit} onChange={(on) => set('row_order', on)} help="rows can be moved up or down; the order is shared across all users." />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="flex flex-col gap-4" aria-labelledby="feat-defaults">
-        <h3 id="feat-defaults" className="text-base font-bold text-ink">Defaults</h3>
-        <div className="grid gap-6 rounded-xl border border-line bg-surface p-5 md:grid-cols-3">
-          <label className="flex flex-col gap-2 text-sm font-semibold text-ink">
-            Default order
-            <Select
-              aria-label="Default order"
-              disabled={!canEdit || !f.sortable}
-              value={f.default_sort ? `${f.default_sort.field}:${f.default_sort.direction}` : ''}
-              onChange={(e) => {
-                const [field, direction] = e.target.value.split(':')
-                set('default_sort', e.target.value ? { field: field!, direction: direction as 'asc' | 'desc' } : null)
-              }}
-            >
-              <option value="">Recently changed first</option>
-              {table.fields.filter((x) => x.type !== 'long_text').flatMap((x) => [
-                <option key={`${x.key}:asc`} value={`${x.key}:asc`}>{x.label}, A to Z / low to high</option>,
-                <option key={`${x.key}:desc`} value={`${x.key}:desc`}>{x.label}, Z to A / high to low</option>,
-              ])}
-            </Select>
-            <span className="text-xs font-normal text-muted">{f.sortable ? 'Row order before any column is sorted.' : 'Turn on Sorting in the field options first.'}</span>
-          </label>
-          <label className="flex flex-col gap-2 text-sm font-semibold text-ink">
-            Row density
-            <Select aria-label="Row density" disabled={!canEdit} value={f.density} onChange={(e) => set('density', e.target.value as TableFeatures['density'])}>
-              <option value="compact">Compact</option>
-              <option value="comfortable">Comfortable</option>
-            </Select>
-            <span className="text-xs font-normal text-muted">Each user can still choose their own.</span>
-          </label>
-          <div className="flex flex-col gap-2">
-            <span className="text-sm font-semibold text-ink">Numbers above the table</span>
-            <div className="flex flex-wrap gap-2">
-              <Chip checked={f.stat_scope === 'table'} disabled={!canEdit || !f.statistics} onChange={(on) => set('stat_scope', on ? 'table' : 'search')} hint="The numbers ignore the search and filters and always cover the whole table.">
-                Whole table
+    <div className="flex flex-col gap-5" data-testid="features-panel">
+      <div className="overflow-hidden rounded-xl border border-line bg-surface">
+        <section className="flex flex-wrap items-center gap-x-2 gap-y-2 px-4 py-3" aria-labelledby="feat-table">
+          <h3 id="feat-table" className={rowLabel}>For the whole table</h3>
+          <Master title="Select rows and act on many" label="Select and bulk" on={f.select_bulk} canEdit={canEdit} onChange={(on) => set('select_bulk', on)} help="select rows on a page or every match, then act on them." unavailable={noList} />
+          <Options label="Bulk action options" disabled={!f.select_bulk}>
+            <span className={smallLabel}>Actions</span>
+            <fieldset className="flex flex-wrap gap-2" disabled={!canEdit}>
+              <legend className="sr-only">Bulk actions allowed</legend>
+              {BULK.map((b) => (
+                <Chip key={b.value} checked={f.bulk_actions.includes(b.value)} disabled={!canEdit} onChange={(on) => set('bulk_actions', toggle(f.bulk_actions, b.value, on))}>
+                  {b.label}
+                </Chip>
+              ))}
+            </fieldset>
+            <label className="flex flex-col gap-1 text-xs font-semibold text-muted">
+              Bulk actions include
+              <Select aria-label="Bulk actions include" disabled={!canEdit} value={f.bulk_scope} onChange={(e) => set('bulk_scope', e.target.value as TableFeatures['bulk_scope'])}>
+                <option value="view">Shown columns only</option>
+                <option value="all">Every field</option>
+              </Select>
+            </label>
+          </Options>
+          <Master title="Export data" label="Export" on={f.export_data} canEdit={canEdit} onChange={(on) => set('export_data', on)} help="download rows or share them as an email link." />
+          <Options label="Export options" disabled={!f.export_data}>
+            <span className={smallLabel}>Formats</span>
+            <fieldset className="flex flex-wrap gap-2" disabled={!canEdit}>
+              <legend className="sr-only">Export formats</legend>
+              {FORMATS.map((b) => (
+                <Chip key={b.value} checked={f.export_formats.includes(b.value)} disabled={!canEdit} onChange={(on) => set('export_formats', toggle(f.export_formats, b.value, on))}>
+                  {b.label}
+                </Chip>
+              ))}
+              <Chip checked={f.export_email} disabled={!canEdit} onChange={(on) => set('export_email', on)} hint="Share an export as a link by email.">
+                Allow sending by email
               </Chip>
-              <Chip checked={f.stat_cards !== null} disabled={!canEdit || !f.statistics} onChange={(on) => set('stat_cards', on ? [{ kind: 'count' }] : null)} hint="Pick up to six cards yourself instead of the automatic tiles.">
-                Choose the summary cards myself
-              </Chip>
-            </div>
-            <span className="text-xs text-muted">{f.statistics ? 'Whole table ignores search and filters. Fields to summarise are set in the field options below.' : 'Turn on Numbers above the table in the field options first.'}</span>
-          </div>
-        </div>
+            </fieldset>
+          </Options>
+          <Master title="Import data" label="Import" on={f.import_data} canEdit={canEdit} onChange={(on) => set('import_data', on)} help="CSV, JSON or Excel from the toolbar." />
+          <Master title="Drag to reorder" label="Reorder" on={f.row_order} canEdit={canEdit} onChange={(on) => set('row_order', on)} help="rows can be moved up or down; the order is shared across all users." unavailable={noList} />
+          <Chip
+            label="Choose the summary cards myself"
+            checked={f.stat_cards !== null}
+            disabled={!canEdit || !f.statistics}
+            onChange={(on) => set('stat_cards', on ? [{ kind: 'count' }] : null)}
+            hint={f.statistics ? 'Choose the summary cards myself: pick up to six. Left off, the cards are automatic (how many, plus the average of each number field). Each person can still switch to a chart on the table screen.' : 'Turn on Numbers above the table in the field options first.'}
+          >
+            Custom cards
+          </Chip>
+        </section>
+
         {f.statistics && f.stat_cards !== null && (
-          <div className="rounded-xl border border-line bg-surface p-5">
+          <div className="border-t border-line px-4 py-3">
             <CardsEditor table={table} cards={f.stat_cards} canEdit={canEdit} onChange={(c) => set('stat_cards', c)} />
           </div>
         )}
-      </section>
+      </div>
 
       <FieldGrid table={table} f={f} set={set} canEdit={canEdit} />
 
@@ -200,7 +166,7 @@ export function FeaturesPanel({ table, canEdit }: { table: StudioTable; canEdit:
         <div className="sticky bottom-0 z-10 flex flex-wrap items-center gap-3 rounded-xl border border-line bg-surface px-5 py-3 shadow-[0_-4px_16px_rgba(20,26,38,0.06)]" role="region" aria-label="Save">
           <span className={cn('size-2 rounded-full', dirty ? 'bg-warn' : 'bg-line')} aria-hidden />
           <span className="text-sm font-medium text-ink">{dirty ? `${changes} unsaved ${changes === 1 ? 'change' : 'changes'}` : 'No unsaved changes'}</span>
-          <span className="text-sm text-muted">Saved in Draft until you publish.</span>
+          <span className="text-sm text-muted">Saved in Draft until you publish. <Link to="/studio" search={{ tab: 'preview' }} className="font-medium text-accent-ink underline">See it in the real app</Link></span>
           <span className="flex-1" />
           <Button variant="ghost" disabled={JSON.stringify(f) === JSON.stringify(DEFAULT_FEATURES)} onClick={() => setF(DEFAULT_FEATURES)}>
             Switch everything on

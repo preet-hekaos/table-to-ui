@@ -95,6 +95,13 @@ def _aggregate(m: MeasureDef) -> str:
         return "count(*)"
     if m.aggregate == "distinct":
         return f"count(DISTINCT fields->>'{m.field}')"
+    if m.aggregate == "avg_days":
+        start = (
+            "CAST(created_at AS date)"
+            if m.from_field == "created_at"
+            else f"CAST(NULLIF(fields->>'{m.from_field}', '') AS date)"
+        )
+        return f"avg(CAST(NULLIF(fields->>'{m.field}', '') AS date) - {start})"
     num = f"CAST(NULLIF(fields->>'{m.field}', '') AS numeric)"
     return f"COALESCE(sum({num}), 0)" if m.aggregate == "sum" else f"avg({num})"
 
@@ -154,6 +161,7 @@ async def run_measure(
         "display": m.display,
         "table": m.table,
         "aggregate": m.aggregate,
+        "unit": m.unit,
         "period": bool(m.time_field),
         "source": m.source,
         "home": m.home,
@@ -205,6 +213,41 @@ async def run_measure(
             known += [{"label": k or "(none)", "key": k, "value": v} for k, v in rest]
             out["series"] = known
     return out
+
+
+async def compare_and_trend(
+    analytics: Database,
+    tenant_id: uuid.UUID,
+    m: MeasureDef,
+    table: TableDef,
+    *,
+    scope_sql: str,
+    scope_params: dict[str, Any],
+    start: dt.date,
+    end: dt.date,
+) -> dict[str, Any]:
+    """What a time-based measure was in the period just before this one, and its last 12 weeks.
+
+    Only measures with a time field have a past to compare with: "how many are active right now"
+    has no honest history, so it gets neither.
+    """
+    if not m.time_field:
+        return {"previous": None, "trend": None}
+    days = (end - start).days + 1
+    prev_end = start - dt.timedelta(days=1)
+    prev_start = prev_end - dt.timedelta(days=days - 1)
+    plain = m.model_copy(update={"by_time": None, "group_by": None})
+    prev = await run_measure(
+        analytics, tenant_id, plain, table, scope_sql=scope_sql, scope_params=scope_params,
+        start=prev_start, end=prev_end,
+    )  # fmt: skip
+    weekly = m.model_copy(update={"by_time": "week", "group_by": None})
+    trend = await run_measure(
+        analytics, tenant_id, weekly, table, scope_sql=scope_sql, scope_params=scope_params,
+        start=end - dt.timedelta(days=83), end=end,
+    )  # fmt: skip
+    points = [x["value"] for x in (trend.get("series") or [])]
+    return {"previous": prev.get("value"), "trend": points if len(points) > 1 else None}
 
 
 async def matching_ids(

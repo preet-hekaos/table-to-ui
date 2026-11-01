@@ -17,18 +17,18 @@ export function TableDot({ data, selected }: NodeProps<Node<CardData>>) {
         type="button"
         onClick={() => data.onSelect(t.key)}
         className={cn(
-          'relative rounded-full border-4 bg-accent-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+          'map-dot relative rounded-full border-4 bg-accent-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
           stage ? ring[stage] : 'border-accent',
-          selected && 'ring-2 ring-accent ring-offset-2',
           data.related && 'bg-accent',
         )}
         style={{ width: size, height: size }}
+        data-lit={selected || undefined}
       >
         <span className="sr-only">Open details of {t.label}, {data.links} {data.links === 1 ? 'link' : 'links'}</span>
         <Handle type="source" position={Position.Top} style={hidden} />
         <Handle type="target" position={Position.Top} style={hidden} />
       </button>
-      <span className="max-w-full truncate rounded bg-canvas px-1 text-xs font-semibold text-ink">{t.label}</span>
+      <span className={cn('max-w-full truncate rounded bg-canvas px-1 text-xs font-semibold', selected || data.related ? 'text-accent-ink' : 'text-ink')}>{t.label}</span>
     </div>
   )
 }

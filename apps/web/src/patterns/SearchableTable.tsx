@@ -10,6 +10,9 @@ export interface SortState {
 }
 
 /** Pattern: a table with server-side sorting and cursor paging. The page owns the data; this owns the look and keyboard behaviour. */
+/** Up to this many rows the table grows to show them all and the page scrolls; beyond it the table scrolls inside, so its header stays in view. */
+const FULL_HEIGHT_ROWS = 50
+
 export function SearchableTable<T>({
   caption,
   columns,
@@ -100,7 +103,7 @@ export function SearchableTable<T>({
         </div>
       )}
       {reorder && <p role="status" aria-live="polite" className="sr-only">{said}</p>}
-      <Table aria-label={caption} wrapperClassName={cn('max-h-[calc(100dvh-20rem)] min-h-48 overflow-y-auto', bare && 'rounded-none border-0')}>
+      <Table aria-label={caption} wrapperClassName={cn('min-h-48', rows.length > FULL_HEIGHT_ROWS && 'max-h-[calc(100dvh-14rem)] overflow-y-auto', bare && 'rounded-none border-0')}>
         <thead>
           {table.getHeaderGroups().map((hg) => (
             <tr key={hg.id}>

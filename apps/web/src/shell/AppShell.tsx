@@ -88,15 +88,17 @@ export function AppShell() {
     }
   }
 
+  const sectionKeys = ['main', ...new Set((menu.data?.items ?? []).map((n) => n.section || 'main').filter((k) => k !== 'main' && k !== 'more')), 'more']
   const nav = (
     <nav aria-label="Main" className="flex flex-col gap-0.5">
       <NavLink rail={rail} onTip={setTip} to="/" icon={<Home className="size-4" aria-hidden />} onNavigate={close} label="Home">Home</NavLink>
-      {['main', 'more'].map((section) => {
+      {sectionKeys.map((section) => {
         const items = menu.data?.items.filter((n) => (n.section || 'main') === section) ?? []
         if (!items.length) return null
+        const title = section.charAt(0).toUpperCase() + section.slice(1).replace(/_/g, ' ')
         return (
-          <div key={section} className="flex flex-col gap-0.5" role="group" aria-label={section === 'main' ? undefined : 'More'}>
-            {section !== 'main' && <p className="px-2.5 pt-3 pb-1 text-[11px] font-semibold tracking-wide text-nav-text uppercase">More</p>}
+          <div key={section} className="flex flex-col gap-0.5" role="group" aria-label={section === 'main' ? undefined : section === 'more' ? 'More' : `Menu section: ${title}`}>
+            {section !== 'main' && <p className="px-2.5 pt-3 pb-1 text-[11px] font-semibold tracking-wide text-nav-text uppercase">{title}</p>}
             {items.map((n) => (
               <NavLink rail={rail} onTip={setTip} key={n.key} to="/s/$screen" params={{ screen: n.screen }} icon={rail ? <span className="flex size-5 items-center justify-center text-[11px] font-bold" aria-hidden>{monogram(n.label)}</span> : <Users className="size-4" aria-hidden />} onNavigate={close} label={n.label}>
                 {n.label}
@@ -147,7 +149,7 @@ export function AppShell() {
     <div data-theme="agency" className="flex h-full" style={style as CSSProperties | undefined}>
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-surface focus:p-2">Skip to content</a>
       <aside className={`${open ? 'fixed inset-0 z-40 flex' : hidden ? 'hidden' : 'hidden md:flex'} ${side.fullScreen ? '!hidden' : ''}`}>
-        <div className={`flex h-full flex-col gap-4 overflow-y-auto bg-nav p-3 transition-[width] duration-150 motion-reduce:transition-none ${rail ? 'w-16 items-center' : 'w-56'}`} data-sidebar={rail ? 'collapsed' : 'expanded'}>
+        <div className={`flex h-full flex-col gap-4 overflow-y-auto bg-nav p-3 transition-[width] duration-150 motion-reduce:transition-none ${rail ? 'w-16 items-center' : 'w-62'}`} data-sidebar={rail ? 'collapsed' : 'expanded'}>
           <div className="flex items-center gap-2 px-1 text-sm font-bold text-white">
             {logo ? (
               <img src={logo} alt="" className="size-7 rounded-lg bg-white object-contain" data-testid="app-logo" />
@@ -183,7 +185,7 @@ export function AppShell() {
         </div>
       )}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className={`h-14 shrink-0 items-center gap-3 border-b border-line bg-surface px-4 ${side.fullScreen ? 'hidden' : 'flex'}`}>
+        <header className={`h-14 shrink-0 items-center gap-3 border-b border-line bg-surface px-4 md:px-6 ${side.fullScreen ? 'hidden' : 'flex'}`}>
           <Button variant="ghost" size="sm" className={hidden ? '' : 'md:hidden'} aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} onClick={() => setOpen((v) => !v)}>
             {open ? <X className="size-4" aria-hidden /> : <Menu className="size-4" aria-hidden />}
           </Button>

@@ -8,6 +8,20 @@ export interface StatCard {
   label?: string | null
 }
 
+export type ChartType = 'combo' | 'bar' | 'hbar' | 'line' | 'area' | 'donut'
+export interface ChartMeasure {
+  agg: 'count' | 'sum' | 'avg' | 'min' | 'max'
+  field?: string | null
+}
+export interface ChartConfig {
+  type: ChartType
+  x: string | null
+  bucket: 'day' | 'week' | 'month'
+  measures: ChartMeasure[]
+  top: number
+}
+export const DEFAULT_CHART: ChartConfig = { type: 'combo', x: null, bucket: 'month', measures: [{ agg: 'count' }], top: 8 }
+
 export interface TableFeatures {
   /** Retired master for sort and filter together; kept so older saved settings still apply. */
   sort_filter: boolean
@@ -29,6 +43,9 @@ export interface TableFeatures {
   stat_fields: string[] | null
   stat_cards: StatCard[] | null
   stat_scope: 'search' | 'table'
+  stat_view: 'cards' | 'chart'
+  chart: ChartConfig | null
+  nochart: string[]
   default_columns: string[] | null
   density: 'compact' | 'comfortable'
   uneditable: string[]
@@ -59,6 +76,9 @@ export const DEFAULT_FEATURES: TableFeatures = {
   stat_fields: null,
   stat_cards: null,
   stat_scope: 'search',
+  stat_view: 'cards',
+  chart: null,
+  nochart: [],
   default_columns: null,
   density: 'compact',
   uneditable: [],

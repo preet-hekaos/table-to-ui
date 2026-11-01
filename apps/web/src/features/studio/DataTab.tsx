@@ -25,7 +25,6 @@ export function DataTab({
   defaultTable,
   part = 'fields',
   onPart,
-  lead,
 }: {
   selected?: string
   onSelect: (k: string) => void
@@ -33,8 +32,6 @@ export function DataTab({
   defaultTable?: string
   part?: TablePart
   onPart: (p: TablePart) => void
-  /** The Studio section switcher, which opens the toolbar. */
-  lead?: React.ReactNode
 }) {
   const tables = useDraftTables()
   const [editing, setEditing] = useState<FieldDef | 'new' | null>(null)
@@ -53,8 +50,6 @@ export function DataTab({
           <Tabs value={part} onValueChange={(v) => onPart(v as TablePart)}>
           <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
             <h2 className="sr-only">{current.label}</h2>
-            {lead}
-            <span className="text-muted" aria-hidden>/</span>
             <TablePicker
               items={all.map((t) => ({ key: t.key, label: t.label, fields: t.fields.length, stage: stages.of('tables', t.key) ?? undefined }))}
               current={{ key: current.key, label: current.label, fields: current.fields.length, stage: stages.of('tables', current.key) ?? undefined }}
@@ -72,17 +67,15 @@ export function DataTab({
                 ))}
               </TabsList>
               <span className="h-6 w-px bg-line" aria-hidden />
+              {canEdit && part === 'fields' && (
+                <Button size="sm" variant="secondary" onClick={() => setEditing('new')}>
+                  <Plus className="size-4" aria-hidden /> Add field
+                </Button>
+              )}
               <TableActions canEdit={canEdit} onNew={() => setNewTable(true)} onImport={() => setImporting(true)} onExport={() => setExporting(true)} />
             </div>
           </div>
           <TabsContent value="fields">
-          {canEdit && (
-            <div className="flex justify-end px-3 pt-3">
-              <Button size="sm" variant="primary" onClick={() => setEditing('new')}>
-                <Plus className="size-4" aria-hidden /> Add field
-              </Button>
-            </div>
-          )}
           <div className="overflow-x-auto">
             <Table aria-label={`${current.label} fields`}>
               <thead>
@@ -98,19 +91,19 @@ export function DataTab({
               <tbody>
                 {current.fields.map((f) => (
                   <tr key={f.key} className={cn(stageStripe(stages.field(current.key, f.key)))} data-stage={stages.field(current.key, f.key)}>
-                    <Td className="font-semibold text-ink">
+                    <Td className="py-1.5 font-medium text-ink">
                       {f.label} {stages.field(current.key, f.key) && stages.field(current.key, f.key) !== 'live' && <StageBadge stage={stages.field(current.key, f.key)!} className="ml-1" />}
                     </Td>
-                    <Td>
+                    <Td className="py-1.5">
                       {TYPE_LABELS[f.type] ?? f.type}
                       {f.ref_table && <span className="text-muted"> to {all.find((t) => t.key === f.ref_table)?.label ?? f.ref_table}</span>}
                     </Td>
-                    <Td>{f.required ? 'Yes' : 'No'}</Td>
-                    <Td>{origin(f.source)}</Td>
-                    <Td>{f.hidden ? <Badge tone="warn">Hidden</Badge> : 'Shown'}</Td>
+                    <Td className="py-1.5">{f.required ? 'Yes' : 'No'}</Td>
+                    <Td className="py-1.5">{origin(f.source)}</Td>
+                    <Td className="py-1.5">{f.hidden ? <Badge tone="warn">Hidden</Badge> : 'Shown'}</Td>
                     {canEdit && (
-                      <Td>
-                        <Button size="sm" variant="ghost" onClick={() => setEditing(f)} aria-label={`Edit ${f.label}`}>
+                      <Td className="py-1.5 text-right">
+                        <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => setEditing(f)} aria-label={`Edit ${f.label}`}>
                           Edit
                         </Button>
                       </Td>

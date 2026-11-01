@@ -74,7 +74,7 @@ function control(f: FieldDef, reg: UseFormRegisterReturn, initial: string | unde
         {!f.required && <option value="">Not set</option>}
         {f.options.map((o) => (
           <option key={o} value={o}>
-            {o}
+            {f.option_labels?.[o] ?? o}
           </option>
         ))}
       </Select>

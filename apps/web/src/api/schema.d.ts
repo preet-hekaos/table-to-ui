@@ -1735,6 +1735,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/records/{table}/chart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Chart
+         * @description Records grouped by one field with one or two measures, over everything the search matches.
+         */
+        get: operations["chart_v1_records__table__chart_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/records/{table}/check": {
         parameters: {
             query?: never;
@@ -5955,6 +5975,8 @@ export interface operations {
                 range?: string | null;
                 start?: string | null;
                 end?: string | null;
+                compare?: boolean;
+                mine?: boolean;
             };
             header?: never;
             path?: never;
@@ -6844,6 +6866,45 @@ export interface operations {
                 "application/json": components["schemas"]["BulkBody"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    chart_v1_records__table__chart_get: {
+        parameters: {
+            query?: {
+                x?: string | null;
+                bucket?: string;
+                measures?: string | null;
+                top?: number;
+                q?: string | null;
+            };
+            header?: never;
+            path: {
+                table: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Avatar } from '@/patterns/Avatar'
 import { Link, useNavigate } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Bookmark, Maximize2, Plus, SlidersHorizontal, X } from 'lucide-react'
@@ -19,6 +20,8 @@ import { ColumnsMenu } from './ColumnsMenu'
 import { featuresOf } from '@/features/studio/features'
 import { BulkBar } from './BulkBar'
 import { ExportDialog } from './ExportDialog'
+import { ChartCard } from './chart/ChartCard'
+import { NumbersMode, useNumbersPrefs } from './NumbersMode'
 import { StatsStrip } from './StatsStrip'
 import { InlineCell, InlineEditContext, inlineEditable } from './InlineCell'
 import { HeaderFilter, describe, filterKind } from './HeaderFilter'
@@ -60,9 +63,12 @@ function columnsFor(table: TableDef, preview: boolean, shown: FieldDef[]): Colum
       const v = row.original.data[f.key]
       if (f.key === table.title_field && !preview) {
         return (
-          <Link to="/records/$table/$id" params={{ table: table.key, id: row.original.id }} className="font-semibold text-accent-ink hover:underline">
-            {String(v ?? '')}
-          </Link>
+          <span className="flex items-center gap-2.5">
+            <Avatar name={String(v ?? '')} size="sm" />
+            <Link to="/records/$table/$id" params={{ table: table.key, id: row.original.id }} className="font-semibold text-accent-ink hover:underline">
+              {String(v ?? '')}
+            </Link>
+          </span>
         )
       }
       if (f.type === 'select' && v) {
@@ -103,7 +109,7 @@ function Facets({ tableKey, fields, criteria, set }: { tableKey: string; fields:
   })
   if (!facets.data) return <LoadingState label="Counting" />
   return (
-    <div className="flex flex-col gap-4" aria-label="Narrow the list" role="group">
+    <div className="flex flex-col gap-4 rounded-xl border border-line bg-surface p-3" aria-label="Narrow the list" role="group">
       {Object.entries(facets.data.facets).map(([key, f]) => {
         const active = f.kind === 'range' ? criteria.ranges[key] : criteria.filters[key]
         return (
@@ -211,6 +217,7 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
   const def = useQuery({ queryKey: ['table', tableKey], queryFn: () => app.table(tableKey), retry: false })
   const table = tableOverride ?? def.data?.table
   const feat = featuresOf(table)
+  const numbers = useNumbersPrefs(tableKey, feat)
   const density = prefs.density ?? feat.density // a person's own choice wins over the owner's default
   // The screen can start the list grouped; the person can change or clear it while it is open.
   const groupBy = feat.grouping && !(custom && feat.row_order) ? (groupChoice ?? config.group_by) || undefined : undefined
@@ -300,6 +307,7 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
   const groupField = groupBy ? table.fields.find((f) => f.key === groupBy) : undefined
   const filters_ = filterFields(table, config)
   const facetFields = (config.facets ?? []).filter((k) => table.fields.some((f) => f.key === k && !f.hidden))
+  const facetCount = facetFields.filter((k) => criteria.filters[k] || criteria.ranges[k]).length
   const searching = !!q || [filters, ranges, contains, anyof].some((m) => Object.values(m).some(Boolean))
   const setFilter = (k: string, v: string) => setCriteria({ ...criteria, filters: { ...filters, [k]: v } })
   type Slot = 'filters' | 'ranges' | 'contains' | 'anyof'
@@ -327,8 +335,14 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
       <EmptyState title="Nothing matches">Try fewer filters or other words.</EmptyState>
     ) : (
       <>
-      {feat.statistics && !preview && rows.length > 0 && (
-        <StatsStrip table={table} query={{ q: debouncedQ, filters: keepSet(filters), ranges: keepSet(ranges), contains: keepSet(contains), anyof: keepSet(anyof) }} />
+      {feat.statistics && !preview && numbers.view === 'chart' && (total > 0 || Object.values(criteria).some(Boolean)) && (
+        <ChartCard table={table} feat={feat} criteria={criteria} setCriteria={setCriteria} numbers={numbers} />
+      )}
+      {feat.statistics && !preview && numbers.view !== 'chart' && rows.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <div className="flex justify-end"><NumbersMode n={numbers} /></div>
+          <StatsStrip table={table} whole={numbers.whole} query={numbers.whole ? {} : { q: debouncedQ, filters: keepSet(filters), ranges: keepSet(ranges), contains: keepSet(contains), anyof: keepSet(anyof) }} />
+        </div>
       )}
       <div className="overflow-hidden rounded-lg border border-line bg-surface" data-testid="table-card">
       <div className="border-b border-line px-3 py-2">
@@ -497,6 +511,7 @@ export function RecordsList({ tableKey, config = {}, title, screenKey, initial, 
         {facetFields.length > 0 && (
           <Button variant="secondary" aria-expanded={showFacets} onClick={() => setShowFacets((v) => !v)}>
             <SlidersHorizontal className="size-4" aria-hidden /> Filters
+            {facetCount > 0 && <span className="ml-1 rounded-full bg-accent px-1.5 text-xs font-semibold text-white">{facetCount}</span>}
           </Button>
         )}
       </div>

@@ -58,7 +58,9 @@ test('Select rows and act on many: change a value, delete, undo, switches', asyn
   await test.step('Switching delete off hides it; switching the feature off removes the boxes', async () => {
     await page.goto('/studio?tab=data&table=candidate&part=features')
     const panel = page.getByTestId('features-panel')
-    await panel.getByRole('checkbox', { name: 'Delete (with Undo)' }).uncheck()
+    await page.getByRole('button', { name: 'Bulk action options' }).click()
+    await page.getByRole('checkbox', { name: 'Delete (with Undo)' }).uncheck()
+    await page.keyboard.press('Escape')
     await panel.getByRole('button', { name: 'Save features' }).click()
     await expect(page.getByText('Saved features for Candidate').first()).toBeVisible()
   })

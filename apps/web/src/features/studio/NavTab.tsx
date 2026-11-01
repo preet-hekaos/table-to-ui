@@ -44,10 +44,9 @@ function NavEditor({ saved, canEdit }: { saved: Item[]; canEdit: boolean }) {
   const free = (screens.data ?? []).filter((s) => !used.has(s.key))
   const roleList = roles.data ?? []
   const dirty = JSON.stringify(items) !== JSON.stringify(saved)
-  const sections: [string, string][] = [
-    ['main', 'Main menu'],
-    ['more', 'More'],
-  ]
+  const name = (k: string) => (k === 'main' ? 'Main menu' : k.charAt(0).toUpperCase() + k.slice(1).replace(/_/g, ' '))
+  const keys = ['main', ...new Set(items.map((n) => n.section).filter((k) => k !== 'main' && k !== 'more')), 'more']
+  const sections: [string, string][] = keys.map((k) => [k, name(k)])
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-muted">Menu changes stay in Draft until you publish. Each person only sees entries for tables their role can read.</p>
@@ -74,8 +73,7 @@ function NavEditor({ saved, canEdit }: { saved: Item[]; canEdit: boolean }) {
                     ))}
                   </Select>
                   <Select aria-label={`Section for ${n.label}`} className="w-28" value={n.section} disabled={!canEdit} onChange={(e) => set(i, { section: e.target.value })}>
-                    <option value="main">Main</option>
-                    <option value="more">More</option>
+                    {keys.map((k) => <option key={k} value={k}>{k === 'main' ? 'Main' : name(k)}</option>)}
                   </Select>
                   <details className="relative">
                     <summary className="cursor-pointer rounded-md border border-line px-3 py-1.5 text-sm text-body">

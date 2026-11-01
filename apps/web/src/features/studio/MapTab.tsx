@@ -23,6 +23,8 @@ import { Badge, Button, ErrorState, Input, LoadingState } from '@/design-system'
 import { forceLayout } from './canvas/force'
 import { TableCard, type CardData } from './canvas/TableCard'
 import { TableDot } from './canvas/TableDot'
+import { RouteEdge } from './canvas/RouteEdge'
+import { routeLinks } from './canvas/route'
 import { TableDrawer } from './canvas/TableDrawer'
 import { layeredLayout } from './canvas/layout'
 import { useDraftTables } from './useDraftTables'
@@ -32,6 +34,7 @@ import { SchemaImportDialog } from './SchemaImportDialog'
 import { AddLink, AddMany, EditLink, LinkHealth } from './RelationshipsTab'
 
 const nodeTypes = { table: TableCard, dot: TableDot }
+const edgeTypes = { route: RouteEdge }
 
 type View = 'cards' | 'graph'
 const VIEW_KEY = 'tableui.canvas.view'
@@ -186,25 +189,33 @@ function Canvas({
       }
     })
   const visible = new Set(nodes.map((n) => n.id))
+  // The routes follow the cards, including while one is being dragged; a few dozen lines are quick to place.
+  const routes = graph ? null : routeLinks(merged.map((m) => ({ id: m.id, from: m.from, to: m.to })), positions)
   const edges: Edge[] = merged
     .filter((m) => visible.has(m.from) && visible.has(m.to))
     .map((m) => {
       const touches = !active || m.from === active || m.to === active
       const many = m.links.length > 1
       const first = m.links[0]!
+      const route = routes?.get(m.id)
+      const lit = !!active && touches
+      const colour = graph ? undefined : lit ? 'var(--color-accent)' : '#94a3b8'
       return {
         id: m.id,
         source: m.from,
         target: m.to,
-        type: graph ? 'straight' : 'smoothstep',
+        type: route ? 'route' : graph ? 'straight' : 'smoothstep',
+        data: route ? { d: route.d, labelX: route.label.x, labelY: route.label.y } : undefined,
+        // The lines that touch the hovered or chosen table flow from the table that links to the one it points at.
+        className: active && touches ? 'map-flow' : undefined,
         // Names only appear on the lines you are looking at, so a busy map stays quiet.
         label: many ? `${m.links.length} links` : active && touches ? `${first.label}${first.source === 'pack' ? '' : ' •'}` : undefined,
-        markerEnd: graph ? undefined : { type: MarkerType.ArrowClosed },
+        markerEnd: graph ? undefined : { type: MarkerType.ArrowClosed, color: colour },
         style: {
-          strokeWidth: many ? 3 : 1.5,
-          strokeDasharray: !many && first.source === 'pack' ? '6 4' : undefined,
+          strokeWidth: many ? 3 : lit ? 2.5 : 1.5,
+          strokeDasharray: !route && !many && first.source === 'pack' ? '6 4' : undefined,
           opacity: touches ? 1 : 0.12,
-          stroke: active && touches ? 'var(--color-accent)' : undefined,
+          stroke: colour,
         },
         labelBgPadding: [6, 3] as [number, number],
         labelStyle: { fontSize: 11 },
@@ -291,6 +302,7 @@ function Canvas({
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           onNodesChange={onNodesChange}
           onNodeDragStop={() => {
             if (canEdit && !graph) save.mutate(positions)

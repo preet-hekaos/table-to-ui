@@ -16,6 +16,7 @@ from tableui.metadata.domain.models import (
     RuleDef,
     ScreenDef,
     TableDef,
+    menu_sorted,
 )
 from tableui.platform.errors import NotFound
 
@@ -65,9 +66,10 @@ def _from_manifest(
             k: ScreenDef.model_validate(v["definition"])
             for k, v in content.get("screens", {}).items()
         },
-        navigation=sorted(
-            (NavItem.model_validate(v["definition"]) for v in content.get("navs", {}).values()),
-            key=lambda n: (n.section, n.order),
+        navigation=menu_sorted(
+            [NavItem.model_validate(v["definition"]) for v in content.get("navs", {}).values()],
+            lambda n: n.section,
+            lambda n: n.order,
         ),
     )
 

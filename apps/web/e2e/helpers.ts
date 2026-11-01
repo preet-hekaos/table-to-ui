@@ -11,7 +11,7 @@ export async function signUpWithPack(page: Page, name: string, email: string, pa
   await page.getByLabel(/Work email/).fill(email)
   await page.getByLabel(/^Password/).fill(PASSWORD)
   await page.getByRole('button', { name: 'Create workspace' }).click()
-  await expect(page.getByRole('heading', { name: /^Set up / })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /^Set up / })).toBeVisible({ timeout: 30_000 }) // creating a workspace builds its database schema; slow on shared CI machines
   await page.waitForLoadState('networkidle')
   const choice = page.getByLabel(pack === 'blank' ? /Start blank/ : pack)
   const go = page.getByRole('button', { name: 'Set up workspace' })
@@ -21,7 +21,7 @@ export async function signUpWithPack(page: Page, name: string, email: string, pa
   }).toPass()
   await go.click()
   await expect(page.getByTestId('app-name')).toHaveText(name)
-  await expect(page.getByRole('heading', { name: /^Welcome/ })).toBeVisible() // onboarding has finished navigating home
+  await expect(page.getByRole('heading', { name: /^Good (morning|afternoon|evening)/ })).toBeVisible() // onboarding has finished navigating home
 }
 
 /**
@@ -81,4 +81,13 @@ export async function openSection(page: Page, name: 'Tables' | 'Canvas' | 'Stage
 /** The Studio is on this section: the switcher names it. */
 export async function expectSection(page: Page, name: string) {
   await expect(page.getByRole('button', { name: new RegExp(`^Section: ${name}\\.`) })).toBeVisible()
+}
+
+/** Set a table's features through the API, the way an older Studio screen or an integration would. */
+export async function putFeatures(page: Page, table: string, body: Record<string, unknown>) {
+  const status = await page.evaluate(
+    async ([t, b]) => (await fetch(`/v1/studio/tables/${t}/features`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionStorage.getItem('tableui.token')}` }, body: JSON.stringify(b) })).status,
+    [table, body] as [string, Record<string, unknown>],
+  )
+  expect(status).toBe(200)
 }

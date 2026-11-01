@@ -66,7 +66,7 @@ async def test_the_pack_ships_a_dashboard_and_orders_it(
     assert r.status_code == 200, r.text
     keys = [m["key"] for m in r.json()]
     assert keys[:3] == ["active_candidates", "open_jobs", "submissions_by_stage"]
-    assert len(keys) == 9
+    assert len(keys) == 12
     home = await client.get("/v1/measures", headers=agency.h(), params={"home": "true"})
     assert [m["key"] for m in home.json()] == [
         "active_candidates",
@@ -332,3 +332,56 @@ async def test_preview_shows_the_number_or_the_problem_before_saving(
     assert bad.json()["ok"] is False and "not a number" in bad.json()["problems"][0]
     nope = await client.post("/v1/measures/preview", headers=agency.h(), json={"table": "nope"})
     assert nope.json()["ok"] is False
+
+
+async def test_home_can_compare_with_the_period_before_and_count_only_my_records(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    await _pipeline(client, agency)  # one submission sent today
+    await _flush(client)
+    r = await client.get(
+        "/v1/measures",
+        headers=agency.h(),
+        params={"home": "true", "compare": "true", "range": "last_30_days"},
+    )
+    assert r.status_code == 200, r.text
+    by = {m["key"]: m for m in r.json()}
+    sent = by["submissions_sent"]
+    assert sent["value"] == 1 and sent["previous"] == 0
+    assert sent["trend"] and len(sent["trend"]) >= 12 and sum(sent["trend"]) == 1
+    # A number that is "right now" has no honest past, so it carries no comparison or trend.
+    assert by["active_candidates"]["previous"] is None and by["active_candidates"]["trend"] is None
+    # Without the option nothing extra is added.
+    plain = await client.get("/v1/measures/submissions_sent", headers=agency.h())
+    assert "previous" not in plain.json()
+    # "Only mine" counts what this person owns; the same person made all of it, so the same number.
+    mine = await client.get(
+        "/v1/measures/submissions_sent", headers=agency.h(), params={"mine": "true"}
+    )
+    assert mine.json()["value"] == 1
+
+
+async def test_time_to_fill_and_percentage_measures(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    ids = await _pipeline(client, agency)  # s2 was sent today, s1 was not sent
+    # a requirement opened 10 days ago and filled today fills in 10 days
+    c = ids["client"]
+    await _post(
+        client, agency, "requirement",
+        {"title": "Fast fill", "client": c, "status": "Filled",
+         "opened_on": (TODAY - dt.timedelta(days=10)).isoformat(), "filled_on": TODAY.isoformat()},
+    )  # fmt: skip
+    # one of the one submission sent today had an interview
+    await _post(
+        client, agency, "interview",
+        {"summary": "Round 1", "submission": ids["s2"], "scheduled_on": TODAY.isoformat(),
+         "scheduled_time": "10:30", "meeting_link": "https://meet.example.com/abc"},
+    )  # fmt: skip
+    await _flush(client)
+    fill = await _card(client, agency, "average_time_to_fill")
+    assert fill["value"] == 10 and fill["unit"] == "days"
+    pct = await _card(client, agency, "submission_to_interview")
+    assert pct["value"] == 100 and pct["unit"] == "%"
+    # no offers sent: the percentage has nothing to divide by, so it is empty rather than zero
+    assert (await _card(client, agency, "offer_acceptance"))["value"] is None

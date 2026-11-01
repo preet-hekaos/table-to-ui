@@ -128,7 +128,7 @@ export interface AutomationRun { id: string; automation: string; label: string; 
 export interface Notice { id: string; kind: string; title: string; link: string | null; created_at: string; read: boolean }
 export interface NotificationPrefs { kinds: { kind: string; label: string; channel: 'in_app' | 'in_app_email' | 'off' }[]; digest: boolean }
 export interface Needs {
-  tasks: { table: string; label: string; total: number; items: { id: string; title: string; due_on: string | null; overdue: boolean; can_finish: boolean }[] } | null
+  tasks: { table: string; label: string; total: number; items: { id: string; title: string; subtitle?: string | null; due_on: string | null; overdue: boolean; can_finish: boolean }[] } | null
   approvals: number
   unread: number
 }
@@ -286,6 +286,19 @@ export interface ExportBody {
 }
 export interface StatCardResult { kind: 'count' | 'number' | 'value'; label: string; field: string | null; measure: 'sum' | 'avg' | 'min' | 'max' | null; value: string | null; type: string; number: number | null }
 export interface TableStats { total: number; scope: 'search' | 'table'; cards: StatCardResult[] | null; fields: { key: string; label: string; type: string; count: number; sum: number | null; avg: number | null; min: number | null; max: number | null }[] }
+export interface ChartMeasureResult { key: string; agg: 'count' | 'sum' | 'avg' | 'min' | 'max'; field: string | null; label: string; type: string }
+export interface ChartPoint { key: string; label: string; count: number; values: Record<string, number | null> }
+export interface ChartResult {
+  x: { key: string; label: string; type: string; bucket: 'day' | 'week' | 'month' | null }
+  measures: ChartMeasureResult[]
+  points: ChartPoint[]
+  total: number
+  overall: Record<string, number | null>
+  scope: 'search' | 'table'
+  groupable: { key: string; label: string; type: string }[]
+  numbers: { key: string; label: string; type: string }[]
+}
+export interface ChartQuery { x?: string; bucket?: string; measures?: string; top?: number }
 export interface BulkMatching { q?: string; filters: Record<string, string>; ranges: Record<string, string>; contains: Record<string, string>; anyof: Record<string, string>; expected_count: number }
 export interface BulkUndo { kind: 'update' | 'delete'; ids: string[] }
 export interface BulkBody { action: 'update' | 'delete' | 'undo'; ids?: string[]; matching?: BulkMatching; field?: string; value?: unknown; undo?: BulkUndo }
@@ -374,6 +387,24 @@ export const app = {
       })}`,
     )
   },
+  chart: (table: string, query: ListQuery & ChartQuery) => {
+    const { filters, ranges, contains, anyof, has, q, owner, x, bucket, measures, top } = query
+    return g<ChartResult>(
+      `/v1/records/${table}/chart${qs({
+        q,
+        owner,
+        x,
+        bucket,
+        measures,
+        top,
+        ...Object.fromEntries(Object.entries(filters ?? {}).map(([k, v]) => [`f.${k}`, v])),
+        ...Object.fromEntries(Object.entries(ranges ?? {}).map(([k, v]) => [`r.${k}`, v])),
+        ...Object.fromEntries(Object.entries(contains ?? {}).map(([k, v]) => [`c.${k}`, v])),
+        ...Object.fromEntries(Object.entries(anyof ?? {}).map(([k, v]) => [`in.${k}`, v])),
+        ...Object.fromEntries(Object.entries(has ?? {}).map(([k, v]) => [`has.${k}`, v])),
+      })}`,
+    )
+  },
   /** How many records match a search (counted by the server, no facets asked for). */
   count: async (table: string, query: ListQuery) => (await app.facets(table, { ...query, fields: ['_'] })).total,
   exportFile: (table: string, body: ExportBody) =>
@@ -433,7 +464,8 @@ export const app = {
     cast<RecordPage>(api.GET('/v1/records/{table}', { params: { path: { table }, query: { limit: 200, sort: 'updated_at', direction: 'desc' } } })),
   check: (table: string, data: Json) =>
     cast<{ outcomes: RuleOutcome[] }>(api.POST('/v1/records/{table}/check', { params: { path: { table } }, body: { data } })),
-  measures: (range?: RangeQuery, home = false) => g<Measure[]>(`/v1/measures${qs({ ...range, home: home ? 'true' : undefined })}`),
+  measures: (range?: RangeQuery, home = false, opts?: { compare?: boolean; mine?: boolean }) =>
+    g<Measure[]>(`/v1/measures${qs({ ...range, home: home ? 'true' : undefined, compare: opts?.compare ? 'true' : undefined, mine: opts?.mine ? 'true' : undefined })}`),
   measure: (key: string, range?: RangeQuery) => g<Measure>(`/v1/measures/${key}${qs({ ...range })}`),
   measureRecords: (key: string, range?: RangeQuery, drill?: { group?: string; bucket?: string }) =>
     g<MeasureRecords>(`/v1/measures/${key}/records${qs({ ...range, ...drill })}`),

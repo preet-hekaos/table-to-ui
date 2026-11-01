@@ -5,7 +5,7 @@ import { Search } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useDebounced } from '@/lib/useDebounced'
 import { search } from '@/api/endpoints'
-import { cn } from '@/design-system'
+import { ScrollArea, cn } from '@/design-system'
 
 type Hit = { key: string; label: string; hint: string; go: () => void }
 
@@ -91,7 +91,7 @@ export function CommandBar() {
                 }}
               />
             </div>
-            <ul id="command-results" role="listbox" aria-label="Results" className="max-h-80 overflow-y-auto p-1">
+            <ScrollArea as="ul" id="command-results" role="listbox" aria-label="Results" className="max-h-80 p-1">
               {dq.trim().length < 2 && <li className="px-3 py-6 text-center text-sm text-muted">Type at least two letters.</li>}
               {dq.trim().length >= 2 && hits.length === 0 && !res.isFetching && <li className="px-3 py-6 text-center text-sm text-muted">Nothing found.</li>}
               {hits.map((h, i) => (
@@ -108,7 +108,7 @@ export function CommandBar() {
                   <span className={cn('ml-3 shrink-0 text-xs', i === active ? 'text-accent-ink' : 'text-muted')}>{h.hint}</span>
                 </li>
               ))}
-            </ul>
+            </ScrollArea>
           </RadixDialog.Content>
         </RadixDialog.Portal>
       </RadixDialog.Root>

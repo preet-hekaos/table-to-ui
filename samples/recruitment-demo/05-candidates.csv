@@ -1,0 +1,63 @@
+Full name,Email,Phone,Current title,Current employer,Location,Notice period (days),Status,Skills,Total experience,Source,Current CTC,Expected CTC
+Aarav Shah,aarav.shah@example.in,+91 96055 34722,Senior Backend Engineer,Razorpay,Bengaluru,30,Active,"Python, FastAPI, PostgreSQL, AWS, Kafka",84,Job board,2600000,3300000
+Meera Nair,meera.nair@example.in,+91 98754 35050,Senior Backend Engineer,Dunzo,Bengaluru,30,Active,"Spring Boot, Python, Redis, Node.js, Django",60,LinkedIn,1680000,2025000
+Kabir Rao,kabir.rao@example.in,+91 92007 24616,Backend Engineer,Cognizant,Bengaluru,30,Active,"AWS, Node.js, Go, Redis, Python",42,Job board,1495000,1755000
+Vikram Desai,vikram.desai@example.in,+91 93964 90305,Analytics Engineer,Dunzo,Pune,30,Active,"dbt, Power BI, Airflow, Snowflake",120,LinkedIn,3080000,3865000
+Karthik Desai,karthik.desai68@example.in,+91 91748 53323,Backend Engineer,Meesho,Chennai,0,Active,"Redis, Python, Go, Node.js",42,LinkedIn,1310000,1695000
+Rakesh Gupta,rakesh.gupta4@example.in,+91 95272 12790,Cloud Engineer,Infosys,Pune,15,Active,"Terraform, Kubernetes, AWS, CI/CD",120,Job board,2930000,4035000
+Pranav Bose,pranav.bose24@example.in,+91 98724 71911,Product Manager,Cred,Bengaluru,30,Active,"User research, Roadmapping, Product strategy, Figma",42,Referral,1430000,1670000
+Ananya Naidu,ananya.naidu16@example.in,+91 92471 68397,Senior Frontend Engineer,Meesho,Noida,60,Active,"Next.js, Node.js, Tailwind, React, TypeScript",60,Referral,1870000,2420000
+Arnav Kulkarni,arnav.kulkarni82@example.in,+91 96746 54370,Analytics Engineer,Flipkart,Pune,15,Active,"SQL, Spark, Python, Power BI, Airflow",108,LinkedIn,2495000,2900000
+Ananya Bhatt,ananya.bhatt64@example.in,+91 97808 71779,Analytics Engineer,Meesho,Mumbai,30,Active,"dbt, Spark, SQL",96,LinkedIn,2630000,3380000
+Kavya Kapoor,kavya.kapoor30@example.in,+91 98211 47515,ML Engineer,Zomato,Bengaluru,60,Active,"Snowflake, Airflow, Python",144,Referral,3535000,4660000
+Rahul Bose,rahul.bose32@example.in,+91 93586 29248,Senior Account Manager,Razorpay,Mumbai,0,Active,"Account management, Enterprise sales, Talent acquisition",96,LinkedIn,2150000,2555000
+Rahul Sharma,rahul.sharma28@example.in,+91 91156 40575,SDET,HCL Technologies,Pune,60,Active,"API testing, Selenium, Cypress, CI/CD",72,LinkedIn,1900000,2625000
+Akash Kapoor,akash.kapoor31@example.in,+91 91581 16223,Senior Product Manager,Razorpay,Gurugram,60,Active,"Figma, User research, Product strategy",84,Other,1980000,2340000
+Sana Desai,sana.desai21@example.in,+91 97561 28623,Senior Frontend Engineer,Meesho,Pune,15,Active,"GraphQL, Next.js, Tailwind, React, PostgreSQL",54,Job board,1505000,1790000
+Divya Kapoor,divya.kapoor18@example.in,+91 92410 69694,Full Stack Engineer,Meesho,Pune,0,Active,"Node.js, Tailwind, PostgreSQL, React, GraphQL",120,LinkedIn,2375000,2780000
+Nikhil Desai,nikhil.desai55@example.in,+91 92850 97608,Full Stack Engineer,Mindtree,Noida,45,Active,"React, Tailwind, GraphQL, Node.js",120,Job board,2575000,2975000
+Divya Saxena,divya.saxena81@example.in,+91 96050 66756,Java Developer,Zomato,Chennai,60,Active,"Node.js, AWS, Redis",144,Job board,3210000,3975000
+Riya Naidu,riya.naidu49@example.in,+91 97019 74837,SDET,Persistent Systems,Bengaluru,30,Active,"API testing, Selenium, Cypress, CI/CD",72,LinkedIn,1965000,2730000
+Varun Bhatt,varun.bhatt86@example.in,+91 94280 24570,Analytics Engineer,Myntra,Noida,0,Active,"Airflow, SQL, Power BI, Snowflake",108,Import,2110000,2865000
+Aditya Mishra,aditya.mishra6@example.in,+91 97819 11682,Full Stack Engineer,Cred,Hyderabad,90,Active,"Next.js, GraphQL, Tailwind",120,Other,3105000,3730000
+Bhavna Saxena,bhavna.saxena65@example.in,+91 95480 28531,Senior Account Manager,ThoughtWorks,Chennai,15,Active,"Talent acquisition, Enterprise sales, Account management",60,Other,1865000,2455000
+Sandeep Sharma,sandeep.sharma45@example.in,+91 93851 81490,Cloud Engineer,Wipro,Bengaluru,60,Active,"CI/CD, AWS, Kubernetes, Terraform, Docker",144,Referral,3225000,4010000
+Siddharth Menon,siddharth.menon82@example.in,+91 97534 74096,Data Engineer,Dunzo,Chennai,45,Active,"Airflow, Python, Spark",30,Import,1065000,1250000
+Ishaan Rao,ishaan.rao12@example.in,+91 99854 70257,Senior Data Analyst,Myntra,Hyderabad,60,Active,"dbt, Snowflake, Python, Airflow",72,Referral,1635000,1900000
+Mitali Desai,mitali.desai69@example.in,+91 95541 95792,Backend Engineer,Mindtree,Hyderabad,0,Active,"Python, PostgreSQL, Django, Kafka, FastAPI",30,Import,1110000,1460000
+Karthik Patel,karthik.patel32@example.in,+91 93432 99926,UI Engineer,Cred,Pune,30,Active,"React, Node.js, PostgreSQL, GraphQL, Next.js",144,Job board,3225000,4260000
+Aarav Khan,aarav.khan67@example.in,+91 94415 24629,Data Engineer,Wipro,Pune,45,Active,"Airflow, Snowflake, Python, Power BI, Spark",42,LinkedIn,1185000,1605000
+Vikram Verma,vikram.verma3@example.in,+91 96077 17250,Senior Product Manager,Wipro,Pune,0,Active,"Product strategy, Figma, Roadmapping, User research",84,LinkedIn,2265000,2990000
+Jyoti Kapoor,jyoti.kapoor9@example.in,+91 97424 62495,Site Reliability Engineer,Mindtree,Bengaluru,90,Placed,"Terraform, CI/CD, Kubernetes",54,Other,1500000,1990000
+Mitali Iyer,mitali.iyer79@example.in,+91 91279 66890,DevOps Engineer,Tech Mahindra,Bengaluru,0,Active,"Terraform, CI/CD, Kubernetes",30,Referral,1150000,1365000
+Sandeep Khan,sandeep.khan18@example.in,+91 95075 15995,Senior Backend Engineer,Flipkart,Gurugram,0,Active,"AWS, Kafka, PostgreSQL, Django",60,Other,1730000,2275000
+Radhika Mishra,radhika.mishra8@example.in,+91 94647 88788,Senior Backend Engineer,Nykaa,Bengaluru,60,Active,"PostgreSQL, Go, Spring Boot, Redis",72,Job board,1720000,2030000
+Ananya Mehta,ananya.mehta74@example.in,+91 92168 71526,Java Developer,Persistent Systems,Bengaluru,15,Active,"AWS, Java, Redis, Kafka",144,LinkedIn,3095000,4200000
+Fatima Thakur,fatima.thakur96@example.in,+91 91378 23184,SDET,Persistent Systems,Bengaluru,30,Active,"Selenium, API testing, Cypress, CI/CD",60,Referral,1555000,1835000
+Ananya Reddy,ananya.reddy9@example.in,+91 91602 18301,Backend Engineer,Cred,Mumbai,15,Active,"FastAPI, Node.js, Redis",30,LinkedIn,1020000,1180000
+Gaurav Kapoor,gaurav.kapoor73@example.in,+91 91245 26133,Senior Frontend Engineer,ThoughtWorks,Bengaluru,15,Active,"Tailwind, GraphQL, PostgreSQL, Next.js, React",54,Referral,1495000,1735000
+Mitali Thakur,mitali.thakur92@example.in,+91 97111 53216,Analytics Engineer,Dunzo,Hyderabad,45,Active,"Spark, Power BI, dbt",108,Job board,2700000,3175000
+Suresh Chopra,suresh.chopra84@example.in,+91 98043 68966,Talent Acquisition Lead,Cred,Pune,0,Active,"Account management, Talent acquisition, Enterprise sales",72,Job board,2125000,2855000
+Ananya Pillai,ananya.pillai58@example.in,+91 92355 13179,Product Manager,Dunzo,Bengaluru,45,Placed,"User research, Roadmapping, Product strategy",42,Job board,1435000,1755000
+Yash Menon,yash.menon76@example.in,+91 98760 73504,Senior Backend Engineer,Paytm,Pune,30,Placed,"Node.js, Go, FastAPI, Redis, Django",54,Job board,1525000,2035000
+Kavya Agarwal,kavya.agarwal57@example.in,+91 97676 59022,Software Engineer II,Razorpay,Bengaluru,60,Active,"Python, Node.js, Java",96,Import,1895000,2365000
+Diya Verma,diya.verma85@example.in,+91 94150 11966,Cloud Engineer,Swiggy,Bengaluru,45,Active,"Docker, CI/CD, AWS",144,Job board,2740000,3430000
+Arnav Desai,arnav.desai69@example.in,+91 93506 14964,Senior Backend Engineer,Cognizant,Mumbai,60,Active,"Redis, Java, Spring Boot",84,Referral,2220000,3085000
+Tanvi Mehta,tanvi.mehta42@example.in,+91 97942 92649,SDET,Flipkart,Chennai,0,Active,"Selenium, API testing, CI/CD, Cypress",54,Other,1330000,1565000
+Tarun Joshi,tarun.joshi63@example.in,+91 93366 16063,Software Engineer II,TCS,Gurugram,60,Active,"Python, Redis, PostgreSQL, Java",120,Walk-in,2945000,3785000
+Nandini Mishra,nandini.mishra70@example.in,+91 91723 86453,Software Engineer II,Freshworks,Pune,45,Active,"Python, FastAPI, AWS",96,Job board,2575000,3395000
+Diya Reddy,diya.reddy94@example.in,+91 92143 44616,Software Engineer II,Flipkart,Gurugram,60,Active,"PostgreSQL, Django, Kafka, AWS, Go",120,Referral,2890000,3570000
+Imran Bose,imran.bose25@example.in,+91 96279 15783,Senior Backend Engineer,Dunzo,Bengaluru,15,Active,"Node.js, Django, Redis, Java",60,Walk-in,1780000,2385000
+Ankit Thakur,ankit.thakur5@example.in,+91 94781 18189,Senior Frontend Engineer,Swiggy,Bengaluru,90,Active,"Node.js, React, TypeScript, GraphQL",54,LinkedIn,1675000,2150000
+Karthik Agarwal,karthik.agarwal11@example.in,+91 91110 84917,Senior Data Analyst,Cred,Noida,60,Active,"SQL, Python, Airflow",72,Job board,1595000,2220000
+Suresh Reddy,suresh.reddy94@example.in,+91 98932 35476,Senior Backend Engineer,Myntra,Pune,60,Active,"Go, Django, Node.js, Kafka, Python",72,Job board,2070000,2820000
+Fatima Chatterjee,fatima.chatterjee34@example.in,+91 95170 69318,QA Engineer,Cred,Pune,45,Active,"CI/CD, Cypress, API testing",42,Referral,1275000,1745000
+Bhavna Naidu,bhavna.naidu23@example.in,+91 93201 49269,Senior Frontend Engineer,Persistent Systems,Bengaluru,60,Active,"PostgreSQL, GraphQL, TypeScript, React",60,Job board,1785000,2085000
+Gaurav Mehta,gaurav.mehta46@example.in,+91 93956 63816,Cloud Engineer,Capgemini,Mumbai,90,Archived,"Docker, AWS, Terraform, CI/CD, Kubernetes",108,Import,2460000,2990000
+Kavya Shah,kavya.shah84@example.in,+91 96062 80619,Cloud Engineer,ThoughtWorks,Hyderabad,90,Archived,"Kubernetes, Docker, Terraform, CI/CD, AWS",96,LinkedIn,1980000,2555000
+Sana Agarwal,sana.agarwal41@example.in,+91 93065 40848,Senior Backend Engineer,HCL Technologies,Bengaluru,30,Archived,"AWS, Kafka, FastAPI",60,LinkedIn,1585000,2210000
+Siddharth Khan,siddharth.khan67@example.in,+91 98926 74301,Full Stack Engineer,Tech Mahindra,Pune,90,Archived,"Node.js, TypeScript, Next.js, GraphQL",96,Job board,2540000,2920000
+Imran Chatterjee,imran.chatterjee58@example.in,+91 99359 24638,Analytics Engineer,Razorpay,Mumbai,60,Archived,"SQL, Power BI, Python, dbt",120,LinkedIn,2540000,3095000
+Yash Singh,yash.singh2@example.in,+91 92646 44333,Senior Product Manager,Flipkart,Bengaluru,45,Archived,"User research, Product strategy, Figma, Roadmapping",54,Referral,1725000,2145000
+Aarav Shah,aarav.shah.work@example.in,+91 98450 77012,Java Developer,PhonePe,Pune,45,Active,"Django, Spring Boot, PostgreSQL",144,Walk-in,3160000,3930000
+ANANYA NAIDU,alt.ananya.naidu16@example.in,+91 98860 12345,Senior Frontend Engineer,Meesho,Noida,60,Active,"Next.js, Node.js, Tailwind, React, TypeScript",60,Import,1870000,2420000

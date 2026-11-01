@@ -80,14 +80,9 @@ test('Summary strip: cards chosen in Studio, and a whole-table switch', async ({
     await expect(cards.nth(2)).toContainText('0')
   })
 
-  await test.step('Whole table: the numbers stop following the search', async () => {
-    await page.goto('/studio?tab=data&table=candidate&part=features')
-    const panel = page.getByTestId('features-panel')
-    await panel.getByRole('checkbox', { name: /Whole table/ }).check()
-    await panel.getByRole('button', { name: 'Save features' }).click()
-    await expect(page.getByText('Saved features for Candidate').first()).toBeVisible()
-    await goLive(page)
+  await test.step('Whole table: the person switches the numbers off the search', async () => {
     await page.goto('/s/candidates')
+    await page.getByRole('checkbox', { name: 'Whole table' }).check()
     await page.locator('#list-q').fill('Chitra')
     await expect(page.getByRole('row')).toHaveCount(2)
     await expect(cards.nth(0)).toContainText('Total')
@@ -95,13 +90,16 @@ test('Summary strip: cards chosen in Studio, and a whole-table switch', async ({
     await expect(cards.nth(2)).toContainText('3')
     await expect(page.getByTestId('stats-strip')).toContainText('Whole table')
     await shot(page, 'r4-whole-table')
+    await page.reload() // remembered for this person
+    await expect(page.getByRole('checkbox', { name: 'Whole table' })).toBeChecked()
   })
 
-  await test.step('Back to automatic cards', async () => {
+  await test.step('Back to the matching rows, and to automatic cards', async () => {
+    await page.goto('/s/candidates')
+    await page.getByRole('checkbox', { name: 'Whole table' }).uncheck()
     await page.goto('/studio?tab=data&table=candidate&part=features')
     const panel = page.getByTestId('features-panel')
     await panel.getByRole('checkbox', { name: 'Choose the summary cards myself' }).uncheck()
-    await panel.getByRole('checkbox', { name: /Whole table/ }).uncheck()
     await panel.getByRole('button', { name: 'Save features' }).click()
     await expect(page.getByText('Saved features for Candidate').first()).toBeVisible()
     await goLive(page)

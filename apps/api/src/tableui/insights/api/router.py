@@ -32,13 +32,62 @@ async def _run(
     m: MeasureDef,
     start: dt.date,
     end: dt.date,
+    *,
+    compare: bool = False,
+    mine: bool = False,
 ) -> dict[str, Any]:
     assert p.tenant_id
+    if m.aggregate == "ratio":
+        return await _ratio(p, db, analytics, app, m, start, end, compare=compare, mine=mine)
     scope_sql, scope_params = await scope_predicate(db, p, m.table)
-    return await engine.run_measure(
-        analytics, p.tenant_id, m, app.table(m.table),
+    if mine:  # only the records this person owns
+        scope_sql = (
+            f"({scope_sql}) AND owner_id = :mine_owner" if scope_sql else "owner_id = :mine_owner"
+        )
+        scope_params = {**scope_params, "mine_owner": p.user_id}
+    table = app.table(m.table)
+    out = await engine.run_measure(
+        analytics, p.tenant_id, m, table,
         scope_sql=scope_sql, scope_params=scope_params, start=start, end=end,
     )  # fmt: skip
+    if compare:
+        out |= await engine.compare_and_trend(
+            analytics, p.tenant_id, m, table,
+            scope_sql=scope_sql, scope_params=scope_params, start=start, end=end,
+        )  # fmt: skip
+    return out
+
+
+async def _ratio(
+    p: Principal, db: Database, analytics: Database, app: Any, m: MeasureDef,
+    start: dt.date, end: dt.date, *, compare: bool, mine: bool,
+) -> dict[str, Any]:  # fmt: skip
+    """top / bottom as a percentage, each read the way its own card is (same range, same scope)."""
+    parts = [next((x for x in app.measures if x.key == k), None) for k in m.ratio_of]
+    out: dict[str, Any] = {
+        "key": m.key, "label": m.label, "help": m.help, "display": "number", "table": m.table,
+        "aggregate": "ratio", "unit": "%", "period": True, "source": m.source, "home": m.home,
+        "series": None, "value": None, "as_of": None,
+    }  # fmt: skip
+    if len(parts) != 2 or None in parts or any(not _readable(p, x) for x in parts if x):
+        return out
+
+    async def pct(s: dt.date, e: dt.date) -> tuple[float | None, str | None]:
+        top = await _run(p, db, analytics, app, parts[0], s, e, mine=mine)  # type: ignore[arg-type]
+        bottom = await _run(p, db, analytics, app, parts[1], s, e, mine=mine)  # type: ignore[arg-type]
+        t, b = top.get("value"), bottom.get("value")
+        value = round(100 * t / b, 1) if t is not None and b else None
+        return (int(value) if value is not None and value == int(value) else value), top.get(
+            "as_of"
+        )
+
+    out["value"], out["as_of"] = await pct(start, end)
+    if compare:
+        days = (end - start).days + 1
+        prev_end = start - dt.timedelta(days=1)
+        out["previous"], _ = await pct(prev_end - dt.timedelta(days=days - 1), prev_end)
+        out["trend"] = None
+    return out
 
 
 async def _fresh(p: Principal, db: Database, analytics: Database, app: Any) -> None:
@@ -65,6 +114,8 @@ async def list_measures(
     range: str | None = None,  # noqa: A002 - the public query parameter name
     start: dt.date | None = None,
     end: dt.date | None = None,
+    compare: bool = False,  # add the previous period's value and a 12-week trend
+    mine: bool = False,  # count only the records I own
 ) -> list[dict[str, Any]]:
     p.require("measure.read")
     await _fresh(p, db, analytics, app)
@@ -73,7 +124,10 @@ async def list_measures(
         (m for m in app.measures if not m.hidden and _readable(p, m) and (m.home or not home)),
         key=lambda m: (m.order, m.label),
     )
-    return [await _run(p, db, analytics, app, m, first, last) for m in wanted]
+    return [
+        await _run(p, db, analytics, app, m, first, last, compare=compare, mine=mine)
+        for m in wanted
+    ]
 
 
 @router.get("/{key}")

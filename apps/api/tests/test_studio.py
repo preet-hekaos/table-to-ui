@@ -281,6 +281,33 @@ async def test_preview_as_a_role_hides_what_that_role_cannot_see_and_is_read_onl
     assert write.status_code == 403
     unknown = await client.get("/v1/app/navigation", headers=a.h(**{"X-Preview-Role": "nobody"}))
     assert unknown.status_code == 403
+    # The signed-in person's own permissions follow the previewed role, so screens draw what that role could do.
+    me = (await client.get("/v1/me", headers=as_sourcer)).json()
+    assert me["role"] == "sourcer"
+    assert "record.candidate.create" in me["permissions"]
+    assert "metadata.write" not in me["permissions"] and "*" not in me["permissions"]
+    assert "expected_ctc" not in {
+        f["key"]
+        for f in (await client.get("/v1/app/tables/candidate", headers=as_sourcer)).json()["table"][
+            "fields"
+        ]
+        if not f["hidden"]
+    }
+    assert any(
+        f["key"] == "expected_ctc" and not f["hidden"]
+        for f in (await client.get("/v1/app/tables/candidate", headers=a.h())).json()["table"][
+            "fields"
+        ]
+    )
+    # A role that cannot add documents is not offered the CV screen; one that can, is.
+    viewer = a.h(**{"X-Preview-Role": "viewer"})
+    assert "cv_intake" not in {
+        i["screen"]
+        for i in (await client.get("/v1/app/navigation", headers=viewer)).json()["items"]
+    }
+    assert "cv_intake" in {
+        i["screen"] for i in (await client.get("/v1/app/navigation", headers=a.h())).json()["items"]
+    }
 
 
 async def test_preview_never_gives_more_than_the_builder_has(
@@ -331,3 +358,96 @@ async def test_builder_changes_a_policy_severity_and_fixtures_respect_it(
     assert fixed.status_code in (404, 422)
     out = (await client.post("/v1/apps/current/fixtures/run", headers=a.h())).json()
     assert out["failed"] == 0, [x for x in out["results"] if not x["passed"]]
+
+
+async def test_builder_previews_unpublished_draft_changes_in_the_real_app(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    await a.publish_live()
+    off = await client.put(
+        "/v1/studio/tables/candidate/features", headers=a.h(), json={"statistics": False}
+    )
+    assert off.status_code == 200, off.text
+    as_draft = a.h(**{"X-Preview-Env": "draft"})
+    assert (await client.get("/v1/records/candidate/stats", headers=as_draft)).status_code == 403
+    assert (await client.get("/v1/records/candidate/stats", headers=a.h())).status_code == 200
+    live = a.h(**{"X-Preview-Env": "live"})
+    assert (await client.get("/v1/records/candidate/stats", headers=live)).status_code == 200
+
+
+async def test_removing_a_choice_in_use_is_refused_and_deleting_a_field_cleans_settings(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    r = await client.post(
+        "/v1/studio/tables/candidate/fields",
+        headers=a.h(),
+        json={"label": "Shift", "type": "select", "options": ["Day", "Night"]},
+    )
+    assert r.status_code == 201, r.text
+    await a.publish_live()
+    made = await a.create_candidate(candidate(full_name="Night Owl", shift="Night"))
+    assert made.status_code == 201, made.text
+    refuse = await client.patch(
+        "/v1/studio/tables/candidate/fields/shift", headers=a.h(), json={"options": ["Day"]}
+    )
+    assert refuse.status_code == 422 and "Night (1)" in refuse.text, refuse.text
+    ok = await client.patch(
+        "/v1/studio/tables/candidate/fields/shift",
+        headers=a.h(),
+        json={"options": ["Day", "Night", "Evening"]},
+    )
+    assert ok.status_code == 200, ok.text
+
+    feat = {"unsortable": ["shift"], "default_columns": ["full_name", "shift"]}
+    assert (
+        await client.put("/v1/studio/tables/candidate/features", headers=a.h(), json=feat)
+    ).status_code == 200
+    gone = await client.delete("/v1/studio/tables/candidate/fields/shift", headers=a.h())
+    assert gone.status_code in (200, 204), gone.text
+    table = (await client.get("/v1/studio/tables/candidate", headers=a.h())).json()
+    feats = table.get("features") or {}
+    assert "shift" not in (feats.get("unsortable") or [])
+    assert "shift" not in (feats.get("default_columns") or [])
+
+
+async def test_switches_for_sorting_and_filtering_hold_in_the_api_and_charts_take_dates_added(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    await a.publish_live()
+    off = {"unsortable": ["full_name"], "unfilterable": ["current_employer"]}
+    r = await client.put("/v1/studio/tables/candidate/features", headers=a.h(), json=off)
+    assert r.status_code == 200, r.text
+    h = a.h(**{"X-Preview-Env": "draft"})
+    assert (
+        await client.get("/v1/records/candidate", headers=h, params={"sort": "full_name"})
+    ).status_code == 422
+    assert (
+        await client.get("/v1/records/candidate", headers=h, params={"sort": "updated_at"})
+    ).status_code == 200
+    assert (
+        await client.get("/v1/records/candidate", headers=h, params={"c.current_employer": "inf"})
+    ).status_code == 422
+    chart = await client.get("/v1/records/candidate/chart", headers=h, params={"x": "created_at"})
+    assert chart.status_code == 200, chart.text
+    assert chart.json()["x"]["key"] == "created_at"
+
+
+async def test_field_cannot_become_required_while_records_lack_it(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    r = await client.post(
+        "/v1/studio/tables/candidate/fields",
+        headers=a.h(),
+        json={"label": "Badge", "type": "text"},
+    )
+    assert r.status_code == 201, r.text
+    await a.publish_live()
+    assert (await a.create_candidate(candidate(full_name="No Badge"))).status_code == 201
+    no = await client.patch(
+        "/v1/studio/tables/candidate/fields/badge", headers=a.h(), json={"required": True}
+    )
+    assert no.status_code == 422 and "no badge" in no.text, no.text

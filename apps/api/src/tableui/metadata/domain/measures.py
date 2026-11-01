@@ -19,6 +19,17 @@ def problems(m: MeasureDef, table: TableDef) -> list[tuple[str, str]]:
         elif not f.analytics:
             out.append((path, f"'{f.label}' is not switched on for Insights ({label})."))
 
+    if m.aggregate == "ratio":
+        if len(m.ratio_of) != 2:
+            out.append(("ratio_of", "A ratio needs exactly two measures: the top and the bottom."))
+        return out
+    if m.aggregate == "avg_days":
+        if not (m.field and m.from_field):
+            out.append(("field", "Average days needs a start date and an end date."))
+        known(m.field, "field", "measured")
+        if m.from_field != "created_at":
+            known(m.from_field, "from_field", "measured")
+        return out
     if m.aggregate in ("sum", "avg", "distinct") and not m.field:
         out.append(("field", "Pick the field to total, average or count."))
     if m.aggregate in ("sum", "avg") and m.field:

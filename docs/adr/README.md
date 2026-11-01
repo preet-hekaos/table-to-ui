@@ -47,3 +47,4 @@
 | [43](0043-studio-picker-and-chips.md) | Studio table picker, actions menu and chips |
 | [44](0044-features-tab-layout.md) | Features tab layout; Sorting and Filtering as separate switches |
 | [45](0045-studio-section-switcher.md) | Studio header: section switcher instead of nine tabs |
+| [46](0046-table-charts.md) | A chart above the table; summary cards of equal size |

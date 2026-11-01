@@ -1,12 +1,13 @@
 import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react'
 import type { HTMLAttributes, ReactNode, TdHTMLAttributes, ThHTMLAttributes } from 'react'
 import { cn } from './cn'
+import { ScrollArea } from './ScrollArea'
 
 export function Table({ className, wrapperClassName, ...props }: HTMLAttributes<HTMLTableElement> & { wrapperClassName?: string }) {
   return (
-    <div className={cn('relative overflow-x-auto rounded-lg border border-line bg-surface', wrapperClassName)}>
+    <ScrollArea axis="x" className={cn('relative rounded-lg border border-line bg-surface', wrapperClassName)}>
       <table className={cn('w-full border-collapse text-sm', className)} {...props} />
-    </div>
+    </ScrollArea>
   )
 }
 
@@ -27,7 +28,7 @@ export function Th({
     <th
       scope="col"
       aria-sort={ariaSort}
-      className={cn('border-b border-line bg-canvas px-3 py-2 text-left text-[11px] font-semibold whitespace-nowrap text-muted', className)}
+      className={cn('border-b border-line bg-head px-3 py-2.5 text-left text-xs font-semibold whitespace-nowrap text-muted', className)}
       {...props}
     >
       <span className="inline-flex items-center gap-1">
@@ -46,5 +47,5 @@ export function Th({
 }
 
 export function Td({ className, ...props }: TdHTMLAttributes<HTMLTableCellElement>) {
-  return <td className={cn('border-b border-soft px-3 py-2 whitespace-nowrap text-body', className)} {...props} />
+  return <td className={cn('border-b border-soft px-3 py-2.5 whitespace-nowrap text-body', className)} {...props} />
 }

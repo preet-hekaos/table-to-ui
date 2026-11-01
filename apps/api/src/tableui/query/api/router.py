@@ -15,6 +15,7 @@ from tableui.platform.mail import Mailer
 from tableui.platform.web import get_db, get_mailer, get_request_id, get_settings_dep
 from tableui.query.application import export as exports
 from tableui.query.application import records
+from tableui.query.application.chart import table_chart
 from tableui.query.application.stats import table_stats
 
 router = APIRouter(prefix="/v1/records", tags=["records"])
@@ -87,6 +88,26 @@ async def stats(
     return await table_stats(
         db, p, app, table, fields=[x for x in (fields or "").split(",") if x] or None,
         q=q, **_query_parts(request),
+    )  # fmt: skip
+
+
+@router.get("/{table}/chart")
+async def chart(
+    table: str,
+    p: PrincipalDep,
+    app: LiveAppDep,
+    db: DbDep,
+    request: Request,
+    x: str | None = None,
+    bucket: str = "month",
+    measures: str | None = None,
+    top: int = 8,
+    q: str | None = None,
+) -> dict[str, Any]:
+    """Records grouped by one field with one or two measures, over everything the search matches."""
+    return await table_chart(
+        db, p, app, table, x=x, bucket=bucket, measures=measures, top=top, q=q,
+        **_query_parts(request),
     )  # fmt: skip
 
 
