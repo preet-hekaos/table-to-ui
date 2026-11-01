@@ -1,8 +1,10 @@
 import { GripVertical } from 'lucide-react'
-import { useState, type KeyboardEvent } from 'react'
+import { Fragment, useState, type KeyboardEvent } from 'react'
 import type { FieldDef, StudioTable } from '@/api/types'
 import { Badge, Button, StageBadge, Table, Td, Th, cn, stageStripe } from '@/design-system'
 import { TYPE_LABELS } from './FieldDialog'
+import { FieldDetails } from './FieldDetails'
+import { FieldMenu } from './FieldMenu'
 import { InlineLabel } from './InlineLabel'
 import { RequiredSwitch } from './RequiredSwitch'
 import { UndoRemove } from './UndoRemove'
@@ -26,6 +28,8 @@ export function FieldsGrid({
   const { move, note } = useFieldOrder(table)
   const [dragKey, setDragKey] = useState<string | null>(null)
   const [overKey, setOverKey] = useState<string | null>(null)
+  const [open, setOpen] = useState<Set<string>>(new Set())
+  const toggle = (k: string) => setOpen((o) => { const n = new Set(o); if (n.has(k)) n.delete(k); else n.add(k); return n })
   const keys = table.fields.map((f) => f.key)
 
   const onHandleKey = (e: KeyboardEvent<HTMLButtonElement>, key: string) => {
@@ -63,8 +67,8 @@ export function FieldsGrid({
           {table.fields.map((f) => {
             const stage = stages.field(table.key, f.key)
             return (
+              <Fragment key={f.key}>
               <tr
-                key={f.key}
                 className={cn(stageStripe(stage), dragKey && overKey === f.key && dragKey !== f.key && 'shadow-[inset_0_2px_0_0_var(--color-accent,#1d4fd7)]')}
                 data-stage={stage}
                 onDragOver={canEdit && dragKey ? (e) => { e.preventDefault(); setOverKey(f.key) } : undefined}
@@ -117,9 +121,18 @@ export function FieldsGrid({
                     <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => onEdit(f)} aria-label={`Edit ${f.label}`}>
                       Edit
                     </Button>
+                    <FieldMenu table={table.key} field={f} expanded={open.has(f.key)} onToggleDetails={() => toggle(f.key)} onEdit={() => onEdit(f)} />
                   </Td>
                 )}
               </tr>
+              {open.has(f.key) && (
+                <tr data-details-of={f.key}>
+                  <Td colSpan={canEdit ? 6 : 4} className="p-0">
+                    <FieldDetails table={table} tables={tables} field={f} canEdit={canEdit} />
+                  </Td>
+                </tr>
+              )}
+              </Fragment>
             )
           })}
           {stages.removedFields(table.key).map((f) => (

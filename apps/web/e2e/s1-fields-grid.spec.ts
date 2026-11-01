@@ -204,3 +204,55 @@ test('S1.6 a deleted field stays as a struck row with Undo until it is published
     await expect(page.getByRole('button', { name: 'Edit Notice period (days)' })).toBeVisible()
   })
 })
+
+test('S1.7 row menu and details panel: help text, choices and hide all save to the Draft and reach the live form', async ({ page, browser }) => {
+  await signUpWithPack(page, `S1 Det ${run}`, `s1g-${run}@studio.test`)
+  await page.goto('/studio')
+  const menu = (label: string) => page.getByRole('button', { name: `More actions for ${label}` })
+
+  await test.step('Show details opens the panel under the row', async () => {
+    await menu('Source').click()
+    await page.getByRole('menuitem', { name: 'Show details' }).click()
+    await expect(page.getByTestId('details-source')).toBeVisible()
+    await expect(page.getByLabel('Choices of Source')).toBeVisible()
+  })
+
+  await test.step('Help text saves on Enter; a choice is added, moved and a duplicate is refused', async () => {
+    const help = page.getByTestId('details-source').getByLabel('Help text')
+    await help.fill('Where we first found this person')
+    await help.press('Enter')
+    await expect(page.getByTestId('draft-banner')).toContainText('unpublished change')
+    const add = page.getByLabel('Add a choice to Source')
+    await add.fill('Campus drive')
+    await add.press('Enter')
+    await expect(page.getByLabel('Choices of Source').getByText('Campus drive')).toBeVisible()
+    await add.fill('campus drive')
+    await add.press('Enter')
+    await expect(page.getByRole('alert').filter({ hasText: 'already a choice' })).toBeVisible()
+    await page.getByRole('button', { name: 'Move Campus drive earlier' }).click()
+    await expect(page.getByRole('button', { name: 'Move Campus drive later' })).toBeEnabled()
+  })
+
+  await test.step('Hide from screens is in the menu and marks the row Hidden', async () => {
+    await menu('Location').click()
+    await page.getByRole('menuitem', { name: 'Hide from screens' }).click()
+    await expect(page.getByRole('row', { name: /^(?:Move [^.]*\. Drag, or use the up and down arrow keys\. )?location / })).toContainText('Hidden')
+  })
+
+  await test.step('Edit details opens the full editor', async () => {
+    await menu('Phone').click()
+    await page.getByRole('menuitem', { name: 'Edit details' }).click()
+    await expect(page.getByRole('dialog')).toContainText('Edit Phone')
+    await page.getByRole('button', { name: 'Cancel' }).click()
+  })
+
+  await test.step('After publishing, the live form shows the help text and the new choice, and no Location', async () => {
+    await publishLive(page)
+    const live = await freshSession(browser, page)
+    await live.goto('/records/candidate/new')
+    await expect(live.getByText('Where we first found this person')).toBeVisible()
+    await expect(live.getByLabel(/^Location/)).toHaveCount(0)
+    await expect(live.getByLabel(/^Source/).locator('option', { hasText: 'Campus drive' })).toHaveCount(1)
+    await live.context().close()
+  })
+})
