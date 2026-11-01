@@ -9006,6 +9006,73 @@
         ]
       }
     },
+    "/v1/studio/tables/{table}/fields/{field}/rules/check-existing": {
+      "post": {
+        "operationId": "rules_check_existing_v1_studio_tables__table__fields__field__rules_check_existing_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "table",
+            "required": true,
+            "schema": {
+              "title": "Table",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "field",
+            "required": true,
+            "schema": {
+              "title": "Field",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "title": "Response Rules Check Existing V1 Studio Tables  Table  Fields  Field  Rules Check Existing Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Rules Check Existing",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
     "/v1/studio/tables/{table}/fields/{field}/value-count": {
       "get": {
         "operationId": "value_count_v1_studio_tables__table__fields__field__value_count_get",
@@ -9136,6 +9203,78 @@
           }
         },
         "summary": "Type Presets",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
+    "/v1/studio/validation-library": {
+      "get": {
+        "operationId": "validation_library_v1_studio_validation_library_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Validation Library V1 Studio Validation Library Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Validation Library",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
+    "/v1/studio/validation-preview": {
+      "post": {
+        "description": "Runs one rule over sample values with the same engine the live app uses. Saves nothing.",
+        "operationId": "validation_preview_v1_studio_validation_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Validation Preview V1 Studio Validation Preview Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Validation Preview",
         "tags": [
           "studio"
         ]

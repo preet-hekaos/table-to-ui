@@ -34,6 +34,26 @@ class FieldGroup(_Strict):
     label: str
 
 
+class FieldRule(_Strict):
+    """One validation rule on a field (S3): a pattern the value must match, or the built-in "not in the future"."""
+
+    name: str = Field(min_length=1, max_length=60)
+    kind: Literal["pattern", "not_future"] = "pattern"
+    pattern: str = ""
+    message: str = Field(min_length=1, max_length=200)
+    enabled: bool = True
+
+    @model_validator(mode="after")
+    def _check(self) -> "FieldRule":
+        if self.kind == "pattern":
+            from tableui.metadata.domain.patterns import check_pattern
+
+            problem = check_pattern(self.pattern)
+            if problem:
+                raise ValueError(problem)
+        return self
+
+
 class FieldDef(_Strict):
     key: Key
     label: str
@@ -61,6 +81,7 @@ class FieldDef(_Strict):
     filterable: bool = False  # offered as a facet or filter
     help: str | None = None
     aliases: list[str] = []  # other column names an import should match to this field
+    rules: list[FieldRule] = Field(default=[], max_length=20)  # validation rules, run top to bottom
 
     @model_validator(mode="after")
     def _check(self) -> "FieldDef":

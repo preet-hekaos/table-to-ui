@@ -8,6 +8,7 @@ from typing import Any
 import phonenumbers
 
 from tableui.metadata.domain.models import FieldDef, TableDef
+from tableui.metadata.domain.patterns import rule_problem
 
 _EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 _URL = re.compile(r"^https?://\S+$")
@@ -97,6 +98,10 @@ def _coerce(field: FieldDef, value: Any) -> tuple[Any, str | None]:
         and len(out) > field.max_length
     ):
         return None, f"must be at most {field.max_length} characters"
+    if problem is None and out is not None:
+        for rule in field.rules:  # top to bottom; the first failing message is the one shown
+            if rule.enabled and rule_problem(rule.kind, rule.pattern, out):
+                return None, rule.message
     return out, problem
 
 

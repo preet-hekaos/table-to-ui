@@ -114,6 +114,14 @@ FIELD: dict[str, Setting] = {
         stage="S2",
         note="Set by choosing a type such as PAN (India); S5 turns it into transformation rules",
     ),
+    "rules": server(
+        (FORM, IMPORT, API, INLINE, BULK),
+        "api:test_studio.py::test_a_rule_added_in_studio_stops_bad_values_on_the_api_after_publish_and_can_be_switched_off",
+        "api:test_studio.py::test_rule_order_decides_which_message_is_shown",
+        "api:test_studio.py::test_every_library_rule_accepts_its_good_samples_and_refuses_its_bad_ones",
+        stage="S3",
+        note="one engine (validate_record) serves create, update, bulk, import and duplicate merge; the popover arrives in S3.3",
+    ),
     "analytics": gap((STATS,), "S6", "marks a field for the insights database"),
     "source": gap((), "S1", "stored marker; the redesign stops reading it"),
     "ref_table": server(

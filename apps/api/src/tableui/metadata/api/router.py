@@ -12,6 +12,7 @@ from tableui.metadata.application import measures as measure_builder
 from tableui.metadata.application import relationships as rel
 from tableui.metadata.domain.diff import diff_manifests
 from tableui.metadata.domain.models import menu_sorted
+from tableui.metadata.domain.patterns import LIBRARY
 from tableui.metadata.domain.stages import item_stages
 from tableui.platform.db import Database
 from tableui.platform.errors import NotFound, PermissionDenied
@@ -109,6 +110,50 @@ async def value_count(table: str, field: str, p: PrincipalDep, db: DbDep) -> dic
     assert p.tenant_id
     async with db.control() as s:
         return await studio.value_count(s, tenant_id=p.tenant_id, table_key=table, field_key=field)
+
+
+@router.get("/studio/validation-library")
+async def validation_library(p: PrincipalDep) -> list[dict[str, Any]]:
+    p.require("metadata.write")
+    return [
+        {
+            "key": i.key,
+            "name": i.name,
+            "kind": i.kind,
+            "pattern": i.pattern,
+            "message": i.message,
+            "good": list(i.good),
+            "bad": list(i.bad),
+        }
+        for i in LIBRARY
+    ]
+
+
+@router.post("/studio/validation-preview")
+async def validation_preview(body: dict[str, Any], p: PrincipalDep) -> dict[str, Any]:
+    """Runs one rule over sample values with the same engine the live app uses. Saves nothing."""
+    p.require("metadata.write")
+    rule = body.get("rule")
+    values = body.get("values")
+    if not isinstance(rule, dict) or not isinstance(values, list):
+        raise HTTPException(422, "send a rule and a list of values")
+    return {"results": studio.rule_preview(rule, [str(v) for v in values])}
+
+
+@router.post("/studio/tables/{table}/fields/{field}/rules/check-existing")
+async def rules_check_existing(
+    table: str, field: str, body: dict[str, Any], p: PrincipalDep, db: DbDep
+) -> dict[str, int]:
+    p.require("metadata.write")
+    assert p.tenant_id
+    async with db.control() as s:
+        return await studio.rules_check_existing(
+            s,
+            tenant_id=p.tenant_id,
+            table_key=table,
+            field_key=field,
+            rules=body.get("rules"),
+        )
 
 
 @router.put("/studio/tables/{table}/field-order")

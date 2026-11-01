@@ -20,12 +20,14 @@ from tableui.metadata.domain.links import describe_cycle, required_cycle
 from tableui.metadata.domain.models import (
     CHART_X_TYPES,
     FieldDef,
+    FieldRule,
     NavItem,
     RuleDef,
     ScreenDef,
     TableDef,
     TableFeatures,
 )
+from tableui.metadata.domain.patterns import rule_problem
 from tableui.metadata.domain.presets import BY_KEY, compatible, why_not
 from tableui.platform.errors import NotFound, ValidationFailed
 from tableui.platform.ids import schema_name
@@ -66,6 +68,7 @@ FIELD_EDITABLE = {
     "min",
     "max",
     "max_length",
+    "rules",
     "type",
 }
 
@@ -193,6 +196,7 @@ def _new_field(body: dict[str, Any], existing: set[str], tables: set[str]) -> Fi
                 "options": body.get("options") or [],
                 "help": body.get("help") or None,
                 "group": body.get("group") or None,
+                "rules": body.get("rules") or [],
                 "ref_table": body.get("ref_table") if ftype == "reference" else None,
                 "unique": unique,
                 "normalize": normalize,
@@ -597,6 +601,56 @@ async def value_count(
         )
     ).scalar()
     return {"count": int(n or 0)}
+
+
+async def rules_check_existing(
+    s: AsyncSession,
+    *,
+    tenant_id: uuid.UUID,
+    table_key: str,
+    field_key: str,
+    rules: list[dict[str, Any]] | None,
+) -> dict[str, int]:
+    """How many records already hold a value that breaks the field's rules (the Draft's, or the ones given).
+    Nothing is changed: stored data stays as it is."""
+    await _enter_tenant(s, tenant_id)
+    found = await _draft(s, "table", table_key)
+    if found is None:
+        raise NotFound(f"There is no table '{table_key}'.")
+    f = TableDef.model_validate(found[0]).field(field_key)
+    if f is None:
+        raise NotFound(f"There is no field '{field_key}' on '{table_key}'.")
+    try:
+        use = (
+            FieldDef.model_validate({**f.model_dump(mode="json"), "rules": rules}).rules
+            if rules is not None
+            else f.rules
+        )
+    except ValidationError as e:
+        raise _pydantic_errors(e) from None
+    live = [r for r in use if r.enabled]
+    exists = (await s.execute(text("SELECT to_regclass(:t)"), {"t": f'"{table_key}"'})).scalar()
+    if not live or not exists:
+        return {"count": 0, "checked": 0}
+    rows = (
+        await s.execute(
+            text(
+                f"SELECT data->>'{field_key}' AS v FROM \"{table_key}\" "  # noqa: S608 - identifiers are validated metadata keys
+                f"WHERE COALESCE(data->>'{field_key}', '') <> '' LIMIT 100000"
+            )
+        )
+    ).all()
+    bad = sum(1 for r in rows if any(rule_problem(x.kind, x.pattern, r.v) for x in live))
+    return {"count": bad, "checked": len(rows)}
+
+
+def rule_preview(rule: dict[str, Any], values: list[str]) -> list[dict[str, Any]]:
+    """Run one rule over sample values with the same engine the live app uses."""
+    try:
+        r = FieldRule.model_validate({"name": "preview", "message": "preview", **rule})
+    except ValidationError as e:
+        raise _pydantic_errors(e) from None
+    return [{"value": v, "allowed": not rule_problem(r.kind, r.pattern, v)} for v in values[:20]]
 
 
 async def restore_field(
