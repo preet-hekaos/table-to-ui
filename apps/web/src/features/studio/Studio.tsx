@@ -112,7 +112,7 @@ export function DiffList({ diff }: { diff: ManifestDiff }) {
                           {f.attributes &&
                             ' — ' +
                               Object.entries(f.attributes)
-                                .map(([k, v]) => `${k} ${JSON.stringify(v.from)} → ${JSON.stringify(v.to)}`)
+                                .map(([k, v]) => (k === 'rules' ? `rules ${(v.from as unknown[] | null)?.length ?? 0} → ${(v.to as unknown[] | null)?.length ?? 0}` : `${k} ${JSON.stringify(v.from)} → ${JSON.stringify(v.to)}`))
                                 .join('; ')}
                         </li>
                       ))}
@@ -166,6 +166,15 @@ function DraftBanner({ canPublish, onReview }: { canPublish: boolean; onReview: 
         </Button>
       )}
     </div>
+    {d.rule_warnings.length > 0 && (
+      <ul role="status" aria-label="Rule warnings" data-testid="rule-warnings" className="flex flex-col gap-1 rounded-lg border border-warn-soft bg-warn-soft px-4 py-3 text-sm text-warn-ink">
+        {d.rule_warnings.map((w) => (
+          <li key={`${w.table}.${w.field}`}>
+            <b>{w.count} existing {w.count === 1 ? 'record' : 'records'}</b> in {w.table_label} already {w.count === 1 ? 'breaks' : 'break'} the rules on {w.label}. They stay as they are; you can still publish, and new saves must follow the rules.
+          </li>
+        ))}
+      </ul>
+    )}
     <LinkHealth compact />
     </div>
   )

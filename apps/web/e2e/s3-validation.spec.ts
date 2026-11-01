@@ -93,3 +93,49 @@ test('S3.3 the fx popover: library, own pattern, order, switch, Cancel versus Do
     await live.context().close()
   })
 })
+
+test('S3.4 existing records: the popover counts them, publish warns with the count and still goes through', async ({ page, browser }) => {
+  await page.setViewportSize({ width: 1400, height: 1000 })
+  await signUpWithPack(page, `S3 Ex ${run}`, `s3c-${run}@studio.test`)
+  const make = async (name: string, phone: string, title: string) => {
+    await page.goto('/records/candidate/new')
+    await page.getByLabel(/^Full name/).fill(name)
+    await page.getByLabel(/^Email/).fill(`${name.toLowerCase().replace(' ', '')}-${run}@ex.test`)
+    await page.getByLabel(/^Phone/).fill(phone)
+    await page.getByLabel(/^Current title/).fill(title)
+    await page.getByRole('button', { name: 'Save candidate' }).click()
+    await expect(page.getByText(title).first()).toBeVisible()
+  }
+  await make('Good Pan', '+91 98450 11111', 'ABCDE1234F')
+  await make('Bad Pan', '+91 98450 22222', 'not a pan')
+
+  await page.goto('/studio')
+  await page.getByRole('button', { name: /^Add\. Validation of Current title/ }).click()
+  const pop = page.getByRole('dialog', { name: 'Validation for Current title' })
+  await pop.getByRole('button', { name: 'PAN', exact: true }).click()
+
+  await test.step('The popover counts the records that already break the rules and changes nothing', async () => {
+    await pop.getByRole('button', { name: 'Check existing records' }).click()
+    await expect(pop.getByRole('status')).toContainText('1 of 2 records with a value break these rules')
+    await expect(page.getByTestId('draft-banner')).toHaveCount(0)
+  })
+
+  await test.step('After Done the Draft banner warns with the count and explains the records stay as they are', async () => {
+    await pop.getByRole('button', { name: 'Done' }).click()
+    const warn = page.getByTestId('rule-warnings')
+    await expect(warn).toContainText('1 existing record')
+    await expect(warn).toContainText('Current title')
+    await expect(warn).toContainText('They stay as they are')
+    await page.screenshot({ path: '../../docs/screens/studio-table/s3/after-publish-warning.png' })
+  })
+
+  await test.step('Publishing is not blocked, the old record is untouched, and the warning goes away', async () => {
+    await publishLive(page)
+    await page.goto('/studio')
+    await expect(page.getByTestId('rule-warnings')).toHaveCount(0)
+    const live = await freshSession(browser, page)
+    await live.goto('/records/candidate')
+    await expect(live.getByText('not a pan').first()).toBeVisible()
+    await live.context().close()
+  })
+})

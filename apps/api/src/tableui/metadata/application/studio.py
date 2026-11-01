@@ -628,7 +628,13 @@ async def rules_check_existing(
         )
     except ValidationError as e:
         raise _pydantic_errors(e) from None
-    live = [r for r in use if r.enabled]
+    return await _count_failing(s, table_key, field_key, use)
+
+
+async def _count_failing(
+    s: AsyncSession, table_key: str, field_key: str, rules: list[FieldRule]
+) -> dict[str, int]:
+    live = [r for r in rules if r.enabled]
     exists = (await s.execute(text("SELECT to_regclass(:t)"), {"t": f'"{table_key}"'})).scalar()
     if not live or not exists:
         return {"count": 0, "checked": 0}
@@ -642,6 +648,36 @@ async def rules_check_existing(
     ).all()
     bad = sum(1 for r in rows if any(rule_problem(x.kind, x.pattern, r.v) for x in live))
     return {"count": bad, "checked": len(rows)}
+
+
+async def draft_rule_warnings(
+    s: AsyncSession, tenant_id: uuid.UUID, changes: dict[str, Any], manifest: dict[str, Any]
+) -> list[dict[str, Any]]:
+    """For every field whose rules changed in the Draft: how many records already break them. A warning, never a block."""
+    await _enter_tenant(s, tenant_id)
+    out: list[dict[str, Any]] = []
+    for t in changes.get("tables", []):
+        definition = ((manifest.get("tables") or {}).get(t["key"]) or {}).get("definition")
+        if not definition:
+            continue
+        table = TableDef.model_validate(definition)
+        for fc in t.get("fields") or []:
+            changed = fc["change"] == "changed" and "rules" in (fc.get("attributes") or {})
+            f = table.field(fc["field"])
+            if f is None or not (changed or (fc["change"] == "added" and f.rules)):
+                continue
+            r = await _count_failing(s, t["key"], f.key, f.rules)
+            if r["count"]:
+                out.append(
+                    {
+                        "table": t["key"],
+                        "table_label": table.label,
+                        "field": f.key,
+                        "label": f.label,
+                        "count": r["count"],
+                    }
+                )
+    return out
 
 
 def rule_preview(rule: dict[str, Any], values: list[str]) -> list[dict[str, Any]]:

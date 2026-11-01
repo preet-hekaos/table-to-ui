@@ -241,7 +241,7 @@ export const studio = {
   saveScreen: (key: string, body: Omit<DraftScreen, 'key' | 'version' | 'source'>) => send<DraftScreen>('PUT', `/v1/studio/screens/${key}`, body),
   navigation: () => g<DraftNav[]>('/v1/studio/navigation'),
   saveNavigation: (items: Omit<DraftNav, 'version'>[]) => send<DraftNav[]>('PUT', '/v1/studio/navigation', { items }),
-  status: () => g<{ live_version: number | null; draft_changed: boolean; changes: ManifestDiff }>('/v1/studio/status'),
+  status: () => g<{ live_version: number | null; draft_changed: boolean; changes: ManifestDiff; rule_warnings: RuleWarning[] }>('/v1/studio/status'),
   stages: () => g<StageReport>('/v1/studio/stages'),
   compare: (from: string | number, to: string | number = 'draft') => g<ManifestDiff>(`/v1/apps/current/compare?from=${from}&to=${to}`),
   approvals: () => g<Approval[]>('/v1/apps/current/approvals'),
@@ -664,6 +664,15 @@ export const ai = {
 }
 
 /** A ready-made rule from the library, with samples that show what it allows and refuses. */
+/** A field whose new rules are already broken by some stored records. A warning, never a block. */
+export interface RuleWarning {
+  table: string
+  table_label: string
+  field: string
+  label: string
+  count: number
+}
+
 export interface LibraryRule {
   key: string
   name: string

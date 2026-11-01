@@ -690,3 +690,33 @@ async def test_check_existing_counts_records_that_break_the_rules_and_changes_no
     assert none.json() == {"count": 0, "checked": 0}
     still = await a.create_candidate(candidate(current_title="x", phone="+91 98450 20009"))
     assert still.status_code == 201
+
+
+async def test_status_warns_how_many_records_break_a_rule_added_in_the_draft_but_never_blocks(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    for i, v in enumerate(("ABCDE1234F", "abcde1234f", "nonsense")):
+        r = await a.create_candidate(candidate(current_title=v, phone=f"+91 98450 3000{i}"))
+        assert r.status_code == 201, r.text
+    assert (await client.get("/v1/studio/status", headers=a.h())).json()["rule_warnings"] == []
+    rules = [{"name": "PAN", "pattern": "^[A-Z]{5}[0-9]{4}[A-Z]$", "message": "Enter a PAN."}]
+    r = await client.patch(
+        "/v1/studio/tables/candidate/fields/current_title", headers=a.h(), json={"rules": rules}
+    )
+    assert r.status_code == 200, r.text
+    status = (await client.get("/v1/studio/status", headers=a.h())).json()
+    assert status["rule_warnings"] == [
+        {
+            "table": "candidate",
+            "table_label": "Candidate",
+            "field": "current_title",
+            "label": "Current title",
+            "count": 2,
+        }
+    ]
+    fields = status["changes"]["tables"][0]["fields"]
+    assert fields[0]["attributes"]["rules"]["to"][0]["name"] == "PAN"
+    await a.publish_live()  # a warning, not a block
+    after = (await client.get("/v1/studio/status", headers=a.h())).json()
+    assert after["rule_warnings"] == []

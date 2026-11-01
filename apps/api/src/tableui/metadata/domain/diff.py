@@ -3,7 +3,22 @@
 from typing import Any
 
 KINDS = ("tables", "screens", "navs", "rules", "measures", "automations")
-_FIELD_ATTRS = ("label", "type", "required", "hidden", "options", "help", "unique", "ref_table")
+_FIELD_ATTRS = (
+    "label",
+    "type",
+    "required",
+    "hidden",
+    "options",
+    "help",
+    "unique",
+    "ref_table",
+    "max_length",
+    "min",
+    "max",
+    "type_name",
+    "save_as",
+    "rules",
+)
 
 
 def _defs(manifest: dict[str, Any], kind: str) -> dict[str, dict[str, Any]]:

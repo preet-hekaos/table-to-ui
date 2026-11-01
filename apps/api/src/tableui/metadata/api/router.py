@@ -405,10 +405,13 @@ async def studio_status(p: PrincipalDep, db: DbDep) -> dict[str, Any]:
     async with db.control() as s:
         live = await releases.environment_manifest(s, p.tenant_id, "live")
     changes = diff_manifests(live[1] if live else {}, d)
+    async with db.control() as s:
+        warnings = await studio.draft_rule_warnings(s, p.tenant_id, changes, d)
     return {
         "live_version": live[0] if live else None,
         "draft_changed": changes["changed"],
         "changes": changes,
+        "rule_warnings": warnings,
     }
 
 
