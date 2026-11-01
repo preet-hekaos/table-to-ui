@@ -33,12 +33,11 @@ interface Props {
   onOpenChange: (open: boolean) => void
 }
 
-/** Add a field (any business type) or change one. Pack fields can be renamed or hidden only. */
+/** Add a field (any business type) or change one. Every field, pack or not, is edited the same way. */
 export function FieldDialog({ table, tables, field, open, onOpenChange }: Props) {
   const qc = useQueryClient()
   const toast = useToast()
   const isNew = !field
-  const isPack = field?.source === 'pack'
   const [label, setLabel] = useState(field?.label ?? '')
   const [type, setType] = useState<FieldDef['type']>(field?.type ?? 'text')
   const [options, setOptions] = useState((field?.options ?? []).join(', '))
@@ -69,7 +68,7 @@ export function FieldDialog({ table, tables, field, open, onOpenChange }: Props)
           ...(type === 'reference' ? { ref_table: refTable } : {}),
         })
       const body: Partial<FieldDef> = { label, help: help || null, hidden }
-      if (!isPack) Object.assign(body, { required, ...(type === 'select' ? { options: opts } : {}) })
+      Object.assign(body, { required, ...(type === 'select' ? { options: opts } : {}) })
       return studio.updateField(table.key, field.key, body)
     },
     onSuccess: () => done(isNew ? `Added ${label}` : `Saved ${label}`),
@@ -94,11 +93,7 @@ export function FieldDialog({ table, tables, field, open, onOpenChange }: Props)
       <DialogContent
         title={isNew ? `Add a field to ${table.label}` : `Edit ${field.label}`}
         description={
-          isPack
-            ? 'This field comes with the pack. You can rename it or hide it from screens; it cannot be deleted.'
-            : isNew
-              ? 'New fields are searchable and can be used as filters. They stay in Draft until you publish.'
-              : undefined
+          isNew ? 'New fields are searchable and can be used as filters. They stay in Draft until you publish.' : undefined
         }
       >
         <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
@@ -114,7 +109,7 @@ export function FieldDialog({ table, tables, field, open, onOpenChange }: Props)
               ))}
             </Select>
           </Field>
-          {(type === 'select' || type === 'tags') && !isPack && (
+          {(type === 'select' || type === 'tags') && (
             <Field label="Choices" hint="Separate with commas" error={errors.options}>
               <Input value={options} onChange={(e) => setOptions(e.target.value)} />
             </Field>
@@ -135,16 +130,9 @@ export function FieldDialog({ table, tables, field, open, onOpenChange }: Props)
             <Input value={help} onChange={(e) => setHelp(e.target.value)} />
           </Field>
           <div className="flex flex-col gap-2 text-sm text-ink">
-            {isPack && (
-              <p className="text-xs text-muted">
-                Whether it is required, its choices and its type are set by the pack and stay as they are. Add a new field if you need something different.
-              </p>
-            )}
-            {!isPack && (
-              <label className="flex items-center gap-2">
-                <input type="checkbox" checked={required} onChange={(e) => setRequired(e.target.checked)} /> Required
-              </label>
-            )}
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={required} onChange={(e) => setRequired(e.target.checked)} /> Required
+            </label>
             {isNew && textual && (
               <label className="flex items-center gap-2">
                 <input type="checkbox" checked={unique} onChange={(e) => setUnique(e.target.checked)} /> No two records may share a value
@@ -167,7 +155,7 @@ export function FieldDialog({ table, tables, field, open, onOpenChange }: Props)
             )}
           </div>
           <div className="flex flex-wrap justify-end gap-2">
-            {!isNew && !isPack && (
+            {!isNew && (
               <Button type="button" variant="danger" className="mr-auto" onClick={() => remove.mutate()} loading={remove.isPending}>
                 Delete field
               </Button>

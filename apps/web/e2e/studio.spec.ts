@@ -30,12 +30,13 @@ test('Studio: fields, tables, map, screens, menu, preview and versions', async (
     await expect(page.getByLabel(/^Preferred shift/)).toHaveCount(0)
   })
 
-  await test.step('S12. A pack field can be renamed but not deleted', async () => {
+  await test.step('S12. A pack field is edited like any other field', async () => {
     await page.goto('/studio')
     await page.getByRole('button', { name: 'Edit Current employer' }).click()
     const dialog = page.getByRole('dialog')
-    await expect(dialog).toContainText('cannot be deleted')
-    await expect(dialog.getByRole('button', { name: 'Delete field' })).toHaveCount(0)
+    await expect(dialog).not.toContainText('comes with the pack')
+    await expect(dialog.getByLabel('Required')).toBeVisible()
+    await expect(dialog.getByRole('button', { name: 'Delete field' })).toBeVisible()
     await dialog.getByLabel(/^Label/).fill('Employer')
     await dialog.getByRole('button', { name: 'Save' }).click()
     await expect(page.getByRole('row', { name: /^(?:Move [^.]*\. Drag, or use the up and down arrow keys\. )?current_employer Employer Draft Short text/ })).toBeVisible()

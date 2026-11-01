@@ -53,9 +53,12 @@ RESERVED_FIELDS = {
 }
 TEXTUAL = {"text", "long_text", "email", "phone", "url", "select", "tags"}
 NORMALIZER = {"email": "email", "phone": "phone"}
-# What a builder may change on a field that came with the pack.
-PACK_FIELD_EDITABLE = {"label", "help", "hidden", "required"}
-AGENCY_FIELD_EDITABLE = PACK_FIELD_EDITABLE | {
+# What a builder may change on any field. A pack is only a starting copy (decision A),
+# so a field that came from it is edited exactly like one the builder added.
+FIELD_EDITABLE = {
+    "label",
+    "help",
+    "hidden",
     "required",
     "options",
     "group",
@@ -311,7 +314,7 @@ async def update_field(
     body: dict[str, Any],
     request_id: str | None,
 ) -> dict[str, Any]:
-    """Relabel, hide or tune a field. Pack fields only take label, help and hidden."""
+    """Relabel, hide or tune a field. """
     await _enter_tenant(s, tenant_id)
     found = await _draft(s, "table", table_key)
     if found is None:
@@ -321,15 +324,12 @@ async def update_field(
     f = table.field(field_key)
     if f is None:
         raise NotFound(f"There is no field '{field_key}' on '{table_key}'.")
-    allowed = PACK_FIELD_EDITABLE if f.source == "pack" else AGENCY_FIELD_EDITABLE
+    allowed = FIELD_EDITABLE
     refused = sorted(set(body) - allowed)
     if refused:
         raise _bad(
             refused[0],
-            "this field comes with the pack, so only its name, help text and visibility can change; "
-            "add a new field if you need something different"
-            if f.source == "pack"
-            else "cannot be changed",
+            "cannot be changed",
             "not_editable",
         )
     changes = {k: v for k, v in body.items() if k in allowed}
@@ -476,10 +476,6 @@ async def remove_field(
     f = table.field(field_key)
     if f is None:
         raise NotFound(f"There is no field '{field_key}' on '{table_key}'.")
-    if f.source == "pack":
-        raise _bad(
-            "field", "a field that comes with the pack can be hidden but not deleted", "pack_field"
-        )
     if field_key == table.title_field:
         raise _bad("field", "the record's name field cannot be deleted", "title_field")
     rules = await s.execute(text("SELECT key, definition FROM metadata_object WHERE kind = 'rule'"))

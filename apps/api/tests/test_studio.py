@@ -49,7 +49,7 @@ async def test_agency_field_is_stored_without_rewrite_searchable_filterable_and_
     assert "Night Owl" in [x["data"]["full_name"] for x in found["items"]]
 
 
-async def test_pack_field_can_be_relabelled_or_hidden_but_not_deleted_or_retyped(
+async def test_pack_field_is_edited_and_deleted_like_any_other_field(
     client: httpx.AsyncClient, agency: Agency
 ) -> None:
     a = agency
@@ -58,10 +58,20 @@ async def test_pack_field_can_be_relabelled_or_hidden_but_not_deleted_or_retyped
     assert r.status_code == 200 and r.json()["label"] == "Employer"
     r = await client.patch(f"{base}/current_employer", headers=a.h(), json={"hidden": True})
     assert r.status_code == 200 and r.json()["hidden"] is True
+    # Group, limits and length are open on a pack field too (the pack is only a starting copy).
+    r = await client.patch(
+        f"{base}/current_employer", headers=a.h(), json={"group": "contact", "max_length": 40}
+    )
+    assert r.status_code == 200 and r.json()["max_length"] == 40
     r = await client.patch(f"{base}/current_employer", headers=a.h(), json={"type": "integer"})
     assert r.status_code == 422 and r.json()["errors"][0]["code"] == "not_editable"
+    # A pack field a rule still uses is protected like any other field; an unused one can go.
     r = await client.delete(f"{base}/current_employer", headers=a.h())
-    assert r.status_code == 422 and r.json()["errors"][0]["code"] == "pack_field"
+    assert r.status_code == 422 and r.json()["errors"][0]["code"] == "in_use"
+    r = await client.delete(f"{base}/notice_period_days", headers=a.h())
+    assert r.status_code == 204
+    r = await client.delete(f"{base}/full_name", headers=a.h())
+    assert r.status_code == 422 and r.json()["errors"][0]["code"] == "title_field"
     r = await client.patch(f"{base}/email", headers=a.h(), json={"hidden": True})
     assert r.status_code == 422  # required pack fields stay visible
     r = await client.post(base, headers=a.h(), json={"label": "Owner", "type": "text"})
