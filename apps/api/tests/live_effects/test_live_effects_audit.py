@@ -123,3 +123,14 @@ async def test_a_label_already_used_by_another_field_is_refused(
     assert clash.status_code == 422 and "already called" in clash.text, clash.text
     ok = await _patch(client, a, f["key"], label="Badge number")
     assert ok.status_code == 200
+
+
+async def test_a_pack_field_can_be_made_required_and_optional_again(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    base = "/v1/studio/tables/candidate/fields/current_employer"
+    on = await client.patch(base, headers=a.h(), json={"required": True})
+    assert on.status_code == 200 and on.json()["required"] is True, on.text
+    off = await client.patch(base, headers=a.h(), json={"required": False})
+    assert off.status_code == 200 and off.json()["required"] is False

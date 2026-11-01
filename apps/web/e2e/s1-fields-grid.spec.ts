@@ -77,3 +77,39 @@ test('S1 live effect: a label renamed in Studio shows on the live form and list'
   await expect(live.getByRole('columnheader', { name: /Candidate name/ })).toBeVisible()
   await live.context().close()
 })
+
+test('S1.3 required switch: one click saves to the Draft, and the live form then requires the value', async ({ page, browser }) => {
+  await signUpWithPack(page, `S1 Req ${run}`, `s1c-${run}@studio.test`)
+  await page.goto('/studio')
+  const sw = page.getByRole('switch', { name: 'Current employer is required' })
+
+  await test.step('The switch starts off, turns on with one click and survives a reload', async () => {
+    await expect(sw).toHaveAttribute('aria-checked', 'false')
+    await sw.click()
+    await expect(sw).toHaveAttribute('aria-checked', 'true')
+    await expect(page.getByTestId('draft-banner')).toContainText('unpublished change')
+    await page.reload()
+    await expect(page.getByRole('switch', { name: 'Current employer is required' })).toHaveAttribute('aria-checked', 'true')
+  })
+
+  await test.step('It works from the keyboard and turns off again', async () => {
+    const again = page.getByRole('switch', { name: 'Current employer is required' })
+    await again.focus()
+    await page.keyboard.press('Space')
+    await expect(again).toHaveAttribute('aria-checked', 'false')
+    await again.press('Space')
+    await expect(again).toHaveAttribute('aria-checked', 'true')
+  })
+
+  await test.step('After publishing, a separate session cannot save the form without it', async () => {
+    await publishLive(page)
+    const live = await freshSession(browser, page)
+    await live.goto('/records/candidate/new')
+    await live.getByLabel(/Full name/).fill('Needs Employer')
+    await live.getByLabel(/^Email/).fill(`req-${run}@x.test`)
+    await live.getByLabel(/^Phone/).fill('+91 98450 66666')
+    await live.getByRole('button', { name: 'Save candidate' }).click()
+    await expect(live.getByText('Current employer is required')).toBeVisible()
+    await live.context().close()
+  })
+})

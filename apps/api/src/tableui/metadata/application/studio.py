@@ -54,7 +54,7 @@ RESERVED_FIELDS = {
 TEXTUAL = {"text", "long_text", "email", "phone", "url", "select", "tags"}
 NORMALIZER = {"email": "email", "phone": "phone"}
 # What a builder may change on a field that came with the pack.
-PACK_FIELD_EDITABLE = {"label", "help", "hidden"}
+PACK_FIELD_EDITABLE = {"label", "help", "hidden", "required"}
 AGENCY_FIELD_EDITABLE = PACK_FIELD_EDITABLE | {
     "required",
     "options",

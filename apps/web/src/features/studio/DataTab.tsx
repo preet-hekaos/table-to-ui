@@ -5,6 +5,7 @@ import type { FieldDef, StudioTable } from '@/api/types'
 import { Badge, Button, Card, ErrorState, LoadingState, StageBadge, Table, Tabs, TabsContent, TabsList, TabsTrigger, Td, Th, cn, stageStripe } from '@/design-system'
 import { FieldDialog, NewTableDialog, TYPE_LABELS } from './FieldDialog'
 import { InlineLabel } from './InlineLabel'
+import { RequiredSwitch } from './RequiredSwitch'
 import { FeaturesPanel } from './FeaturesPanel'
 import { SchemaExportDialog } from './SchemaExportDialog'
 import { SchemaImportDialog } from './SchemaImportDialog'
@@ -99,7 +100,10 @@ export function DataTab({
                         {TYPE_LABELS[f.type] ?? f.type}
                         {f.ref_table && <span className="text-muted"> to {all.find((t) => t.key === f.ref_table)?.label ?? f.ref_table}</span>}
                       </Td>
-                      <Td className="py-1.5">{f.required ? 'Yes' : 'No'}</Td>
+                      <Td className="py-1.5">
+                        <RequiredSwitch table={current as StudioTable} field={f} canEdit={canEdit} />
+                        <span className="sr-only">{f.required ? 'Yes' : 'No'}</span>
+                      </Td>
                       {canEdit && (
                         <Td className="py-1.5 text-right">
                           <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => setEditing(f)} aria-label={`Edit ${f.label}`}>
