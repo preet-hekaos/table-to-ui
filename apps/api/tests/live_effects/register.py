@@ -296,3 +296,13 @@ _TABLE_PROOF: dict[str, tuple[str, ...]] = {
 for _k, _e2e in _TABLE_PROOF.items():
     _old = TABLE[_k]
     TABLE[_k] = Setting("live", _old.surfaces, (*_e2e, *_old.proofs), "", _old.note, _old.risks)
+
+# S6.2: a second session uses each field setting on the live form, list, API and import wizard.
+_FIELDS = "e2e:s6-field-effects.spec.ts::S6.2 field settings reach the live form"
+for _k in (
+    "key", "type", "group", "normalize", "default", "options", "min", "max", "max_length",
+    "save_as", "rules", "analytics", "source", "ref_table", "hidden", "filterable", "help",
+    "aliases",
+):  # fmt: skip
+    _old = FIELD[_k]
+    FIELD[_k] = Setting("live", _old.surfaces, (_FIELDS, *_old.proofs), "", _old.note, _old.risks)
