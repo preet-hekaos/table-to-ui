@@ -25,7 +25,7 @@ test('S6.2 field settings reach the live form, list, API and import', async ({ p
 
   let panKey = ''
   await test.step('The owner changes fields in the Draft and makes them Live', async () => {
-    const added = await call(page, 'POST', '/v1/studio/tables/candidate/fields', { label: 'PAN number', preset: 'pan_in', help: 'As printed on the card', group: 'Identity' })
+    const added = await call(page, 'POST', '/v1/studio/tables/candidate/fields', { label: 'PAN number', preset: 'pan_in', help: 'As printed on the card', group: 'identity' })
     expect(added.status, JSON.stringify(added.body)).toBe(201)
     panKey = added.body.key
     expect(panKey).toBe('pan_number')
@@ -33,7 +33,7 @@ test('S6.2 field settings reach the live form, list, API and import', async ({ p
     const tables = await call(page, 'GET', '/v1/studio/tables')
     const status = (tables.body as { key: string; fields: { key: string; options: string[] }[] }[]).find((t) => t.key === 'candidate')!.fields.find((f) => f.key === 'status')!
     const patches: [string, Record<string, unknown>][] = [
-      ['current_title', { help: 'As on the latest payslip', group: 'Work today', type: 'long_text' }],
+      ['current_title', { help: 'As on the latest payslip', group: 'profile', type: 'long_text' }],
       ['status', { options: [...status.options, 'On hold'] }],
       ['notice_period_days', { min: 0, max: 90 }],
       ['current_employer', { max_length: 5 }],
@@ -59,7 +59,7 @@ test('S6.2 field settings reach the live form, list, API and import', async ({ p
     await expect(s.getByText('As printed on the card')).toBeVisible()
     await expect(s.getByRole('group', { name: 'Identity' })).toBeVisible()
     await expect(s.getByText('As on the latest payslip')).toBeVisible()
-    await expect(s.getByRole('group', { name: 'Work today' })).toBeVisible()
+    await expect(s.getByRole('group', { name: 'Profile' })).toBeVisible()
     expect(await s.getByLabel('Current title').evaluate((e) => e.tagName)).toBe('TEXTAREA')
     expect(await s.getByLabel(/^Status/).locator('option').allTextContents()).toContain('On hold')
     await expect(s.getByLabel(/^Source/)).toHaveCount(0)
