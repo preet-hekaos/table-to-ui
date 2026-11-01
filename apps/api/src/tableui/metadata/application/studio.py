@@ -314,7 +314,7 @@ async def update_field(
     body: dict[str, Any],
     request_id: str | None,
 ) -> dict[str, Any]:
-    """Relabel, hide or tune a field. """
+    """Relabel, hide or tune a field."""
     await _enter_tenant(s, tenant_id)
     found = await _draft(s, "table", table_key)
     if found is None:
@@ -544,7 +544,9 @@ async def restore_field(
     for manifest in earlier:
         t = ((manifest or {}).get("tables") or {}).get(table_key)
         if t:
-            old = next((x for x in t["definition"].get("fields", []) if x["key"] == field_key), None)
+            old = next(
+                (x for x in t["definition"].get("fields", []) if x["key"] == field_key), None
+            )
         if old:
             break
     if old is None:
