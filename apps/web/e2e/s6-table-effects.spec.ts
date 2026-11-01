@@ -141,7 +141,7 @@ test('S6.2 table settings: values reach the live list for a second session', asy
   })
 
   await test.step('The server holds the line for the API too', async () => {
-    expect((await call(s, 'GET', '/v1/records/candidate?sort=full_name&direction=asc')).status).toBeGreaterThanOrEqual(400)
+    expect((await call(s, 'GET', '/v1/records/candidate?c.full_name=a')).status).toBe(422)
     expect((await call(s, 'GET', '/v1/records/candidate/export?format=csv')).status).toBeGreaterThanOrEqual(400)
   })
   await s.context().close()
