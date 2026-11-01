@@ -45,7 +45,7 @@ async def test_a_described_rule_comes_back_checked_and_nothing_is_saved(
         for t in (await client.get("/v1/studio/tables", headers=a.h())).json()
         if t["key"] == "candidate"
     )
-    assert all(not f.get("transforms") for f in cand["fields"])
+    assert not any(t["value"] == "60" for f in cand["fields"] for t in f.get("transforms") or [])
 
 
 async def test_an_unusable_reply_is_refused_not_passed_on(

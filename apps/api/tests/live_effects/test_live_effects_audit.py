@@ -88,7 +88,11 @@ async def test_a_default_can_be_set_in_studio(client: httpx.AsyncClient, agency:
         headers=a.h(),
         json={"label": "Notice", "type": "integer", "default": 30},
     )
-    assert r.status_code == 201 and r.json()["default"] == 30
+    # S6: the default is stored as the rule "if blank, set to it, and stop"
+    assert r.status_code == 201 and r.json()["default"] is None
+    assert [(t["when"], t["do"], t["value"], t["stop"]) for t in r.json()["transforms"]] == [
+        ("blank", "set", "30", True)
+    ]
 
 
 @pytest.mark.parametrize("setting", ["unique", "searchable", "filterable"])

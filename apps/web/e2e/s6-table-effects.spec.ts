@@ -76,7 +76,7 @@ test('S6.2 table settings: values reach the live list for a second session', asy
 
   await test.step('uneditable and inline_edit: phone has no editor, email has', async () => {
     const row = s.getByRole('row').filter({ hasText: 'Asha Rao' })
-    await row.getByText('+91 98450 12340').dblclick()
+    await row.getByText('+919845012340').dblclick()
     await expect(s.getByRole('textbox', { name: /Phone/ })).toHaveCount(0)
     await row.getByText(new RegExp(`p0-${run}@example.in`)).dblclick()
     await expect(s.getByRole('textbox', { name: /Email/ })).toBeVisible()
