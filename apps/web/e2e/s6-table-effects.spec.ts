@@ -136,8 +136,8 @@ test('S6.2 table settings: values reach the live list for a second session', asy
     await expect(s.getByLabel('Group by')).toHaveCount(0)
     await expect(s.getByTestId('stats-strip')).toHaveCount(0)
     await expect(s.getByRole('switch', { name: 'Custom order' })).toHaveCount(0)
-    await s.getByRole('row').filter({ hasText: 'Asha Rao' }).getByText(new RegExp(`p0-${run}@example.in`)).dblclick()
-    await expect(s.getByRole('textbox', { name: /Email/ })).toHaveCount(0)
+    await s.getByRole('row').filter({ hasText: 'Asha Rao' }).getByText('Not set').first().dblclick()
+    await expect(s.getByRole('textbox')).toHaveCount(1) // only the search box; no cell editor
   })
 
   await test.step('The server holds the line for the API too', async () => {
