@@ -250,7 +250,7 @@ async def remove_link(
     if f is None or f.type != "reference":
         raise NotFound(f"There is no link '{field_key}' on '{table_key}'.")
     used = await _used(s, schema, table_key, field_key)
-    if f.source != "pack" and used:
+    if used:
         raise studio._bad(
             "field",
             f"{used} record{'s' if used != 1 else ''} use this link; clear it there first, or hide the link instead",

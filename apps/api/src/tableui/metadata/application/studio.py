@@ -53,9 +53,12 @@ RESERVED_FIELDS = {
 }
 TEXTUAL = {"text", "long_text", "email", "phone", "url", "select", "tags"}
 NORMALIZER = {"email": "email", "phone": "phone"}
-# What a builder may change on a field that came with the pack.
-PACK_FIELD_EDITABLE = {"label", "help", "hidden"}
-AGENCY_FIELD_EDITABLE = PACK_FIELD_EDITABLE | {
+# What a builder may change on any field. A pack is only a starting copy (decision A),
+# so a field that came from it is edited exactly like one the builder added.
+FIELD_EDITABLE = {
+    "label",
+    "help",
+    "hidden",
     "required",
     "options",
     "group",
@@ -311,7 +314,7 @@ async def update_field(
     body: dict[str, Any],
     request_id: str | None,
 ) -> dict[str, Any]:
-    """Relabel, hide or tune a field. Pack fields only take label, help and hidden."""
+    """Relabel, hide or tune a field."""
     await _enter_tenant(s, tenant_id)
     found = await _draft(s, "table", table_key)
     if found is None:
@@ -321,20 +324,25 @@ async def update_field(
     f = table.field(field_key)
     if f is None:
         raise NotFound(f"There is no field '{field_key}' on '{table_key}'.")
-    allowed = PACK_FIELD_EDITABLE if f.source == "pack" else AGENCY_FIELD_EDITABLE
+    allowed = FIELD_EDITABLE
     refused = sorted(set(body) - allowed)
     if refused:
         raise _bad(
             refused[0],
-            "this field comes with the pack, so only its name, help text and visibility can change; "
-            "add a new field if you need something different"
-            if f.source == "pack"
-            else "cannot be changed",
+            "cannot be changed",
             "not_editable",
         )
     changes = {k: v for k, v in body.items() if k in allowed}
     if "label" in changes and not str(changes["label"]).strip():
         raise _bad("label", "is required", "required")
+    if "label" in changes:
+        wanted = str(changes["label"]).strip().casefold()
+        if any(x.key != field_key and x.label.strip().casefold() == wanted for x in table.fields):
+            raise _bad(
+                "label",
+                f"another field is already called {str(changes['label']).strip()}",
+                "duplicate",
+            )
     new = {**f.model_dump(mode="json"), **changes}
     if new.get("hidden") and (new.get("required") or field_key == table.title_field):
         raise _bad("hidden", "a required field or the record's name cannot be hidden")
@@ -417,6 +425,38 @@ async def update_field(
     return nf.model_dump(mode="json")
 
 
+async def reorder_fields(
+    s: AsyncSession,
+    *,
+    tenant_id: uuid.UUID,
+    user_id: uuid.UUID,
+    table_key: str,
+    order: list[str],
+    request_id: str | None,
+) -> dict[str, Any]:
+    """The order fields are listed in; record forms follow it. Every field must appear exactly once."""
+    await _enter_tenant(s, tenant_id)
+    found = await _draft(s, "table", table_key)
+    if found is None:
+        raise NotFound(f"There is no table '{table_key}'.")
+    definition, source = found
+    table = TableDef.model_validate(definition)
+    have = [f.key for f in table.fields]
+    if sorted(order) != sorted(have) or len(set(order)) != len(order):
+        raise _bad("order", "must list every field of the table exactly once", "bad_order")
+    if order == have:
+        return table.model_dump(mode="json")
+    by_key = {x["key"]: x for x in definition["fields"]}
+    updated = TableDef.model_validate(
+        {**definition, "fields": [by_key[k] for k in order], "version": table.version + 1}
+    )
+    await _put(s, tenant_id, "table", table_key, updated.model_dump(mode="json"), source)
+    await _audit(
+        s, tenant_id, user_id, "metadata.field.reorder", table_key, {"order": order}, request_id
+    )
+    return updated.model_dump(mode="json")
+
+
 async def remove_field(
     s: AsyncSession,
     *,
@@ -436,10 +476,6 @@ async def remove_field(
     f = table.field(field_key)
     if f is None:
         raise NotFound(f"There is no field '{field_key}' on '{table_key}'.")
-    if f.source == "pack":
-        raise _bad(
-            "field", "a field that comes with the pack can be hidden but not deleted", "pack_field"
-        )
     if field_key == table.title_field:
         raise _bad("field", "the record's name field cannot be deleted", "title_field")
     rules = await s.execute(text("SELECT key, definition FROM metadata_object WHERE kind = 'rule'"))
@@ -484,6 +520,52 @@ async def remove_field(
     await _audit(
         s, tenant_id, user_id, "metadata.field.delete", f"{table_key}.{field_key}", {}, request_id
     )
+
+
+async def restore_field(
+    s: AsyncSession,
+    *,
+    tenant_id: uuid.UUID,
+    user_id: uuid.UUID,
+    table_key: str,
+    field_key: str,
+    earlier: list[dict[str, Any] | None],
+    request_id: str | None,
+) -> dict[str, Any]:
+    """Undo a deletion that is still only in the Draft: bring the field back as Test or Live have it."""
+    await _enter_tenant(s, tenant_id)
+    found = await _draft(s, "table", table_key)
+    if found is None:
+        raise NotFound(f"There is no table '{table_key}'.")
+    definition, source = found
+    if any(x["key"] == field_key for x in definition["fields"]):
+        raise _bad("field", "this field is already in the Draft", "already_there")
+    old: dict[str, Any] | None = None
+    for manifest in earlier:
+        t = ((manifest or {}).get("tables") or {}).get(table_key)
+        if t:
+            old = next(
+                (x for x in t["definition"].get("fields", []) if x["key"] == field_key), None
+            )
+        if old:
+            break
+    if old is None:
+        raise NotFound(f"Test and Live have no field '{field_key}' on '{table_key}' to bring back.")
+    wanted = str(old.get("label", "")).strip().casefold()
+    if any(str(x.get("label", "")).strip().casefold() == wanted for x in definition["fields"]):
+        raise _bad("label", f"another field is already called {old.get('label')}", "duplicate")
+    restored = FieldDef.model_validate(old)
+    updated = {
+        **definition,
+        "fields": [*definition["fields"], restored.model_dump(mode="json")],
+        "version": TableDef.model_validate(definition).version + 1,
+    }
+    TableDef.model_validate(updated)
+    await _put(s, tenant_id, "table", table_key, updated, source)
+    await _audit(
+        s, tenant_id, user_id, "metadata.field.restore", f"{table_key}.{field_key}", {}, request_id
+    )
+    return restored.model_dump(mode="json")
 
 
 async def save_screen(

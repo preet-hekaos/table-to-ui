@@ -43,8 +43,12 @@ FIELD: dict[str, Setting] = {
         "S1",
         "key is read-only once published; nothing proves a new key reaches the screens",
     ),
-    "label": gap(
-        (FORM, LIST, IMPORT, EXPORT, CHART, SEARCH), "S1", "rename must reach every screen"
+    "label": Setting(
+        "live",
+        (FORM, LIST),
+        ("e2e:s1-fields-grid.spec.ts::a label renamed in Studio shows on the live form and list",),
+        "S1",
+        "form and list header proven; import mapping, export headers, charts and search results not yet",
     ),
     "type": gap((FORM, LIST, INLINE, IMPORT, BULK), "S2"),
     "required": Setting(
@@ -52,6 +56,7 @@ FIELD: dict[str, Setting] = {
         (FORM, INLINE, IMPORT, BULK, API),
         (
             "e2e:s0-live-effect.spec.ts::a field made required in Studio is required on the live form",
+            "e2e:s1-fields-grid.spec.ts::S1.3 required switch",
             "api:test_inline_edit.py::test_one_cell_change_clears_validates_and_refuses_stale_versions",
             "api:test_studio.py::test_field_cannot_become_required_while_records_lack_it",
         ),

@@ -112,3 +112,45 @@ async def test_a_new_text_field_is_found_by_keyword_search_after_publish(
         await client.get("/v1/records/candidate", headers=a.h(), params={"q": "zebracorn"})
     ).json()["items"]
     assert len(hit) == 1
+
+
+async def test_a_label_already_used_by_another_field_is_refused(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    f = await _add(client, a, label="Badge", type="text")
+    clash = await _patch(client, a, f["key"], label="full name")
+    assert clash.status_code == 422 and "already called" in clash.text, clash.text
+    ok = await _patch(client, a, f["key"], label="Badge number")
+    assert ok.status_code == 200
+
+
+async def test_a_pack_field_can_be_made_required_and_optional_again(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    base = "/v1/studio/tables/candidate/fields/current_employer"
+    on = await client.patch(base, headers=a.h(), json={"required": True})
+    assert on.status_code == 200 and on.json()["required"] is True, on.text
+    off = await client.patch(base, headers=a.h(), json={"required": False})
+    assert off.status_code == 200 and off.json()["required"] is False
+
+
+async def test_field_order_saved_in_studio_is_the_order_the_live_table_lists_fields(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    draft = (await client.get("/v1/studio/tables", headers=a.h())).json()
+    keys = [f["key"] for f in next(t for t in draft if t["key"] == "candidate")["fields"]]
+    wanted = [keys[1], keys[0], *keys[2:]]
+    put = await client.put(
+        "/v1/studio/tables/candidate/field-order", headers=a.h(), json={"order": wanted}
+    )
+    assert put.status_code == 200, put.text
+    bad = await client.put(
+        "/v1/studio/tables/candidate/field-order", headers=a.h(), json={"order": keys[1:]}
+    )
+    assert bad.status_code == 422 and bad.json()["errors"][0]["code"] == "bad_order"
+    await a.publish_live()
+    live = (await client.get("/v1/app/tables/candidate", headers=a.h())).json()["table"]
+    assert [f["key"] for f in live["fields"]] == wanted

@@ -2388,6 +2388,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/studio/tables/{table}/field-order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Reorder Fields */
+        put: operations["reorder_fields_v1_studio_tables__table__field_order_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/studio/tables/{table}/fields": {
         parameters: {
             query?: never;
@@ -2421,6 +2438,26 @@ export interface paths {
         head?: never;
         /** Update Field */
         patch: operations["update_field_v1_studio_tables__table__fields__field__patch"];
+        trace?: never;
+    };
+    "/v1/studio/tables/{table}/fields/{field}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore Field
+         * @description Undo a field deletion that has not been published yet.
+         */
+        post: operations["restore_field_v1_studio_tables__table__fields__field__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/v1/studio/tables/{table}/stages": {
@@ -8333,6 +8370,45 @@ export interface operations {
             };
         };
     };
+    reorder_fields_v1_studio_tables__table__field_order_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                table: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     add_field_v1_studio_tables__table__fields_post: {
         parameters: {
             query?: never;
@@ -8419,6 +8495,40 @@ export interface operations {
                 };
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restore_field_v1_studio_tables__table__fields__field__restore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                table: string;
+                field: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {

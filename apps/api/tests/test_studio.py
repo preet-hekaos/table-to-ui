@@ -49,7 +49,7 @@ async def test_agency_field_is_stored_without_rewrite_searchable_filterable_and_
     assert "Night Owl" in [x["data"]["full_name"] for x in found["items"]]
 
 
-async def test_pack_field_can_be_relabelled_or_hidden_but_not_deleted_or_retyped(
+async def test_pack_field_is_edited_and_deleted_like_any_other_field(
     client: httpx.AsyncClient, agency: Agency
 ) -> None:
     a = agency
@@ -58,10 +58,20 @@ async def test_pack_field_can_be_relabelled_or_hidden_but_not_deleted_or_retyped
     assert r.status_code == 200 and r.json()["label"] == "Employer"
     r = await client.patch(f"{base}/current_employer", headers=a.h(), json={"hidden": True})
     assert r.status_code == 200 and r.json()["hidden"] is True
+    # Group, limits and length are open on a pack field too (the pack is only a starting copy).
+    r = await client.patch(
+        f"{base}/current_employer", headers=a.h(), json={"group": "contact", "max_length": 40}
+    )
+    assert r.status_code == 200 and r.json()["max_length"] == 40
     r = await client.patch(f"{base}/current_employer", headers=a.h(), json={"type": "integer"})
     assert r.status_code == 422 and r.json()["errors"][0]["code"] == "not_editable"
+    # A pack field a rule still uses is protected like any other field; an unused one can go.
     r = await client.delete(f"{base}/current_employer", headers=a.h())
-    assert r.status_code == 422 and r.json()["errors"][0]["code"] == "pack_field"
+    assert r.status_code == 422 and r.json()["errors"][0]["code"] == "in_use"
+    r = await client.delete(f"{base}/notice_period_days", headers=a.h())
+    assert r.status_code == 204
+    r = await client.delete(f"{base}/full_name", headers=a.h())
+    assert r.status_code == 422 and r.json()["errors"][0]["code"] == "title_field"
     r = await client.patch(f"{base}/email", headers=a.h(), json={"hidden": True})
     assert r.status_code == 422  # required pack fields stay visible
     r = await client.post(base, headers=a.h(), json={"label": "Owner", "type": "text"})
@@ -451,3 +461,25 @@ async def test_field_cannot_become_required_while_records_lack_it(
         "/v1/studio/tables/candidate/fields/badge", headers=a.h(), json={"required": True}
     )
     assert no.status_code == 422 and "no badge" in no.text, no.text
+
+
+async def test_a_deleted_field_comes_back_with_undo_until_it_is_published(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    base = "/v1/studio/tables/candidate/fields"
+    await a.publish_live()
+    r = await client.delete(f"{base}/notice_period_days", headers=a.h())
+    assert r.status_code == 204
+    stages = (await client.get("/v1/studio/stages", headers=a.h())).json()
+    assert [x["key"] for x in stages["items"]["tables"]["candidate"]["removed_fields"]] == [
+        "notice_period_days"
+    ]
+    r = await client.post(f"{base}/notice_period_days/restore", headers=a.h())
+    assert r.status_code == 200 and r.json()["key"] == "notice_period_days"
+    stages = (await client.get("/v1/studio/stages", headers=a.h())).json()
+    assert stages["items"]["tables"]["candidate"].get("removed_fields") == []
+    again = await client.post(f"{base}/notice_period_days/restore", headers=a.h())
+    assert again.status_code == 422 and again.json()["errors"][0]["code"] == "already_there"
+    gone = await client.post(f"{base}/never_existed/restore", headers=a.h())
+    assert gone.status_code == 404

@@ -1,7 +1,7 @@
 import uuid
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Query, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from pydantic import BaseModel
 
 from tableui.identity.api.deps import PrincipalDep
@@ -91,6 +91,26 @@ async def update_field(
         )
 
 
+@router.put("/studio/tables/{table}/field-order")
+async def reorder_fields(
+    table: str, body: dict[str, Any], p: PrincipalDep, db: DbDep, request: Request
+) -> dict[str, Any]:
+    p.require("metadata.write")
+    assert p.tenant_id
+    order = body.get("order")
+    if not isinstance(order, list) or not all(isinstance(k, str) for k in order):
+        raise HTTPException(422, "order must be a list of field keys")
+    async with db.control() as s:
+        return await studio.reorder_fields(
+            s,
+            tenant_id=p.tenant_id,
+            user_id=p.user_id,
+            table_key=table,
+            order=order,
+            request_id=get_request_id(request),
+        )
+
+
 @router.delete("/studio/tables/{table}/fields/{field}", status_code=204)
 async def remove_field(
     table: str, field: str, p: PrincipalDep, db: DbDep, request: Request
@@ -107,6 +127,28 @@ async def remove_field(
             request_id=get_request_id(request),
         )
     return Response(status_code=204)
+
+
+@router.post("/studio/tables/{table}/fields/{field}/restore")
+async def restore_field(
+    table: str, field: str, p: PrincipalDep, db: DbDep, request: Request
+) -> dict[str, Any]:
+    """Undo a field deletion that has not been published yet."""
+    p.require("metadata.write")
+    assert p.tenant_id
+    async with db.control() as s:
+        test = await releases.environment_manifest(s, p.tenant_id, "test")
+        live = await releases.environment_manifest(s, p.tenant_id, "live")
+    async with db.control() as s:
+        return await studio.restore_field(
+            s,
+            tenant_id=p.tenant_id,
+            user_id=p.user_id,
+            table_key=table,
+            field_key=field,
+            earlier=[test[1] if test else None, live[1] if live else None],
+            request_id=get_request_id(request),
+        )
 
 
 @router.get("/studio/relationships")

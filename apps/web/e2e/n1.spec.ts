@@ -5,7 +5,7 @@ import { openTables, run, signUpWithPack } from './helpers'
 /** N1: Draft, Test and Live each have their own colour, word and icon, and the colour follows a change. */
 test('Stage colours follow a field from Draft to Test to Live', async ({ page }) => {
   await signUpWithPack(page, `Stages Co ${run}`, `stages-${run}@stages.test`)
-  const row = () => page.getByRole('row', { name: /^Preferred shift/ })
+  const row = () => page.getByRole('row', { name: /^(?:Move [^.]*\. Drag, or use the up and down arrow keys\. )?preferred_shift / })
 
   await test.step('A new field is Draft (amber) and the Draft step counts it', async () => {
     await page.goto('/studio')
@@ -19,7 +19,7 @@ test('Stage colours follow a field from Draft to Test to Live', async ({ page })
     await expect(row().getByText('Draft')).toBeVisible()
     await expect(page.getByTestId('env-draft')).toContainText('1 waiting')
     // Existing fields are untouched, so they stay Live
-    await expect(page.getByRole('row', { name: /^Current employer/ })).toHaveAttribute('data-stage', 'live')
+    await expect(page.getByRole('row', { name: /^(?:Move [^.]*\. Drag, or use the up and down arrow keys\. )?current_employer / })).toHaveAttribute('data-stage', 'live')
     await expect((await openTables(page)).getByRole('img', { name: 'Draft' }).first()).toBeVisible()
     await page.keyboard.press('Escape')
   })

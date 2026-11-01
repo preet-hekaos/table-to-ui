@@ -2,8 +2,9 @@ import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import type { ApiError } from '@/api/client'
 import type { FieldDef, StudioTable } from '@/api/types'
-import { Badge, Button, Card, ErrorState, LoadingState, StageBadge, Table, Tabs, TabsContent, TabsList, TabsTrigger, Td, Th, cn, stageStripe } from '@/design-system'
-import { FieldDialog, NewTableDialog, TYPE_LABELS } from './FieldDialog'
+import { Badge, Button, Card, ErrorState, LoadingState, StageBadge, Tabs, TabsContent, TabsList, TabsTrigger } from '@/design-system'
+import { FieldDialog, NewTableDialog } from './FieldDialog'
+import { FieldsGrid } from './FieldsGrid'
 import { FeaturesPanel } from './FeaturesPanel'
 import { SchemaExportDialog } from './SchemaExportDialog'
 import { SchemaImportDialog } from './SchemaImportDialog'
@@ -11,8 +12,6 @@ import { ScreensTab } from './ScreensTab'
 import { TableActions, TablePicker } from './TablePicker'
 import { useDraftTables } from './useDraftTables'
 import { useStages } from './useStages'
-
-const origin = (s?: string) => <Badge tone={s === 'agency' ? 'neutral' : 'accent'}>{s === 'agency' ? 'Workspace' : 'Pack'}</Badge>
 
 
 /** Screen 2.4: pick a table from the header; its fields, screens and features sit below. */
@@ -55,7 +54,6 @@ export function DataTab({
               current={{ key: current.key, label: current.label, fields: current.fields.length, stage: stages.of('tables', current.key) ?? undefined }}
               onSelect={onSelect}
             />
-            {origin(current.source)}
             {stages.of('tables', current.key) && <StageBadge stage={stages.of('tables', current.key)!} isNew={stages.isNew('tables', current.key)} />}
             <Badge>{current.fields.length} fields</Badge>
             <div className="ml-auto flex flex-wrap items-center gap-3">
@@ -76,51 +74,7 @@ export function DataTab({
             </div>
           </div>
           <TabsContent value="fields">
-          <div className="overflow-x-auto">
-            <Table aria-label={`${current.label} fields`}>
-              <thead>
-                <tr>
-                  <Th>Field</Th>
-                  <Th>Type</Th>
-                  <Th>Required</Th>
-                  <Th>Comes from</Th>
-                  <Th>On screens</Th>
-                  {canEdit && <Th><span className="sr-only">Actions</span></Th>}
-                </tr>
-              </thead>
-              <tbody>
-                {current.fields.map((f) => (
-                  <tr key={f.key} className={cn(stageStripe(stages.field(current.key, f.key)))} data-stage={stages.field(current.key, f.key)}>
-                    <Td className="py-1.5 font-medium text-ink">
-                      {f.label} {stages.field(current.key, f.key) && stages.field(current.key, f.key) !== 'live' && <StageBadge stage={stages.field(current.key, f.key)!} className="ml-1" />}
-                    </Td>
-                    <Td className="py-1.5">
-                      {TYPE_LABELS[f.type] ?? f.type}
-                      {f.ref_table && <span className="text-muted"> to {all.find((t) => t.key === f.ref_table)?.label ?? f.ref_table}</span>}
-                    </Td>
-                    <Td className="py-1.5">{f.required ? 'Yes' : 'No'}</Td>
-                    <Td className="py-1.5">{origin(f.source)}</Td>
-                    <Td className="py-1.5">{f.hidden ? <Badge tone="warn">Hidden</Badge> : 'Shown'}</Td>
-                    {canEdit && (
-                      <Td className="py-1.5 text-right">
-                        <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => setEditing(f)} aria-label={`Edit ${f.label}`}>
-                          Edit
-                        </Button>
-                      </Td>
-                    )}
-                  </tr>
-                ))}
-                {stages.removedFields(current.key).map((f) => (
-                  <tr key={`removed-${f.key}`} className={cn(stageStripe('removed'), 'text-muted line-through')} data-stage="removed">
-                    <Td>
-                      {f.label} <StageBadge stage="removed" className="ml-1 no-underline" />
-                    </Td>
-                    <Td colSpan={canEdit ? 5 : 4}>Deleted in the Draft; goes away when published.</Td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          </div>
+            <FieldsGrid table={current as StudioTable} tables={all} canEdit={canEdit} stages={stages} onEdit={setEditing} />
           </TabsContent>
           <TabsContent value="screens" className="p-3">
             <ScreensTab canEdit={canEdit} tableKey={current.key} />
