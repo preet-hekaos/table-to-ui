@@ -146,3 +146,53 @@ test('S6.2 table settings: values reach the live list for a second session', asy
   })
   await s.context().close()
 })
+
+test('S6.2 table settings: numbers as a chart, chart choices and bulk actions reach the live list', async ({ page, browser }) => {
+  test.setTimeout(240_000)
+  await page.setViewportSize({ width: 1500, height: 1000 })
+  await signUpWithPack(page, `S6 Chart ${run}`, `s6c-${run}@studio.test`)
+  for (const [i, name] of ['Asha Rao', 'Bimal Das'].entries()) {
+    const r = await call(page, 'POST', '/v1/records/candidate', { data: { full_name: name, email: `c${i}-${run}@example.in`, phone: `+91 98450 2234${i}`, status: 'Active', notice_period_days: 30 + i } })
+    expect(r.status).toBe(201)
+  }
+  await test.step('The owner shows the numbers as a chart, limits the chart and the bulk actions, and makes it Live', async () => {
+    const r = await call(page, 'PUT', '/v1/studio/tables/candidate/features', {
+      stat_view: 'chart',
+      chart: { type: 'bar', x: 'status', bucket: 'month', measures: [{ kind: 'count' }], top: 8 },
+      nochart: ['source'],
+      stat_fields: ['notice_period_days'],
+      bulk_actions: ['export'],
+    })
+    expect(r.status, JSON.stringify(r.body)).toBe(200)
+    await publishLive(page)
+  })
+  const s = await freshSession(browser, page)
+  await s.setViewportSize({ width: 1500, height: 1000 })
+  await s.goto('/s/candidates')
+  await expect(s.getByRole('row')).toHaveCount(3)
+
+  await test.step('stat_view and chart: the numbers are a chart that starts as the owner set it', async () => {
+    const card = s.getByTestId('chart-card')
+    await expect(card).toBeVisible()
+    await expect(card.getByLabel('Group by')).toHaveValue('status')
+    await expect(s.getByTestId('stats-strip')).toHaveCount(0)
+  })
+  await test.step('nochart: the chart does not offer that field', async () => {
+    const options = await s.getByTestId('chart-card').getByLabel('Group by').locator('option').allTextContents()
+    expect(options).not.toContain('Source')
+    expect(options).toContain('Status')
+  })
+  await test.step('stat_fields: the chart measures only the chosen number field', async () => {
+    const options = await s.getByTestId('chart-card').getByLabel('Measure').locator('option').allTextContents()
+    expect(options.join('|')).toContain('Notice period')
+    expect(options.join('|')).not.toContain('Total experience')
+  })
+  await test.step('bulk_actions: only Export is offered on selected rows', async () => {
+    await s.getByRole('checkbox', { name: 'Select Asha Rao' }).check()
+    const bar = s.getByTestId('bulk-bar')
+    await expect(bar.getByRole('button', { name: 'Export' })).toBeVisible()
+    await expect(bar.getByRole('button', { name: 'Change a value' })).toHaveCount(0)
+    await expect(bar.getByRole('button', { name: 'Delete' })).toHaveCount(0)
+  })
+  await s.context().close()
+})
