@@ -13,6 +13,7 @@ export interface FieldDef {
   type_name?: string | null
   save_as?: 'upper' | 'lower' | null
   rules?: FieldRule[]
+  transforms?: TransformRule[]
   normalize: 'text' | 'email' | 'phone' | null
   unique: boolean
   hidden?: boolean
@@ -237,6 +238,16 @@ export interface MergeRow {
 }
 
 /** One validation rule on a field: a pattern the value must match, or the built-in "not in the future". */
+export type TransformWhen = 'blank' | 'equals_any' | 'contains' | 'starts_with' | 'ends_with' | 'matches' | 'above' | 'below' | 'field_is'
+export type TransformDo = 'set' | 'set_standard' | 'copy_field' | 'keep_match' | 'trim' | 'case' | 'remove_chars' | 'clear'
+export interface TransformRule {
+  when: TransformWhen
+  args: string[]
+  do: TransformDo
+  value: string
+  stop: boolean
+  enabled: boolean
+}
 export interface FieldRule {
   name: string
   kind: 'pattern' | 'not_future'

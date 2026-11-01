@@ -3,6 +3,7 @@
 import { api, unwrap } from './client'
 import type {
   FieldRule,
+  TransformRule,
   ActivityRow,
   HeldChange,
   Board,
@@ -209,6 +210,9 @@ export const studio = {
     send<FieldDef>('PATCH', `/v1/studio/tables/${table}/fields/${field}`, body),
   restoreField: (table: string, field: string) => send<FieldDef>('POST', `/v1/studio/tables/${table}/fields/${field}/restore`),
   typePresets: () => cast<TypePresets>(api.GET('/v1/studio/type-presets' as never, {} as never)),
+  standardValues: () => g<{ key: string; label: string }[]>('/v1/studio/standard-values'),
+  transformPreview: (table: string, field: string, transforms: TransformRule[], samples: { value: string; others?: Record<string, unknown> }[]) =>
+    send<{ results: TransformResult[] }>('POST', `/v1/studio/tables/${table}/fields/${field}/transform-preview`, { transforms, samples }),
   validationLibrary: () => g<LibraryRule[]>('/v1/studio/validation-library'),
   validationPreview: (rule: Pick<FieldRule, 'kind' | 'pattern'>, values: string[]) =>
     send<{ results: { value: string; allowed: boolean }[] }>('POST', '/v1/studio/validation-preview', { rule, values }),
@@ -669,6 +673,7 @@ export const ai = {
 
 /** A ready-made rule from the library, with samples that show what it allows and refuses. */
 /** A field whose new rules are already broken by some stored records. A warning, never a block. */
+export interface TransformResult { input: unknown; output: unknown; steps: { rule: number; matched: boolean; stopped: boolean }[]; problem: string | null }
 export interface UniqueBlocker { table: string; table_label: string; field: string; label: string; values: { value: string; count: number }[] }
 export interface RuleWarning {
   table: string

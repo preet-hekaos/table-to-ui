@@ -10,6 +10,7 @@ import { LengthCell } from './LengthCell'
 import { RequiredSwitch } from './RequiredSwitch'
 import { ValidationCell } from './ValidationCell'
 import { TableWideBar } from './TableWideBar'
+import { TransformCell } from './TransformCell'
 import { TypeCell } from './TypeCell'
 import { RemovedCount, UndoRemove } from './UndoRemove'
 import { useFieldOrder } from './useFieldOrder'
@@ -80,6 +81,7 @@ export function FieldsGrid({
             <Th>Validation</Th>
             <Th>Required</Th>
             <Th>Features</Th>
+            <Th>Transformation rule</Th>
             {canEdit && <Th><span className="sr-only">Actions</span></Th>}
           </tr>
         </thead>
@@ -147,6 +149,9 @@ export function FieldsGrid({
                 <Td className="py-1.5">
                   <FeaturesCell table={table} field={f} f={features} patch={patch} canEdit={canEdit} />
                 </Td>
+                <Td className="py-1.5">
+                  <TransformCell table={table} field={f} canEdit={canEdit} />
+                </Td>
                 {canEdit && (
                   <Td className="py-1.5"><div className="flex items-center justify-end gap-1">
                     <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => onEdit(f)} aria-label={`Edit ${f.label}`}>
@@ -158,7 +163,7 @@ export function FieldsGrid({
               </tr>
               {open.has(f.key) && (
                 <tr data-details-of={f.key}>
-                  <Td colSpan={canEdit ? 10 : 8} className="p-0">
+                  <Td colSpan={canEdit ? 11 : 9} className="p-0">
                     <FieldDetails table={table} tables={tables} field={f} canEdit={canEdit} />
                   </Td>
                 </tr>
@@ -173,7 +178,7 @@ export function FieldsGrid({
               <Td>
                 <span className="line-through">{f.label}</span> <StageBadge stage="removed" className="ml-1 no-underline" />
               </Td>
-              <Td colSpan={canEdit ? 7 : 6} className="whitespace-normal">
+              <Td colSpan={canEdit ? 8 : 7} className="whitespace-normal">
                 <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <span>Deleted in the Draft; goes away when published.</span>
                   <RemovedCount table={table.key} fieldKey={f.key} />
