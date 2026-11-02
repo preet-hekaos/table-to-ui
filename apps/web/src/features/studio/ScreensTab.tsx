@@ -166,7 +166,7 @@ function Configurator({ screen, table, canEdit }: { screen: DraftScreen; table: 
           <h2 className="text-base font-bold text-ink">Configure</h2>
           <Badge tone="accent">{PATTERNS.find((p) => p.key === screen.pattern)?.name ?? screen.pattern}</Badge>
         </div>
-        <Field label="Title">
+        <Field label="Title" hint="The heading at the top of the page. The menu name is set in Menu.">
           <Input value={title} onChange={(e) => setTitle(e.target.value)} disabled={!canEdit} />
         </Field>
         {listLike && <Checklist legend="Columns" options={fields} value={cfg.columns ?? []} onChange={(columns) => set({ columns })} />}
