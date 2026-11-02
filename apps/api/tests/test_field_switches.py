@@ -131,3 +131,27 @@ async def test_filterable_sets_the_field_flag_and_the_table_list_together(
     await a.publish_live()
     ok = await client.get(f"/v1/records/candidate?c.{key}=x", headers=a.h())
     assert ok.status_code == 200, ok.text
+
+
+async def test_a_field_added_then_made_unique_in_one_draft_works_once_live(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    f = await _add(client, a, label="Badge no", type="text")
+    assert (await _patch(client, a, f["key"], unique=True)).status_code == 200
+    await a.publish_live()
+    first = await a.create_candidate(
+        candidate(phone="+91 98450 20001", email="n1@x.test", **{f["key"]: "AB-1"})
+    )
+    assert first.status_code == 201, first.text
+    older = await a.create_candidate(candidate(phone="+91 98450 20002", email="n2@x.test"))
+    ok = await client.patch(
+        f"/v1/records/candidate/{older.json()['id']}",
+        headers=a.h(),
+        json={"version": 1, "data": {f["key"]: "AB-2"}},
+    )
+    assert ok.status_code == 200, ok.text
+    dup = await a.create_candidate(
+        candidate(phone="+91 98450 20003", email="n3@x.test", **{f["key"]: "ab-1"})
+    )
+    assert dup.status_code in (409, 422), dup.text

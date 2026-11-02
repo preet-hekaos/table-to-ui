@@ -34,7 +34,10 @@ def _tables(manifest: dict[str, Any] | None) -> dict[str, TableDef]:
 def switched(
     before: dict[str, Any] | None, after: dict[str, Any] | None, flag: str
 ) -> list[tuple[TableDef, FieldDef, bool]]:
-    """Fields that exist in both manifests whose `flag` differs: (table in `after`, field in `after`, new value)."""
+    """Fields whose `flag` differs between the manifests: (table in `after`, field in `after`, new value).
+
+    A field new in `after` counts as having had the flag off, so a field added and ticked in the same Draft still gets its column and index.
+    """
     old, new = _tables(before), _tables(after)
     out: list[tuple[TableDef, FieldDef, bool]] = []
     for tk, table in new.items():
@@ -43,7 +46,8 @@ def switched(
             continue
         for f in table.fields:
             g = was.field(f.key)
-            if g is not None and bool(getattr(g, flag)) != bool(getattr(f, flag)):
+            was_on = bool(getattr(g, flag)) if g is not None else False
+            if was_on != bool(getattr(f, flag)):
                 out.append((table, f, bool(getattr(f, flag))))
     return out
 
