@@ -18,7 +18,7 @@ const call = (page: Page, method: string, path: string, body?: unknown): Promise
     [method, path, body] as [string, string, unknown],
   )
 
-const cand = (n: number, pan?: string) => ({ full_name: `Journey ${n}`, email: `j${n}-${run}@example.in`, phone: `+91 98450 8${String(n).padStart(4, '0')}`, status: 'Active', ...(pan ? { pan_number: pan } : {}) })
+const cand = (n: number, pan?: string) => ({ full_name: `Journey ${n}`, email: `j${n}-${run}@example.in`, phone: `+91 98450 8${String(n).padStart(4, '0')}`, status: 'Active', ...(pan ? { pan_no: pan } : {}) })
 
 test('S6.4 the full journey: Studio to the recruiter, a new rule, and a rollback', async ({ page, browser }) => {
   test.setTimeout(600_000)
@@ -71,8 +71,11 @@ test('S6.4 the full journey: Studio to the recruiter, a new rule, and a rollback
     await setFieldFeature(page, 'PAN no', 'Unique', true)
     await setFieldFeature(page, 'PAN no', 'Searchable', true)
     await setFieldFeature(page, 'PAN no', 'Filterable', true)
+    // An existing record has no PAN yet, so Required is refused (the decided block). It is switched on after that record has one.
+    const refused = await call(page, 'PATCH', '/v1/studio/tables/candidate/fields/pan_no', { required: true })
+    expect(refused.status).toBeGreaterThanOrEqual(400)
     await page.getByRole('switch', { name: 'PAN no is required' }).click()
-    await expect(page.getByRole('switch', { name: 'PAN no is required' })).toBeChecked()
+    await expect(page.getByRole('switch', { name: 'PAN no is required' })).not.toBeChecked()
   })
 
   await test.step('5. Rename the label and move the field up', async () => {
@@ -96,6 +99,15 @@ test('S6.4 the full journey: Studio to the recruiter, a new rule, and a rollback
 
   const rec = await freshSession(browser, page)
   await rec.setViewportSize({ width: 1500, height: 1100 })
+
+  await test.step('6b. The older record gets its PAN; then the owner sets the field Required and publishes again', async () => {
+    const older = await call(rec, 'PATCH', `/v1/records/candidate/${old.body.id as string}`, { version: 1, data: { pan_no: 'zzzzz9999z' } })
+    expect(older.status, JSON.stringify(older.body)).toBe(200)
+    await page.goto('/studio')
+    await page.getByRole('switch', { name: 'PAN number is required' }).click()
+    await expect(page.getByRole('switch', { name: 'PAN number is required' })).toBeChecked()
+    await publishLive(page)
+  })
 
   await test.step('7a. The recruiter sees label, position and the required mark; a bad value is refused and a good one saved in capitals', async () => {
     await rec.goto('/records/candidate/new')
@@ -121,7 +133,7 @@ test('S6.4 the full journey: Studio to the recruiter, a new rule, and a rollback
     expect((await call(rec, 'POST', '/v1/records/candidate', { data: cand(2) })).status).toBe(422)
     const dup = await call(rec, 'POST', '/v1/records/candidate', { data: cand(3, 'abcde1234f') })
     expect(dup.status).toBeGreaterThanOrEqual(400)
-    expect(JSON.stringify(dup.body)).toMatch(/pan_number/)
+    expect(JSON.stringify(dup.body)).toMatch(/pan_no/)
   })
 
   await test.step('7c. Import a file with good, bad and duplicate rows', async () => {
@@ -129,7 +141,7 @@ test('S6.4 the full journey: Studio to the recruiter, a new rule, and a rollback
     await rec.goto('/import')
     await rec.getByLabel('Import into').selectOption({ label: 'Candidates' })
     await rec.getByLabel('Spreadsheet').setInputFiles({ name: 'pan.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) })
-    await expect(rec.getByLabel('Field for PAN number', { exact: true })).toHaveValue('pan_number')
+    await expect(rec.getByLabel('Field for PAN number', { exact: true })).toHaveValue('pan_no')
     await rec.getByRole('button', { name: 'Check the data' }).click()
     const report = rec.getByTestId('validation-report')
     await expect(report).toContainText('Ready1')
@@ -140,9 +152,6 @@ test('S6.4 the full journey: Studio to the recruiter, a new rule, and a rollback
   })
 
   await test.step('7d. Bulk edit, search an older record by the new field, filter, sort and export', async () => {
-    const olderId = old.body.id as string
-    const p = await call(rec, 'PATCH', `/v1/records/candidate/${olderId}`, { version: 1, data: { pan_number: 'zzzzz9999z' } })
-    expect(p.status, JSON.stringify(p.body)).toBe(200)
     await rec.goto('/s/candidates')
     await rec.getByRole('searchbox').or(rec.getByPlaceholder('Search candidates')).first().fill('ZZZZZ9999Z')
     await expect(rec.getByRole('link', { name: 'Journey 1' })).toBeVisible()
@@ -155,9 +164,9 @@ test('S6.4 the full journey: Studio to the recruiter, a new rule, and a rollback
     await rec.getByLabel('New value').fill('Reviewed')
     await rec.getByRole('button', { name: /^Change 1/ }).click()
     await expect(rec.getByText('Reviewed').first()).toBeVisible()
-    const filtered = await call(rec, 'GET', '/v1/records/candidate?c.pan_number=ZZZZZ')
+    const filtered = await call(rec, 'GET', '/v1/records/candidate?c.pan_no=ZZZZZ')
     expect(filtered.body.items.map((r: { data: { full_name: string } }) => r.data.full_name)).toEqual(['Journey 1'])
-    const sorted = await call(rec, 'GET', '/v1/records/candidate?sort=pan_number&direction=asc')
+    const sorted = await call(rec, 'GET', '/v1/records/candidate?sort=pan_no&direction=asc')
     expect(sorted.status).toBe(200)
     await rec.getByRole('button', { name: 'Export', exact: true }).click()
     const dialog = rec.getByRole('dialog')
