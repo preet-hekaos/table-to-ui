@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test'
 import { run, signUpWithPack } from './helpers'
-import { publishLive } from './live-effect'
+import { freshSession, publishLive } from './live-effect'
 
 const SHOTS = '../../docs/screens/studio-table/s4'
 
-test('Describe a new field in words: disabled with AI off, a checked suggestion, added only by Add field, live after publish', async ({ page }) => {
+test('Describe a new field in words: disabled with AI off, a checked suggestion, added only by Add field, live after publish', async ({ page, browser }) => {
   await page.setViewportSize({ width: 1500, height: 1100 })
   await signUpWithPack(page, `Words Field ${run}`, `wf-${run}@studio.test`)
   await page.goto('/studio')
@@ -41,10 +41,8 @@ test('Describe a new field in words: disabled with AI off, a checked suggestion,
   await test.step('The field exists in the Draft and is live after publish', async () => {
     await expect(page.getByRole('row', { name: /pan_number / })).toContainText('PAN')
     await publishLive(page)
-    const status = await page.evaluate(async () => {
-      const r = await fetch('/v1/studio/tables/candidate', { headers: { Authorization: `Bearer ${sessionStorage.getItem('tableui.token')}` } })
-      return JSON.stringify(await r.json())
-    })
-    expect(status).toContain('pan_number')
+    const rec = await freshSession(browser, page)
+    await rec.goto('/records/candidate/new')
+    await expect(rec.getByLabel(/^PAN number/)).toBeVisible()
   })
 })
