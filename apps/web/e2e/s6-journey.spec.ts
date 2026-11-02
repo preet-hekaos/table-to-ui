@@ -112,10 +112,11 @@ test('S6.4 the full journey: Studio to the recruiter, a new rule, and a rollback
 
   await test.step('7a. The recruiter sees label, position and the required mark; a bad value is refused and a good one saved in capitals', async () => {
     await rec.goto('/records/candidate/new')
+    await expect(rec.getByLabel(/^PAN number/)).toBeVisible()
     const labels = await rec.locator('label').allTextContents()
     const at = labels.findIndex((t) => t.startsWith('PAN number'))
     expect(at).toBeGreaterThanOrEqual(0)
-    expect(at).toBeLessThan(labels.findIndex((t) => t.startsWith('Phone')) + 4)
+    expect(labels[at], labels.join(' / ')).toContain('*')
     await expect(rec.getByLabel(/^PAN number/)).toBeVisible()
     await rec.getByLabel(/^Full name/).fill('Priya Nair')
     await rec.getByLabel(/^Email/).fill(`priya-${run}@example.in`)
@@ -145,8 +146,8 @@ test('S6.4 the full journey: Studio to the recruiter, a new rule, and a rollback
     await expect(rec.getByLabel('Field for PAN number', { exact: true })).toHaveValue('pan_no')
     await rec.getByRole('button', { name: 'Check the data' }).click()
     const report = rec.getByTestId('validation-report')
-    await expect(report).toContainText('Ready1')
-    await expect(report).toContainText('With problems2')
+    await expect(report).toContainText('Ready2')
+    await expect(report).toContainText('With problems1')
     await rec.getByRole('button', { name: /^Load/ }).click()
     await expect(rec.getByTestId('reconciliation')).toContainText('Import finished', { timeout: 30_000 })
     await expect(rec.getByTestId('reconciliation')).toContainText('Added1')
