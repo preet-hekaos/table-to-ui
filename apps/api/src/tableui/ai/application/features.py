@@ -17,6 +17,7 @@ from tableui.identity.public import Principal
 from tableui.insights.public import snapshot
 from tableui.matching.public import matches
 from tableui.metadata.public import (
+    TYPE_PRESETS,
     FieldDef,
     Pack,
     RuntimeApp,
@@ -378,4 +379,91 @@ async def transform_from_words(
         p, "transform", TRANSFORM_BASE,
         f"Field: <data>{redact(label)} ({ftype})</data>\nDescription: <data>{redact(text_)}</data>", shape,
         permission="metadata.write", max_tokens=500,
+    )  # fmt: skip
+
+
+# ---- 10. describe a new field in words (suggestion only) ----------------------------------------------
+
+FIELD_TYPES = "text, long_text, email, phone, integer, decimal, boolean, date, select, url, money, months, tags"
+
+
+def _field_base() -> str:
+    kinds = "; ".join(f"{k} = {v.name} ({v.core})" for k, v in TYPE_PRESETS.items())
+    return (
+        "You describe a new field for a table from a plain sentence. Reply as JSON: "
+        '{"label": "short field name", "preset": one of the ready-made type keys or null, '
+        f'"type": one of {FIELD_TYPES}, "required": true or false, "max_length": a whole number or null, '
+        '"options": [choices, only for type select], "explanation": "one plain sentence"}. '
+        f"Ready-made types: {kinds}. Use a ready-made type when one fits; its type must be its own core type."
+    )
+
+
+async def field_from_words(ctx: Ctx, p: Principal, description: str) -> dict[str, Any]:
+    """A suggested field. The engine decides what is usable: the type must be a real one, a ready-made type must exist
+    and agree with the core type, and the result must build a valid field. Nothing is saved here."""
+    text_ = description.strip()
+    if not text_ or len(text_) > 300:
+        raise ValidationFailed(
+            errors=[
+                {
+                    "field": "description",
+                    "code": "invalid",
+                    "message": "Describe it in 1 to 300 characters.",
+                }
+            ]  # fmt: skip
+        )
+
+    def shape(v: Any) -> dict[str, Any]:
+        o = need_object(v)
+        label = need_text(o, "label", limit=80)
+        preset_key = o.get("preset")
+        preset = None
+        if preset_key:
+            preset = TYPE_PRESETS.get(str(preset_key))
+            if preset is None:
+                raise BadReply("Unknown ready-made type.")
+        ftype = preset.core if preset else str(o.get("type") or "")
+        options = [str(x)[:60] for x in (o.get("options") or []) if isinstance(x, str | int | float)][:30]  # fmt: skip
+        ml = o.get("max_length")
+        max_length = ml if isinstance(ml, int) and not isinstance(ml, bool) and 1 <= ml <= 2000 else None  # fmt: skip
+        if preset is not None:
+            max_length = preset.max_length or max_length
+        try:
+            f = FieldDef.model_validate(
+                {
+                    "key": "probe",
+                    "label": label,
+                    "type": ftype,
+                    "required": bool(o.get("required")),
+                    "options": options if ftype == "select" else [],
+                    "max_length": max_length if ftype in ("text", "long_text") else None,
+                    **(
+                        {
+                            k: x
+                            for k, x in preset.settings().items()
+                            if k != "type" and x is not None
+                        }
+                        if preset
+                        else {}
+                    ),  # fmt: skip
+                }
+            )
+        except ValueError as e:
+            raise BadReply(str(e)) from None
+        if f.type == "select" and not f.options:
+            raise BadReply("A choice field needs choices.")
+        return {
+            "label": f.label,
+            "preset": preset.key if preset else None,
+            "type": f.type,
+            "type_name": f.type_name,
+            "required": f.required,
+            "max_length": f.max_length,
+            "options": list(f.options),
+            "explanation": need_text(o, "explanation", limit=300),
+        }
+
+    return await ctx.run(
+        p, "field", _field_base(), f"Description: <data>{redact(text_)}</data>", shape,
+        permission="metadata.write", max_tokens=400,
     )  # fmt: skip

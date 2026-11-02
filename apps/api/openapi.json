@@ -453,6 +453,19 @@
         "title": "ExtractBody",
         "type": "object"
       },
+      "FieldBody": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          }
+        },
+        "required": [
+          "description"
+        ],
+        "title": "FieldBody",
+        "type": "object"
+      },
       "FieldValueBody": {
         "properties": {
           "field": {
@@ -2057,6 +2070,50 @@
           }
         },
         "summary": "Extract",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/v1/ai/field": {
+      "post": {
+        "description": "A suggested new field from a description. Nothing is saved; the builder presses Use.",
+        "operationId": "field_v1_ai_field_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FieldBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Field V1 Ai Field Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Field",
         "tags": [
           "ai"
         ]

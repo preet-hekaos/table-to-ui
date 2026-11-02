@@ -217,6 +217,18 @@ async def transform(
     )
 
 
+class FieldBody(BaseModel):
+    description: str
+
+
+@router.post("/field")
+async def field(
+    body: FieldBody, req: Request, p: PrincipalDep, db: DbDep, an: AnalyticsDep, s: SettingsDep
+) -> dict[str, Any]:
+    """A suggested new field from a description. Nothing is saved; the builder presses Use."""
+    return await features.field_from_words(await _ctx(req, p, db, an, s), p, body.description)
+
+
 @router.post("/explain-number")
 async def explain_number(
     body: NumberBody,

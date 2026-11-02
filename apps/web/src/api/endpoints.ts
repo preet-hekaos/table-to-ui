@@ -663,6 +663,8 @@ export const ai = {
     send<{ pattern: string; explanation: string; samples: { value: string; allowed: boolean }[] }>('POST', '/v1/ai/pattern', { description }),
   transform: (description: string, label: string, type: string) =>
     send<{ rules: TransformRule[]; explanation: string; samples: { input: string; output: unknown }[] }>('POST', '/v1/ai/transform', { description, label, type }),
+  field: (description: string) =>
+    send<{ label: string; preset: string | null; type: FieldDef['type']; type_name: string | null; required: boolean; max_length: number | null; options: string[]; explanation: string }>('POST', '/v1/ai/field', { description }),
   settings: () => g<AiSettings>('/v1/ai/settings'),
   saveSettings: (body: { enabled?: boolean; tables?: string[]; monthly_token_cap?: number }) => send<AiSettings>('PUT', '/v1/ai/settings', body),
   extract: (screen: string, file_id: string) => send<AiSuggestions>('POST', '/v1/ai/extract', { screen, file_id }),

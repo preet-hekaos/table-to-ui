@@ -1,13 +1,14 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState, type FormEvent } from 'react'
 import { ApiError } from '@/api/client'
-import { studio } from '@/api/endpoints'
+import { ai, studio } from '@/api/endpoints'
 import type { FieldDef, StudioTable } from '@/api/types'
 import { Button, Dialog, DialogContent, Field, Input, Select, useToast } from '@/design-system'
 
 export { TYPE_LABELS } from './typeLabels'
 import { TYPE_LABELS } from './typeLabels'
 import { areaLabelOf } from './TypeCell'
+import { FieldWordsPanel } from './FieldWordsPanel'
 import { TypePicker } from './TypePicker'
 import { buildChoices, type TypeChoice } from './typeCatalog'
 import { useTypePresets } from './useTypePresets'
@@ -30,6 +31,7 @@ export function FieldDialog({ table, tables, field, open, onOpenChange }: Props)
   const isNew = !field
   const [label, setLabel] = useState(field?.label ?? '')
   const presets = useTypePresets()
+  const aiSetting = useQuery({ queryKey: ['ai', 'settings'], queryFn: ai.settings, staleTime: 60_000, retry: false, enabled: isNew })
   const choices = useMemo(() => buildChoices(presets.data, ''), [presets.data])
   const [picked, setPicked] = useState<TypeChoice | undefined>()
   const chosen = picked ?? choices.find((c) => c.id === 'core:text')
@@ -92,6 +94,17 @@ export function FieldDialog({ table, tables, field, open, onOpenChange }: Props)
         }
       >
         <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
+          {isNew && (
+            <FieldWordsPanel
+              aiOn={!!aiSetting.data?.enabled}
+              onUse={(p) => {
+                setLabel(p.label)
+                setPicked(choices.find((c) => c.id === (p.preset ? `preset:${p.preset}` : `core:${p.type}`)))
+                setRequired(p.required)
+                setOptions(p.options.join(', '))
+              }}
+            />
+          )}
           <Field label="Label" required error={errors.label ?? errors.key}>
             <Input value={label} onChange={(e) => setLabel(e.target.value)} autoFocus />
           </Field>

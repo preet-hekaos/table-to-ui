@@ -41,6 +41,8 @@ def demo_answer(system: str, user: str) -> object:
             if len(chunk) == 3:
                 out[f["key"]] = {"value": " ".join(chunk), "quote": " ".join(chunk)}
         return {"fields": out}
+    if "describe a new field" in system:
+        return _demo_field(data)
     if "transformation rules for a field" in system:
         return _demo_transform(user.rsplit("<data>", 1)[1].split("</data>")[0].strip())
     if "regular expression" in system:
@@ -218,3 +220,47 @@ def _demo_transform(words: str) -> object:
             "tries": ["", "keep me"],
         }
     return {"rules": [], "explanation": "Demo could not read that.", "tries": []}
+
+
+def _demo_field(words: str) -> object:
+    """A field from a sentence such as "PAN number, required" or "which city they live in"; keyword based."""
+    low = words.lower()
+    required = "required" in low or "must" in low or "mandatory" in low
+    table = [
+        ("pan", "PAN number", "pan_in", "text"),
+        ("pincode", "Pincode", "pincode_in", "text"),
+        ("notice", "Notice period (days)", "notice_days", "integer"),
+        ("mobile", "Mobile number", "mobile_in", "phone"),
+        ("email", "Email address", "email_address", "email"),
+        ("website", "Website", "website", "url"),
+    ]
+    for word, label, preset, core in table:
+        if word in low:
+            return {
+                "label": label,
+                "preset": preset,
+                "type": core,
+                "required": required,
+                "max_length": None,
+                "options": [],
+                "explanation": f"Demo suggestion: a ready-made type for “{word}”.",
+            }
+    if "choose" in low or "one of" in low or "status" in low:
+        return {
+            "label": "Choice",
+            "preset": None,
+            "type": "select",
+            "required": required,
+            "options": ["Yes", "No", "Maybe"],
+            "max_length": None,
+            "explanation": "Demo suggestion: a choice field.",
+        }
+    return {
+        "label": words[:40].strip().capitalize() or "New field",
+        "preset": None,
+        "type": "text",
+        "required": required,
+        "max_length": 120,
+        "options": [],
+        "explanation": "Demo suggestion: a short text field.",
+    }
