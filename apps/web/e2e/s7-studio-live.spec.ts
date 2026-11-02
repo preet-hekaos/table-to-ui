@@ -98,6 +98,16 @@ test('Screens: columns, filters, grouping and the Add action reach the live list
 test('Stages: a renamed stage and a new stage show on the live Pipeline board after publish', async ({ page, browser }) => {
   await page.setViewportSize({ width: 1500, height: 1100 })
   await signUpWithPack(page, `Stages Live ${run}`, `st-${run}@studio.test`)
+  const made = await page.evaluate(async () => {
+    const h = { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionStorage.getItem('tableui.token')}` }
+    const mk = async (t: string, data: object) => ((await (await fetch(`/v1/records/${t}`, { method: 'POST', headers: h, body: JSON.stringify({ data }) })).json()) as { id: string }).id
+    const candidate = await mk('candidate', { full_name: 'Board Person', email: 'board-x@example.in', phone: '+919845077777' })
+    const client = await mk('client', { name: 'Board Co', status: 'Active' })
+    const requirement = await mk('requirement', { title: 'Board role', client, status: 'Open' })
+    const r = await fetch('/v1/records/submission', { method: 'POST', headers: h, body: JSON.stringify({ data: { summary: 'x', candidate, requirement } }) })
+    return r.status
+  })
+  expect(made).toBe(201)
   await page.goto('/studio?tab=flow')
   await page.getByLabel('Label for stage Interview').fill('Client interview')
   await page.getByRole('button', { name: 'Save names' }).first().click()
@@ -119,10 +129,10 @@ test('Preview: role, version and device change the framed app; fixtures run on T
   await signUpWithPack(page, `Preview ${run}`, `pv-${run}@studio.test`)
   await page.goto('/studio?tab=preview')
   const frame = page.locator('iframe')
-  await expect(frame).toHaveAttribute('title', /as admin on desktop/i)
-  await page.getByLabel('See it as').selectOption({ label: 'Recruiter' })
   await expect(frame).toHaveAttribute('title', /as recruiter on desktop/i)
-  await expect(frame).toHaveAttribute('src', /preview_role=recruiter&preview_env=/)
+  await page.getByLabel('See it as').selectOption({ label: 'Manager' })
+  await expect(frame).toHaveAttribute('title', /as manager on desktop/i)
+  await expect(frame).toHaveAttribute('src', /preview_role=manager&preview_env=/)
   await page.getByLabel('Version').selectOption('live')
   await expect(frame).toHaveAttribute('src', /preview_env=live/)
   const w0 = Number(await frame.getAttribute('width'))
