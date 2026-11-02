@@ -126,7 +126,9 @@ export function FeaturesCell({ table, field, f, patch, canEdit }: { table: Studi
           className="inline-flex max-w-full items-center gap-1 rounded-md px-1 py-0.5 hover:bg-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           {first.map((x) => (
-            <span key={x.id} aria-hidden className="rounded-full bg-soft px-2 py-0.5 text-xs font-medium text-body">{x.short}</span>
+            <span key={x.id} className="rounded-full bg-soft px-2 py-0.5 text-xs font-medium text-body">
+              {x.short}{' '}
+            </span>
           ))}
           {first.length === 0 && <span aria-hidden className="text-xs text-muted">None</span>}
           {rest > 0 && <span aria-hidden className="rounded-full border border-line px-1.5 py-0.5 text-xs font-semibold text-ink">+{rest}</span>}
