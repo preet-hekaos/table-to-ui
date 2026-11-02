@@ -90,10 +90,11 @@ test('S6.4 the full journey: Studio to the recruiter, a new rule, and a rollback
 
   await test.step('6. Review the changes in plain words, then publish', async () => {
     await page.getByTestId('draft-banner').getByRole('button', { name: 'Review changes' }).click()
-    const review = page.getByRole('dialog')
+    const review = page.getByTestId('diff').first()
     await expect(review).toContainText('PAN number')
     await expect(review).toContainText('added')
-    await page.keyboard.press('Escape')
+    await expect(review).not.toContainText('{')
+    await page.screenshot({ path: '../../docs/screens/studio-table/s6/review-in-words.png' })
     await publishLive(page)
   })
 
