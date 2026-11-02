@@ -172,7 +172,7 @@ function Configurator({ screen, table, canEdit }: { screen: DraftScreen; table: 
         {listLike && <Checklist legend="Columns" options={fields} value={cfg.columns ?? []} onChange={(columns) => set({ columns })} />}
         {listLike && <Checklist legend="Filters" options={fields} value={cfg.filters ?? []} onChange={(filters) => set({ filters })} />}
         {listLike && (
-          <Field label="Group by">
+          <Field label="Group by" hint="Needs Group rows switched on in the table’s Features.">
             <Select value={cfg.group_by ?? ''} onChange={(e) => set({ group_by: e.target.value || undefined })} disabled={!canEdit}>
               <option value="">No grouping</option>
               {table.fields.filter((f) => ['select', 'reference', 'boolean', 'text'].includes(f.type)).map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}
