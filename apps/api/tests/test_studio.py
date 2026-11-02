@@ -64,7 +64,7 @@ async def test_pack_field_is_edited_and_deleted_like_any_other_field(
     )
     assert r.status_code == 200 and r.json()["max_length"] == 40
     r = await client.patch(f"{base}/current_employer", headers=a.h(), json={"type": "integer"})
-    assert r.status_code == 422 and r.json()["errors"][0]["code"] == "not_editable"
+    assert r.status_code == 422 and r.json()["errors"][0]["code"] == "type_not_compatible"
     # A pack field a rule still uses is protected like any other field; an unused one can go.
     r = await client.delete(f"{base}/current_employer", headers=a.h())
     assert r.status_code == 422 and r.json()["errors"][0]["code"] == "in_use"
@@ -483,3 +483,281 @@ async def test_a_deleted_field_comes_back_with_undo_until_it_is_published(
     assert again.status_code == 422 and again.json()["errors"][0]["code"] == "already_there"
     gone = await client.post(f"{base}/never_existed/restore", headers=a.h())
     assert gone.status_code == 404
+
+
+async def test_type_presets_are_one_time_bundles_and_type_changes_follow_the_compatibility_table(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    base = "/v1/studio/tables/candidate/fields"
+    listing = (await client.get("/v1/studio/type-presets", headers=a.h())).json()
+    assert {"person_name", "pan_in", "notice_days"} <= {x["key"] for x in listing["presets"]}
+    assert "decimal" in listing["compatible"]["integer"]
+    # a new field made from a preset gets its core type, length and capitals
+    r = await client.post(base, headers=a.h(), json={"label": "PAN number", "preset": "pan_in"})
+    assert r.status_code == 201, r.text
+    f = r.json()
+    assert (f["type"], f["max_length"], f["save_as"], f["type_name"]) == (
+        "text",
+        10,
+        "upper",
+        "PAN (India)",
+    )
+    # changing a pack field to a compatible type keeps working; an incompatible one is refused and saves nothing
+    r = await client.patch(f"{base}/current_title", headers=a.h(), json={"type": "long_text"})
+    assert (
+        r.status_code == 200 and r.json()["type"] == "long_text" and r.json()["type_name"] is None
+    )
+    r = await client.patch(f"{base}/current_title", headers=a.h(), json={"type": "date"})
+    assert r.status_code == 422 and r.json()["errors"][0]["code"] == "type_not_compatible"
+    r = await client.patch(f"{base}/current_title", headers=a.h(), json={"preset": "nope"})
+    assert r.status_code == 422 and r.json()["errors"][0]["code"] == "unknown_preset"
+    # a preset applied later fills the settings once; editing the length afterwards does not touch the preset
+    r = await client.patch(f"{base}/current_title", headers=a.h(), json={"preset": "job_title"})
+    assert r.status_code == 200 and r.json()["max_length"] == 80 and r.json()["type"] == "text"
+    r = await client.patch(f"{base}/current_title", headers=a.h(), json={"max_length": 50})
+    assert (
+        r.status_code == 200
+        and r.json()["max_length"] == 50
+        and r.json()["type_name"] == "Job title"
+    )
+    # whole number to decimal
+    r = await client.patch(f"{base}/notice_period_days", headers=a.h(), json={"type": "decimal"})
+    assert r.status_code == 200 and r.json()["type"] == "decimal"
+
+
+async def test_length_impact_counts_records_longer_than_a_new_maximum(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    for name, phone in (("Ann Long Name", "+91 98450 11111"), ("Bo", "+91 98450 22222")):
+        r = await a.create_candidate(candidate(full_name=name, phone=phone))
+        assert r.status_code == 201, r.text
+    base = "/v1/studio/tables/candidate/fields/full_name/length-impact"
+    r = await client.get(base, params={"max_length": 5}, headers=a.h())
+    assert r.status_code == 200 and r.json() == {"count": 1}
+    assert (await client.get(base, params={"max_length": 50}, headers=a.h())).json() == {"count": 0}
+    assert (await client.get(base, params={"max_length": 0}, headers=a.h())).status_code == 422
+    gone = await client.get(
+        "/v1/studio/tables/candidate/fields/nope/length-impact",
+        params={"max_length": 5},
+        headers=a.h(),
+    )
+    assert gone.status_code == 404
+
+
+async def test_value_count_counts_records_with_a_value_even_after_the_field_is_removed(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    for name, phone, loc in (
+        ("Ann", "+91 98450 11111", "Pune"),
+        ("Bo", "+91 98450 22222", "Delhi"),
+        ("Cy", "+91 98450 33333", None),
+    ):
+        r = await a.create_candidate(candidate(full_name=name, phone=phone, location=loc))
+        assert r.status_code == 201, r.text
+    base = "/v1/studio/tables/candidate/fields/location/value-count"
+    assert (await client.get(base, headers=a.h())).json() == {"count": 2}
+    gone = await client.delete("/v1/studio/tables/candidate/fields/location", headers=a.h())
+    assert gone.status_code == 204, gone.text
+    assert (await client.get(base, headers=a.h())).json() == {"count": 2}
+    bad = await client.get("/v1/studio/tables/candidate/fields/x'--/value-count", headers=a.h())
+    assert bad.status_code == 404
+
+
+async def _live_rule_field(client: httpx.AsyncClient, a: Agency, rules: list[dict]) -> str:
+    r = await client.post(
+        "/v1/studio/tables/candidate/fields",
+        headers=a.h(),
+        json={"label": "Tax ID", "type": "text", "rules": rules},
+    )
+    assert r.status_code == 201, r.text
+    return r.json()["key"]
+
+
+async def test_every_library_rule_accepts_its_good_samples_and_refuses_its_bad_ones(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    lib = (await client.get("/v1/studio/validation-library", headers=a.h())).json()
+    assert {i["key"] for i in lib} >= {"email", "mobile_in", "pan", "pincode_in", "gstin"}
+    for item in lib:
+        rule = {"kind": item["kind"], "pattern": item["pattern"]}
+        for values, expected in ((item["good"], True), (item["bad"], False)):
+            r = await client.post(
+                "/v1/studio/validation-preview",
+                headers=a.h(),
+                json={"rule": rule, "values": values},
+            )
+            assert r.status_code == 200, r.text
+            assert [x["allowed"] for x in r.json()["results"]] == [expected] * len(values), item
+
+
+async def test_a_bad_or_runaway_pattern_is_refused_when_the_rule_is_saved(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    for pattern, why in (
+        ("[", "not valid"),
+        ("(a+)+$", "run away"),
+        ("(?<=a)b", "look-behind"),
+        ("x" * 301, "longer than 300"),
+        ("", "empty"),
+    ):
+        r = await client.post(
+            "/v1/studio/tables/candidate/fields",
+            headers=a.h(),
+            json={
+                "label": "Bad",
+                "type": "text",
+                "rules": [{"name": "r", "pattern": pattern, "message": "no"}],
+            },
+        )
+        assert r.status_code == 422, (pattern, r.text)
+        assert why in r.text, (pattern, r.text)
+
+
+async def test_a_rule_added_in_studio_stops_bad_values_on_the_api_after_publish_and_can_be_switched_off(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    key = await _live_rule_field(
+        client,
+        a,
+        [{"name": "PAN", "pattern": "^[A-Z]{5}[0-9]{4}[A-Z]$", "message": "Enter a PAN."}],
+    )
+    await a.publish_live()
+    bad = await a.create_candidate(candidate(**{key: "abcde1234f"}, phone="+91 98450 10101"))
+    assert bad.status_code == 422 and "Enter a PAN." in bad.text
+    ok = await a.create_candidate(candidate(**{key: "ABCDE1234F"}, phone="+91 98450 10102"))
+    assert ok.status_code == 201, ok.text
+    off = await client.patch(
+        f"/v1/studio/tables/candidate/fields/{key}",
+        headers=a.h(),
+        json={
+            "rules": [
+                {
+                    "name": "PAN",
+                    "pattern": "^[A-Z]{5}[0-9]{4}[A-Z]$",
+                    "message": "Enter a PAN.",
+                    "enabled": False,
+                }
+            ]
+        },
+    )
+    assert off.status_code == 200, off.text
+    await a.publish_live()
+    now_ok = await a.create_candidate(candidate(**{key: "abcde1234f"}, phone="+91 98450 10103"))
+    assert now_ok.status_code == 201, now_ok.text
+
+
+async def test_rule_order_decides_which_message_is_shown(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    first = {"name": "Letters", "pattern": "^[A-Za-z]+$", "message": "Letters only."}
+    second = {"name": "Short", "pattern": "^.{1,3}$", "message": "At most 3 characters."}
+    key = await _live_rule_field(client, a, [first, second])
+    await a.publish_live()
+    r = await a.create_candidate(candidate(**{key: "abcdef"}, phone="+91 98450 10104"))
+    assert r.status_code == 422 and "At most 3 characters." in r.text
+    r = await a.create_candidate(candidate(**{key: "ab1234"}, phone="+91 98450 10105"))
+    assert r.status_code == 422 and "Letters only." in r.text
+    swap = await client.patch(
+        f"/v1/studio/tables/candidate/fields/{key}",
+        headers=a.h(),
+        json={"rules": [second, first]},
+    )
+    assert swap.status_code == 200, swap.text
+    await a.publish_live()
+    r = await a.create_candidate(candidate(**{key: "ab1234"}, phone="+91 98450 10106"))
+    assert r.status_code == 422 and "At most 3 characters." in r.text
+
+
+async def test_check_existing_counts_records_that_break_the_rules_and_changes_nothing(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    for i, v in enumerate(("ABCDE1234F", "abcde1234f", "nonsense")):
+        r = await a.create_candidate(candidate(current_title=v, phone=f"+91 98450 2000{i}"))
+        assert r.status_code == 201, r.text
+    base = "/v1/studio/tables/candidate/fields/current_title/rules/check-existing"
+    rules = [{"name": "PAN", "pattern": "^[A-Z]{5}[0-9]{4}[A-Z]$", "message": "Enter a PAN."}]
+    r = await client.post(base, headers=a.h(), json={"rules": rules})
+    assert r.status_code == 200 and r.json() == {"count": 2, "checked": 3}
+    none = await client.post(base, headers=a.h(), json={"rules": []})
+    assert none.json() == {"count": 0, "checked": 0}
+    still = await a.create_candidate(candidate(current_title="x", phone="+91 98450 20009"))
+    assert still.status_code == 201
+
+
+async def test_status_warns_how_many_records_break_a_rule_added_in_the_draft_but_never_blocks(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    for i, v in enumerate(("ABCDE1234F", "abcde1234f", "nonsense")):
+        r = await a.create_candidate(candidate(current_title=v, phone=f"+91 98450 3000{i}"))
+        assert r.status_code == 201, r.text
+    assert (await client.get("/v1/studio/status", headers=a.h())).json()["rule_warnings"] == []
+    rules = [{"name": "PAN", "pattern": "^[A-Z]{5}[0-9]{4}[A-Z]$", "message": "Enter a PAN."}]
+    r = await client.patch(
+        "/v1/studio/tables/candidate/fields/current_title", headers=a.h(), json={"rules": rules}
+    )
+    assert r.status_code == 200, r.text
+    status = (await client.get("/v1/studio/status", headers=a.h())).json()
+    assert status["rule_warnings"] == [
+        {
+            "table": "candidate",
+            "table_label": "Candidate",
+            "field": "current_title",
+            "label": "Current title",
+            "count": 2,
+        }
+    ]
+    fields = status["changes"]["tables"][0]["fields"]
+    assert fields[0]["attributes"]["rules"]["to"][0]["name"] == "PAN"
+    await a.publish_live()  # a warning, not a block
+    after = (await client.get("/v1/studio/status", headers=a.h())).json()
+    assert after["rule_warnings"] == []
+
+
+async def test_validate_field_gives_the_live_message_for_one_value_and_writes_nothing(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    key = await _live_rule_field(
+        client,
+        a,
+        [{"name": "PAN", "pattern": "^[A-Z]{5}[0-9]{4}[A-Z]$", "message": "Enter a PAN."}],
+    )
+    await a.publish_live()
+    url = "/v1/records/candidate/validate-field"
+    bad = await client.post(url, headers=a.h(), json={"field": key, "value": "abcde1234f"})
+    assert bad.status_code == 200 and bad.json() == {"message": "Enter a PAN."}
+    good = await client.post(url, headers=a.h(), json={"field": key, "value": "ABCDE1234F"})
+    assert good.json() == {"message": None}
+    blank = await client.post(url, headers=a.h(), json={"field": key, "value": ""})
+    assert blank.json() == {"message": None}  # blank is left to Required
+    other = await client.post(url, headers=a.h(), json={"field": "phone", "value": "12"})
+    assert other.json()["message"]  # not only rules: the same engine as saving
+    assert (await client.get("/v1/records/candidate", headers=a.h())).json()["items"] == []
+
+
+async def test_a_menu_entry_limited_to_a_role_is_hidden_from_other_roles_once_live(
+    client: httpx.AsyncClient, agency: Agency, mailer: InMemoryMailer
+) -> None:
+    from tests.test_access import _member
+
+    a = agency
+    rec = await _member(client, a, mailer, "recruiter")
+    nav = (await client.get("/v1/studio/navigation", headers=a.h())).json()
+    nav = [{**n, "roles": ["admin"]} if n["screen"] == "skills" else n for n in nav]
+    r = await client.put("/v1/studio/navigation", headers=a.h(), json={"items": nav})
+    assert r.status_code == 200, r.text
+    await a.publish_live()
+    mine = (await client.get("/v1/app/navigation", headers=a.h())).json()["items"]
+    theirs = (await client.get("/v1/app/navigation", headers=rec.h())).json()["items"]
+    assert any(i["screen"] == "skills" for i in mine)
+    assert not any(i["screen"] == "skills" for i in theirs)
+    assert any(i["screen"] == "candidates" for i in theirs)

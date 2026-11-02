@@ -1,0 +1,154 @@
+import { expect, test } from '@playwright/test'
+import { openSection, run, signUpWithPack } from './helpers'
+import { freshSession, publishLive } from './live-effect'
+
+test('Menu: rename, reorder, remove and add reach the live app after publish', async ({ page, browser }) => {
+  await page.setViewportSize({ width: 1500, height: 1100 })
+  await signUpWithPack(page, `Menu Live ${run}`, `ml-${run}@studio.test`)
+  await page.goto('/studio')
+  await openSection(page, 'Menu')
+
+  await test.step('Rename, move down, remove one entry, and save to Draft', async () => {
+    await page.getByLabel('Label for Candidates').fill('Talent')
+    await page.getByRole('button', { name: 'Move Talent down' }).click()
+    await page.getByRole('button', { name: 'Remove Consent records' }).click()
+    await page.getByRole('button', { name: 'Save menu' }).click()
+    await expect(page.getByText('Menu saved in Draft').first()).toBeVisible()
+  })
+
+  const rec = await freshSession(browser, page)
+  await test.step('Live is unchanged until publish', async () => {
+    await rec.goto('/')
+    await expect(rec.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Candidates', exact: true })).toBeVisible()
+  })
+
+  await test.step('After publish the live menu shows the new name, order, and no removed entry', async () => {
+    await publishLive(page)
+    await rec.goto('/')
+    const links = rec.getByRole('navigation', { name: 'Main' }).getByRole('link')
+    await expect(links.filter({ hasText: /^Talent$/ })).toBeVisible()
+    await expect(links.filter({ hasText: /^Candidates$/ })).toHaveCount(0)
+    await expect(rec.getByRole('link', { name: 'Consent records' })).toHaveCount(0)
+    const names = (await links.allTextContents()).map((t) => t.trim())
+    expect(names.indexOf('Talent'), names.join(' / ')).toBeGreaterThan(0)
+  })
+
+  await test.step('The removed entry can be added back from the screens list', async () => {
+    await openSection(page, 'Menu')
+    await page.getByLabel('Add a screen to the menu').selectOption({ label: 'Consent records' })
+    await page.getByRole('button', { name: 'Save menu' }).click()
+    await expect(page.getByText('Menu saved in Draft').first()).toBeVisible()
+    await publishLive(page)
+    await rec.goto('/')
+    await expect(rec.getByRole('link', { name: 'Consent records' })).toBeVisible()
+  })
+})
+
+test('Screens: title, grouping and empty-state text reach the live screen after publish', async ({ page, browser }) => {
+  await page.setViewportSize({ width: 1500, height: 1100 })
+  await signUpWithPack(page, `Screen Live ${run}`, `sl-${run}@studio.test`)
+  await page.goto('/studio?tab=data&table=candidate&part=screens')
+  await page.getByLabel('Screen to configure').selectOption({ label: 'Candidates' })
+  await page.getByLabel('Screen settings').getByLabel('Title', { exact: true }).fill('Talent pool')
+  await page.getByLabel('Empty-state text').fill('Nobody in the pool yet')
+  await page.getByRole('button', { name: 'Save screen' }).click()
+  await expect(page.getByText('Saved Talent pool in Draft').or(page.getByText(/Saved .* in Draft/)).first()).toBeVisible()
+  await publishLive(page)
+  const rec = await freshSession(browser, page)
+  await rec.goto('/s/candidates')
+  await expect(rec.getByRole('heading', { name: 'Talent pool' })).toBeVisible()
+  await expect(rec.getByText('Nobody in the pool yet')).toBeVisible()
+})
+
+test('Screens: columns, filters, grouping and the Add action reach the live list after publish', async ({ page, browser }) => {
+  await page.setViewportSize({ width: 1500, height: 1100 })
+  await signUpWithPack(page, `Screen Cols ${run}`, `sc-${run}@studio.test`)
+  await page.evaluate(async () => {
+    const h = { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionStorage.getItem('tableui.token')}` }
+    const mk = (n: number, status: string) => fetch('/v1/records/candidate', { method: 'POST', headers: h, body: JSON.stringify({ data: { full_name: `Person ${n}`, email: `p${n}-x@example.in`, phone: `+9198450700${n}0`, status, location: 'Pune' } }) })
+    await mk(1, 'Active')
+    await mk(2, 'Placed')
+  })
+  await page.goto('/studio?tab=data&table=candidate&part=screens')
+  await page.getByLabel('Screen to configure').selectOption({ label: 'Candidates' })
+  const cfg = page.getByLabel('Screen settings')
+  const columns = cfg.getByRole('group', { name: 'Columns' })
+  for (const l of ['Full name', 'Email']) await columns.getByLabel(l, { exact: true }).check()
+  for (const l of ['Location', 'Phone']) await columns.getByLabel(l, { exact: true }).uncheck()
+  const filters = cfg.getByRole('group', { name: 'Filters' })
+  for (const l of ['Source', 'Status']) await filters.getByLabel(l, { exact: true }).uncheck()
+  await filters.getByLabel('Source', { exact: true }).check()
+  await cfg.getByLabel('Group by').selectOption({ label: 'Status' })
+  await cfg.getByRole('group', { name: 'Actions' }).getByLabel('Add').uncheck()
+  await cfg.getByRole('button', { name: 'Save screen' }).click()
+  await expect(page.getByText(/Saved .* in Draft/).first()).toBeVisible()
+  await publishLive(page)
+
+  const rec = await freshSession(browser, page)
+  await rec.goto('/s/candidates')
+  await expect(rec.getByRole('link', { name: 'Person 1' })).toBeVisible()
+  await expect(rec.getByRole('columnheader', { name: /Email/ })).toBeVisible()
+  await expect(rec.getByRole('columnheader', { name: /Location/ })).toHaveCount(0)
+  await expect(rec.getByRole('button', { name: 'Add candidate' })).toHaveCount(0)
+  await expect(rec.getByLabel('Group by')).toHaveValue('status')
+  await expect(rec.getByLabel('Filter by Source')).toBeVisible()
+  await expect(rec.getByLabel('Filter by Status')).toHaveCount(0)
+})
+
+test('Stages: a renamed stage and a new stage show on the live Pipeline board after publish', async ({ page, browser }) => {
+  await page.setViewportSize({ width: 1500, height: 1100 })
+  await signUpWithPack(page, `Stages Live ${run}`, `st-${run}@studio.test`)
+  const made = await page.evaluate(async () => {
+    const h = { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionStorage.getItem('tableui.token')}` }
+    const mk = async (t: string, data: object) => ((await (await fetch(`/v1/records/${t}`, { method: 'POST', headers: h, body: JSON.stringify({ data }) })).json()) as { id: string }).id
+    const candidate = await mk('candidate', { full_name: 'Board Person', email: 'board-x@example.in', phone: '+919845077777' })
+    const client = await mk('client', { name: 'Board Co', status: 'Active' })
+    const requirement = await mk('requirement', { title: 'Board role', client, status: 'Open' })
+    const r = await fetch('/v1/records/submission', { method: 'POST', headers: h, body: JSON.stringify({ data: { summary: 'x', candidate, requirement } }) })
+    return r.status
+  })
+  expect(made).toBe(201)
+  await page.goto('/studio?tab=flow')
+  await page.getByLabel('Label for stage Interview').fill('Client interview')
+  await page.getByRole('button', { name: 'Save names' }).first().click()
+  await expect(page.getByText('Stages saved in Draft', { exact: true })).toBeVisible()
+  await page.waitForLoadState('networkidle') // the card redraws after the save; fill only once it has settled
+  const card = page.locator('section, div').filter({ has: page.getByLabel('Label for stage Interview') }).filter({ has: page.getByLabel('New stage name') }).last()
+  // the card can redraw once more after the save and clear what was typed, so fill again until it holds
+  await expect(async () => {
+    await card.getByLabel('New stage name').fill('Assessment')
+    await card.getByLabel('Add after').selectOption('Screened')
+    await expect(card.getByRole('button', { name: 'Add stage' })).toBeEnabled({ timeout: 1000 })
+  }).toPass({ timeout: 20_000 })
+  await card.getByRole('button', { name: 'Add stage' }).click()
+  await expect(page.getByLabel('Label for stage Assessment')).toBeVisible()
+  await publishLive(page)
+  const rec = await freshSession(browser, page)
+  await rec.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Pipeline' }).click()
+  await expect(rec.getByRole('listitem', { name: /^Client interview, / })).toBeVisible()
+  await expect(rec.getByRole('listitem', { name: /^Assessment, / })).toBeVisible()
+  await expect(rec.getByRole('listitem', { name: /^Interview, / })).toHaveCount(0)
+})
+
+test('Preview: role, version and device change the framed app; fixtures run on Test', async ({ page }) => {
+  await page.setViewportSize({ width: 1500, height: 1100 })
+  await signUpWithPack(page, `Preview ${run}`, `pv-${run}@studio.test`)
+  await page.goto('/studio?tab=preview')
+  const frame = page.locator('iframe')
+  await expect(frame).toHaveAttribute('title', /as recruiter on desktop/i)
+  await page.getByLabel('See it as').selectOption({ label: 'Manager' })
+  await expect(frame).toHaveAttribute('title', /as manager on desktop/i)
+  await expect(frame).toHaveAttribute('src', /preview_role=manager&preview_env=/)
+  await page.getByLabel('Version').selectOption('live')
+  await expect(frame).toHaveAttribute('src', /preview_env=live/)
+  const w0 = Number(await frame.getAttribute('width'))
+  await page.getByRole('group', { name: 'Device' }).getByRole('button', { name: 'Phone' }).click()
+  await expect.poll(async () => Number(await frame.getAttribute('width'))).toBe(390)
+  expect(w0).toBe(1280)
+  await page.getByLabel('Version').selectOption('draft')
+  await page.getByRole('button', { name: /^Run pack fixtures/ }).click()
+  await expect(page.getByTestId('fixture-results')).toContainText(/\d+ of \d+ passed/)
+  const inner = page.frameLocator('iframe')
+  await expect(inner.getByText(/Previewing as/)).toBeVisible()
+  await expect(inner.getByRole('link', { name: 'Studio', exact: true })).toHaveCount(0)
+})

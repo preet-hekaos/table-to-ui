@@ -34,6 +34,88 @@ class FieldGroup(_Strict):
     label: str
 
 
+class FieldRule(_Strict):
+    """One validation rule on a field (S3): a pattern the value must match, or the built-in "not in the future"."""
+
+    name: str = Field(min_length=1, max_length=60)
+    kind: Literal["pattern", "not_future"] = "pattern"
+    pattern: str = ""
+    message: str = Field(min_length=1, max_length=200)
+    enabled: bool = True
+
+    @model_validator(mode="after")
+    def _check(self) -> "FieldRule":
+        if self.kind == "pattern":
+            from tableui.metadata.domain.patterns import check_pattern
+
+            problem = check_pattern(self.pattern)
+            if problem:
+                raise ValueError(problem)
+        return self
+
+
+class TransformRule(_Strict):
+    """One "if this, then that" step on a field (S5): runs on the incoming value before it is checked and saved."""
+
+    when: Literal[
+        "blank",
+        "equals_any",
+        "contains",
+        "starts_with",
+        "ends_with",
+        "matches",
+        "above",
+        "below",
+        "field_is",
+    ]
+    args: list[str] = Field(default=[], max_length=30)  # the values the condition compares with
+    do: Literal[
+        "set", "set_standard", "copy_field", "keep_match", "trim", "case", "remove_chars", "clear"
+    ]
+    value: str = Field(
+        default="", max_length=200
+    )  # what the action uses: a value, a standard value, a field, a case, characters
+    stop: bool = False
+    enabled: bool = True
+
+    @model_validator(mode="after")
+    def _check(self) -> "TransformRule":
+        if self.when == "matches":
+            from tableui.metadata.domain.patterns import check_pattern
+
+            problem = check_pattern(self.args[0] if self.args else "")
+            if problem:
+                raise ValueError(problem)
+        if (
+            self.when in ("equals_any", "contains", "starts_with", "ends_with", "above", "below")
+            and not self.args
+        ):
+            raise ValueError("this condition needs a value to compare with")
+        if self.when == "field_is" and len(self.args) < 2:
+            raise ValueError("pick the other field and what it should be")
+        if self.do == "case" and self.value not in ("lower", "upper", "title"):
+            raise ValueError("choose lower, UPPER or Title Case")
+        if self.do == "set_standard" and self.value not in (
+            "today",
+            "now",
+            "user",
+            "zero",
+            "empty",
+            "not_provided",
+            "first_choice",
+        ):
+            raise ValueError("choose one of the standard values")
+        if self.do == "copy_field" and not self.value:
+            raise ValueError("pick the field to copy")
+        if self.do == "keep_match" and self.value:
+            from tableui.metadata.domain.patterns import check_pattern
+
+            problem = check_pattern(self.value)
+            if problem:
+                raise ValueError(problem)
+        return self
+
+
 class FieldDef(_Strict):
     key: Key
     label: str
@@ -47,6 +129,12 @@ class FieldDef(_Strict):
     min: float | None = None
     max: float | None = None
     max_length: int | None = None
+    type_name: str | None = (
+        None  # the real-world name chosen in the Type picker, for example "PAN (India)"
+    )
+    save_as: Literal["upper", "lower"] | None = (
+        None  # capitals handling applied before the value is saved
+    )
     analytics: bool = False
     source: Literal["pack", "agency"] = "pack"
     ref_table: str | None = None
@@ -55,6 +143,10 @@ class FieldDef(_Strict):
     filterable: bool = False  # offered as a facet or filter
     help: str | None = None
     aliases: list[str] = []  # other column names an import should match to this field
+    rules: list[FieldRule] = Field(default=[], max_length=20)  # validation rules, run top to bottom
+    transforms: list[TransformRule] = Field(
+        default=[], max_length=20
+    )  # clean the value first, top to bottom
 
     @model_validator(mode="after")
     def _check(self) -> "FieldDef":
@@ -65,6 +157,43 @@ class FieldDef(_Strict):
         if self.type == "reference" and not self.ref_table:
             raise ValueError("a reference field needs 'ref_table'")
         return self
+
+    @model_validator(mode="before")
+    @classmethod
+    def _default_into_rule(cls, data: Any) -> Any:
+        """S6 migration: an old `default` is the rule "if blank, set to it, and stop". Definitions saved before the
+        transformation rules open and publish unchanged, and behave the same."""
+        if not isinstance(data, dict) or data.get("default") is None:
+            return data
+        d = data["default"]
+        if isinstance(d, dict):
+            return data
+        text = (
+            ("true" if d else "false")
+            if isinstance(d, bool)
+            else ",".join(map(str, d))
+            if isinstance(d, list)
+            else str(d)
+        )
+        if len(text) > 200:
+            return data
+        rule = {
+            "when": "blank",
+            "args": [],
+            "do": "set",
+            "value": text,
+            "stop": True,
+            "enabled": True,
+        }
+        return {**data, "default": None, "transforms": [rule, *(data.get("transforms") or [])]}
+
+    @property
+    def has_fallback(self) -> bool:
+        """A blank value is filled in by the field itself (an "if blank, set to" rule)."""
+        return any(
+            t.enabled and t.when == "blank" and t.do in ("set", "set_standard")
+            for t in self.transforms
+        )
 
 
 class SearchInclude(_Strict):

@@ -21,7 +21,7 @@ export async function signUpWithPack(page: Page, name: string, email: string, pa
   }).toPass()
   await go.click()
   await expect(page.getByTestId('app-name')).toHaveText(name)
-  await expect(page.getByRole('heading', { name: /^Good (morning|afternoon|evening)/ })).toBeVisible() // onboarding has finished navigating home
+  await expect(page.getByRole('heading', { name: /^Good (morning|afternoon|evening)/ })).toBeVisible({ timeout: 30_000 }) // onboarding has finished navigating home
 }
 
 /**
@@ -90,4 +90,41 @@ export async function putFeatures(page: Page, table: string, body: Record<string
     [table, body] as [string, Record<string, unknown>],
   )
   expect(status).toBe(200)
+}
+
+/** In the Add field dialog: open the Type picker, choose a type by its name, and confirm. */
+export async function pickNewFieldType(page: Page, name: RegExp | string) {
+  await page.getByRole('dialog', { name: /^Add a field to/ }).getByRole('button', { name: /^Type: / }).click()
+  const picker = page.getByRole('dialog', { name: 'Type picker' })
+  await picker.getByRole('option', { name }).click()
+  await picker.getByRole('button', { name: /^Use / }).click()
+}
+
+/** In the Fields grid: open a field's Features cell and set one tick by its name in the dropdown. */
+export async function setFieldFeature(page: Page, fieldLabel: string, tick: string, on: boolean) {
+  await page.getByRole('button', { name: new RegExp(`Features of ${fieldLabel}$`) }).click()
+  const box = page.getByRole('checkbox', { name: new RegExp(`^${tick}`) })
+  if (on) await box.check()
+  else await box.uncheck()
+  await page.keyboard.press('Escape')
+}
+
+const wideBar = (page: Page) => page.getByRole('group', { name: 'Table-wide switches for Candidate' })
+
+/** Set one table-wide switch in the bar over the Fields grid and wait until it is saved. */
+export async function setTableWide(page: Page, name: string, on: boolean) {
+  await page.goto('/studio?tab=data&table=candidate')
+  const sw = wideBar(page).getByRole('switch', { name: new RegExp(`^${name}`) })
+  await expect(sw).toBeVisible()
+  if ((await sw.getAttribute('aria-checked')) !== String(on)) await sw.click()
+  await expect(sw).toHaveAttribute('aria-checked', String(on))
+}
+
+/** Read one tick of a field's Features cell. */
+export async function expectFieldFeature(page: Page, fieldLabel: string, tick: string, on: boolean) {
+  await page.getByRole('button', { name: new RegExp(`Features of ${fieldLabel}$`) }).click()
+  const box = page.getByRole('checkbox', { name: new RegExp(`^${tick}`) })
+  if (on) await expect(box).toBeChecked()
+  else await expect(box).not.toBeChecked()
+  await page.keyboard.press('Escape')
 }

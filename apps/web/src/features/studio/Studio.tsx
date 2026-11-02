@@ -1,3 +1,4 @@
+import { describeFieldChange, describeTableAttribute } from './changeWords'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { formatDateTime } from '@/patterns/format'
 import { useNavigate } from '@tanstack/react-router'
@@ -103,7 +104,7 @@ export function DiffList({ diff }: { diff: ManifestDiff }) {
                 <li key={d.key}>
                   <Badge tone={d.change === 'added' ? 'ok' : d.change === 'removed' ? 'bad' : 'warn'}>{d.change}</Badge>{' '}
                   <b className="text-ink">{d.key}</b>
-                  {d.attributes && d.attributes.length > 0 && <span className="text-muted"> ({d.attributes.join(', ')})</span>}
+                  {d.attributes && d.attributes.length > 0 && <span className="text-muted"> ({d.attributes.map(describeTableAttribute).join(', ')})</span>}
                   {d.fields && d.fields.length > 0 && (
                     <ul className="mt-1 ml-5 list-disc text-body">
                       {d.fields.map((f) => (
@@ -112,7 +113,7 @@ export function DiffList({ diff }: { diff: ManifestDiff }) {
                           {f.attributes &&
                             ' — ' +
                               Object.entries(f.attributes)
-                                .map(([k, v]) => `${k} ${JSON.stringify(v.from)} → ${JSON.stringify(v.to)}`)
+                                .map(([k, v]) => describeFieldChange(k, v.from, v.to))
                                 .join('; ')}
                         </li>
                       ))}
@@ -166,6 +167,24 @@ function DraftBanner({ canPublish, onReview }: { canPublish: boolean; onReview: 
         </Button>
       )}
     </div>
+    {d.rule_warnings.length > 0 && (
+      <ul role="status" aria-label="Rule warnings" data-testid="rule-warnings" className="flex flex-col gap-1 rounded-lg border border-warn-soft bg-warn-soft px-4 py-3 text-sm text-warn-ink">
+        {d.rule_warnings.map((w) => (
+          <li key={`${w.table}.${w.field}`}>
+            <b>{w.count} existing {w.count === 1 ? 'record' : 'records'}</b> in {w.table_label} already {w.count === 1 ? 'breaks' : 'break'} the rules on {w.label}. They stay as they are; you can still publish, and new saves must follow the rules.
+          </li>
+        ))}
+      </ul>
+    )}
+    {d.unique_blockers.length > 0 && (
+      <ul role="alert" aria-label="Duplicates block publishing" data-testid="unique-blockers" className="flex flex-col gap-1 rounded-lg border border-bad-soft bg-bad-soft px-4 py-3 text-sm text-bad-ink">
+        {d.unique_blockers.map((b) => (
+          <li key={`${b.table}.${b.field}`}>
+            <b>{b.label}</b> in {b.table_label} cannot be unique yet. Used more than once: {b.values.slice(0, 5).map((v) => `${v.value} (${v.count})`).join(', ')}. Change those records, then publish.
+          </li>
+        ))}
+      </ul>
+    )}
     <LinkHealth compact />
     </div>
   )

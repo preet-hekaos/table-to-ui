@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
-import { expectReadable, putFeatures, run, signUpWithPack } from './helpers'
+import { expectReadable, putFeatures, run, setFieldFeature, signUpWithPack } from './helpers'
 
 const token = (page: Page) => page.evaluate(() => sessionStorage.getItem('tableui.token'))
 
@@ -48,23 +48,20 @@ test('Field grid: the owner decides what people can do with each field', async (
     await shot(page, 'r5-tiles')
   })
 
-  await test.step('Set the grid in Studio', async () => {
+  await test.step('Set the features in the Fields grid', async () => {
     await putFeatures(page, 'candidate', { density: 'comfortable' })
-    await page.goto('/studio?tab=data&table=candidate&part=features')
-    const grid = page.getByTestId('field-grid')
-    await expect(grid).toBeVisible()
-    await expect(grid.getByRole('checkbox', { name: 'Show Full name by default' })).toBeDisabled()
-    await grid.getByRole('checkbox', { name: 'Show Location by default' }).uncheck()
-    await grid.getByRole('checkbox', { name: 'Edit Status in the list' }).uncheck()
-    await grid.getByRole('checkbox', { name: 'Change Status for many rows' }).uncheck()
-    await grid.getByRole('checkbox', { name: 'Export Phone' }).uncheck()
-    for (const th of await grid.getByRole('columnheader').all()) await expectReadable(page, th)
+    await page.goto('/studio?tab=data&table=candidate')
+    await expect(page.getByRole('table', { name: 'Candidate fields' })).toBeVisible()
+    await page.getByRole('button', { name: /Features of Full name$/ }).click()
+    await expect(page.getByRole('checkbox', { name: /^Shown in the list/ })).toBeDisabled()
+    await page.keyboard.press('Escape')
+    await setFieldFeature(page, 'Location', 'Shown in the list', false)
+    await setFieldFeature(page, 'Status', 'Editable in the list', false)
+    await setFieldFeature(page, 'Status', 'Bulk edit', false)
+    await setFieldFeature(page, 'Phone', 'Exportable', false)
     await shot(page, 'r5-grid')
-    await testInfo.attach('grid', { body: await page.screenshot(), contentType: 'image/png' })
     const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()
     expect(r.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')).toEqual([])
-    await page.getByTestId('features-panel').getByRole('button', { name: 'Save features' }).click()
-    await expect(page.getByText('Saved features for Candidate').first()).toBeVisible()
     await goLive(page)
   })
 

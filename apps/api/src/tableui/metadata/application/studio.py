@@ -20,12 +20,16 @@ from tableui.metadata.domain.links import describe_cycle, required_cycle
 from tableui.metadata.domain.models import (
     CHART_X_TYPES,
     FieldDef,
+    FieldRule,
     NavItem,
     RuleDef,
     ScreenDef,
     TableDef,
     TableFeatures,
 )
+from tableui.metadata.domain.patterns import rule_problem
+from tableui.metadata.domain.presets import BY_KEY, compatible, why_not
+from tableui.metadata.domain.values import validate_record
 from tableui.platform.errors import NotFound, ValidationFailed
 from tableui.platform.ids import schema_name
 from tableui.platform.sql import split_statements
@@ -65,6 +69,13 @@ FIELD_EDITABLE = {
     "min",
     "max",
     "max_length",
+    "rules",
+    "type",
+    "unique",
+    "searchable",
+    "filterable",
+    "transforms",
+    "default",
 }
 
 
@@ -168,7 +179,10 @@ def _new_field(body: dict[str, Any], existing: set[str], tables: set[str]) -> Fi
     label = str(body.get("label") or "").strip()
     if not label:
         raise _bad("label", "is required", "required")
-    ftype = body.get("type")
+    preset = BY_KEY.get(str(body.get("preset"))) if body.get("preset") else None
+    if body.get("preset") and preset is None:
+        raise _bad("preset", f"there is no type called '{body['preset']}'", "unknown_preset")
+    ftype = preset.core if preset else body.get("type")
     key = body.get("key") or slug(label)
     if key in RESERVED_FIELDS or key.endswith("_norm"):
         raise _bad("key", f"'{key}' is reserved; choose another name")
@@ -188,12 +202,20 @@ def _new_field(body: dict[str, Any], existing: set[str], tables: set[str]) -> Fi
                 "options": body.get("options") or [],
                 "help": body.get("help") or None,
                 "group": body.get("group") or None,
+                "rules": body.get("rules") or [],
+                "transforms": body.get("transforms") or [],
+                "default": body.get("default"),
                 "ref_table": body.get("ref_table") if ftype == "reference" else None,
                 "unique": unique,
                 "normalize": normalize,
                 "source": "agency",
-                "searchable": ftype in TEXTUAL,
-                "filterable": True,
+                "searchable": bool(body.get("searchable", ftype in TEXTUAL)),
+                "filterable": bool(body.get("filterable", True)),
+                **(
+                    {k: v for k, v in preset.settings().items() if k != "type" and v is not None}
+                    if preset
+                    else {}
+                ),
             }
         )
     except ValidationError as e:
@@ -325,6 +347,18 @@ async def update_field(
     if f is None:
         raise NotFound(f"There is no field '{field_key}' on '{table_key}'.")
     allowed = FIELD_EDITABLE
+    body = dict(body)
+    preset_key = body.pop("preset", None)
+    if preset_key is not None:
+        preset = BY_KEY.get(str(preset_key))
+        if preset is None:
+            raise _bad("preset", f"there is no type called '{preset_key}'", "unknown_preset")
+        body = {**body, **preset.settings()}
+    elif "type" in body and "type_name" not in body:
+        body["type_name"] = None  # a plain core type has no real-world name
+    allowed = (
+        allowed | {"type_name", "save_as"} if preset_key is not None or "type" in body else allowed
+    )
     refused = sorted(set(body) - allowed)
     if refused:
         raise _bad(
@@ -333,6 +367,21 @@ async def update_field(
             "not_editable",
         )
     changes = {k: v for k, v in body.items() if k in allowed}
+    if "type" in changes and changes["type"] != f.type:
+        if not compatible(f.type, str(changes["type"])):
+            raise _bad("type", why_not(f.type, str(changes["type"])), "type_not_compatible")
+        if f.options and changes["type"] not in ("select", "tags"):
+            changes["options"] = []
+        keeps = NORMALIZER.get(str(changes["type"])) or ("text" if f.unique else None)
+        changes["normalize"] = keeps
+    for flag in ("unique", "searchable", "filterable"):
+        if flag in changes and not isinstance(changes[flag], bool):
+            raise _bad(flag, "must be on or off")
+    if changes.get("unique"):
+        if f.type in ("long_text", "tags", "boolean"):
+            raise _bad("unique", "cannot be used for this type of field", "unique_not_allowed")
+        if not f.normalize and "normalize" not in changes:
+            changes["normalize"] = NORMALIZER.get(str(changes.get("type", f.type))) or "text"
     if "label" in changes and not str(changes["label"]).strip():
         raise _bad("label", "is required", "required")
     if "label" in changes:
@@ -344,6 +393,16 @@ async def update_field(
                 "duplicate",
             )
     new = {**f.model_dump(mode="json"), **changes}
+    if "filterable" in changes:
+        # One meaning: the field-level flag and the table's "no filter on" list are set together.
+        feats = TableFeatures.model_validate(definition.get("features") or {})
+        no_filter = [k for k in feats.unfilterable if k != field_key]
+        if not changes["filterable"]:
+            no_filter.append(field_key)
+        definition = {
+            **definition,
+            "features": {**feats.model_dump(mode="json"), "unfilterable": no_filter},
+        }
     if new.get("hidden") and (new.get("required") or field_key == table.title_field):
         raise _bad("hidden", "a required field or the record's name cannot be hidden")
     try:
@@ -520,6 +579,193 @@ async def remove_field(
     await _audit(
         s, tenant_id, user_id, "metadata.field.delete", f"{table_key}.{field_key}", {}, request_id
     )
+
+
+async def length_impact(
+    s: AsyncSession, *, tenant_id: uuid.UUID, table_key: str, field_key: str, max_length: int
+) -> dict[str, int]:
+    """How many records already hold a value longer than a new maximum length (they are left as they are)."""
+    await _enter_tenant(s, tenant_id)
+    found = await _draft(s, "table", table_key)
+    if found is None:
+        raise NotFound(f"There is no table '{table_key}'.")
+    if TableDef.model_validate(found[0]).field(field_key) is None:
+        raise NotFound(f"There is no field '{field_key}' on '{table_key}'.")
+    exists = (await s.execute(text("SELECT to_regclass(:t)"), {"t": f'"{table_key}"'})).scalar()
+    if not exists:
+        return {"count": 0}
+    n = (
+        await s.execute(
+            text(
+                f'SELECT count(*) FROM "{table_key}" '  # noqa: S608 - identifiers are validated metadata keys
+                f"WHERE char_length(COALESCE(data->>'{field_key}', '')) > :n"
+            ),
+            {"n": max_length},
+        )
+    ).scalar()
+    return {"count": int(n or 0)}
+
+
+async def value_count(
+    s: AsyncSession, *, tenant_id: uuid.UUID, table_key: str, field_key: str
+) -> dict[str, int]:
+    """How many records hold a value in a field, including a field removed in the Draft (the values stay stored)."""
+    await _enter_tenant(s, tenant_id)
+    if await _draft(s, "table", table_key) is None:
+        raise NotFound(f"There is no table '{table_key}'.")
+    if not re.fullmatch(r"[a-z][a-z0-9_]{0,49}", field_key):
+        raise NotFound(f"There is no field '{field_key}' on '{table_key}'.")
+    exists = (await s.execute(text("SELECT to_regclass(:t)"), {"t": f'"{table_key}"'})).scalar()
+    if not exists:
+        return {"count": 0}
+    n = (
+        await s.execute(
+            text(
+                f'SELECT count(*) FROM "{table_key}" '  # noqa: S608 - both identifiers are checked above
+                f"WHERE COALESCE(data->>'{field_key}', '') <> ''"
+            )
+        )
+    ).scalar()
+    return {"count": int(n or 0)}
+
+
+async def rules_check_existing(
+    s: AsyncSession,
+    *,
+    tenant_id: uuid.UUID,
+    table_key: str,
+    field_key: str,
+    rules: list[dict[str, Any]] | None,
+) -> dict[str, int]:
+    """How many records already hold a value that breaks the field's rules (the Draft's, or the ones given).
+    Nothing is changed: stored data stays as it is."""
+    await _enter_tenant(s, tenant_id)
+    found = await _draft(s, "table", table_key)
+    if found is None:
+        raise NotFound(f"There is no table '{table_key}'.")
+    f = TableDef.model_validate(found[0]).field(field_key)
+    if f is None:
+        raise NotFound(f"There is no field '{field_key}' on '{table_key}'.")
+    try:
+        use = (
+            FieldDef.model_validate({**f.model_dump(mode="json"), "rules": rules}).rules
+            if rules is not None
+            else f.rules
+        )
+    except ValidationError as e:
+        raise _pydantic_errors(e) from None
+    return await _count_failing(s, table_key, field_key, use)
+
+
+async def _count_failing(
+    s: AsyncSession, table_key: str, field_key: str, rules: list[FieldRule]
+) -> dict[str, int]:
+    live = [r for r in rules if r.enabled]
+    exists = (await s.execute(text("SELECT to_regclass(:t)"), {"t": f'"{table_key}"'})).scalar()
+    if not live or not exists:
+        return {"count": 0, "checked": 0}
+    rows = (
+        await s.execute(
+            text(
+                f"SELECT data->>'{field_key}' AS v FROM \"{table_key}\" "  # noqa: S608 - identifiers are validated metadata keys
+                f"WHERE COALESCE(data->>'{field_key}', '') <> '' LIMIT 100000"
+            )
+        )
+    ).all()
+    bad = sum(1 for r in rows if any(rule_problem(x.kind, x.pattern, r.v) for x in live))
+    return {"count": bad, "checked": len(rows)}
+
+
+async def draft_rule_warnings(
+    s: AsyncSession, tenant_id: uuid.UUID, changes: dict[str, Any], manifest: dict[str, Any]
+) -> list[dict[str, Any]]:
+    """For every field whose rules changed in the Draft: how many records already break them. A warning, never a block."""
+    await _enter_tenant(s, tenant_id)
+    out: list[dict[str, Any]] = []
+    for t in changes.get("tables", []):
+        definition = ((manifest.get("tables") or {}).get(t["key"]) or {}).get("definition")
+        if not definition:
+            continue
+        table = TableDef.model_validate(definition)
+        for fc in t.get("fields") or []:
+            changed = fc["change"] == "changed" and "rules" in (fc.get("attributes") or {})
+            f = table.field(fc["field"])
+            if f is None or not (changed or (fc["change"] == "added" and f.rules)):
+                continue
+            r = await _count_failing(s, t["key"], f.key, f.rules)
+            if r["count"]:
+                out.append(
+                    {
+                        "table": t["key"],
+                        "table_label": table.label,
+                        "field": f.key,
+                        "label": f.label,
+                        "count": r["count"],
+                    }
+                )
+    return out
+
+
+async def transform_preview(
+    s: AsyncSession,
+    tenant_id: uuid.UUID,
+    table_key: str,
+    field_key: str,
+    transforms: list[dict[str, Any]],
+    samples: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Try a value: the real transformation and validation functions on sample values, with the rules as drafted."""
+    from tableui.metadata.domain.transforms import apply_field_rules
+
+    await _enter_tenant(s, tenant_id)
+    found = await _draft(s, "table", table_key)
+    if found is None:
+        raise NotFound(f"There is no table '{table_key}'.")
+    table = TableDef.model_validate(found[0])
+    f = table.field(field_key)
+    if f is None:
+        raise NotFound(f"There is no field '{field_key}' on '{table_key}'.")
+    try:
+        nf = FieldDef.model_validate({**f.model_dump(mode="json"), "transforms": transforms})
+    except ValidationError as e:
+        raise _pydantic_errors(e) from None
+    probe = TableDef.model_validate(
+        {
+            **found[0],
+            "fields": [
+                nf.model_dump(mode="json") if x["key"] == field_key else x
+                for x in found[0]["fields"]
+            ],
+        }
+    )
+    out: list[dict[str, Any]] = []
+    for smp in samples[:20]:
+        others = {k: v for k, v in (smp.get("others") or {}).items() if isinstance(k, str)}
+        value = smp.get("value")
+        res = apply_field_rules(nf, value, {**others, field_key: value})
+        _, errs = validate_record(probe, {**others, field_key: value}, partial=True)
+        mine = next((e for e in errs if e["field"] == field_key), None)
+        out.append(
+            {
+                "input": value,
+                "output": res.value,
+                "steps": [
+                    {"rule": st.index + 1, "matched": st.matched, "stopped": st.stopped}
+                    for st in res.steps
+                ],
+                "problem": mine["message"] if mine else None,
+            }
+        )
+    return out
+
+
+def rule_preview(rule: dict[str, Any], values: list[str]) -> list[dict[str, Any]]:
+    """Run one rule over sample values with the same engine the live app uses."""
+    try:
+        r = FieldRule.model_validate({"name": "preview", "message": "preview", **rule})
+    except ValidationError as e:
+        raise _pydantic_errors(e) from None
+    return [{"value": v, "allowed": not rule_problem(r.kind, r.pattern, v)} for v in values[:20]]
 
 
 async def restore_field(

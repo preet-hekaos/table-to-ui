@@ -1,14 +1,20 @@
 import { GripVertical } from 'lucide-react'
 import { Fragment, useState, type KeyboardEvent } from 'react'
 import type { FieldDef, StudioTable } from '@/api/types'
-import { Badge, Button, StageBadge, Table, Td, Th, cn, stageStripe } from '@/design-system'
-import { TYPE_LABELS } from './FieldDialog'
+import { Badge, Button, Input, StageBadge, Table, Td, Th, cn, stageStripe } from '@/design-system'
+import { FeaturesCell } from './FeaturesCell'
 import { FieldDetails } from './FieldDetails'
 import { FieldMenu } from './FieldMenu'
 import { InlineLabel } from './InlineLabel'
+import { LengthCell } from './LengthCell'
 import { RequiredSwitch } from './RequiredSwitch'
-import { UndoRemove } from './UndoRemove'
+import { ValidationCell } from './ValidationCell'
+import { TableWideBar } from './TableWideBar'
+import { TransformCell } from './TransformCell'
+import { TypeCell } from './TypeCell'
+import { RemovedCount, UndoRemove } from './UndoRemove'
 import { useFieldOrder } from './useFieldOrder'
+import { useTableFeatures } from './useTableFeatures'
 import type { useStages } from './useStages'
 
 /** The Fields grid of the Studio (mockup board 1): one row per field, edited in place. */
@@ -18,14 +24,18 @@ export function FieldsGrid({
   canEdit,
   stages,
   onEdit,
+  onAddNew,
 }: {
   table: StudioTable
   tables: StudioTable[]
   canEdit: boolean
   stages: ReturnType<typeof useStages>
   onEdit: (f: FieldDef) => void
+  onAddNew: () => void
 }) {
   const { move, note } = useFieldOrder(table)
+  const { features, patch } = useTableFeatures(table)
+  const [find, setFind] = useState('')
   const [dragKey, setDragKey] = useState<string | null>(null)
   const [overKey, setOverKey] = useState<string | null>(null)
   const [open, setOpen] = useState<Set<string>>(new Set())
@@ -49,9 +59,16 @@ export function FieldsGrid({
     }
   }
 
+  const q = find.trim().toLowerCase()
+  const shownFields = q ? table.fields.filter((f) => f.key.toLowerCase().includes(q) || f.label.toLowerCase().includes(q)) : table.fields
+
   return (
     <div className="overflow-x-auto">
       <p className="sr-only" role="status" aria-live="polite">{note}</p>
+      <div className="flex flex-wrap items-center gap-3 border-b border-line px-3 py-2">
+        <Input aria-label="Search fields" placeholder="Search fields" className="h-8 w-56" value={find} onChange={(e) => setFind(e.target.value)} />
+        <TableWideBar table={table} canEdit={canEdit} features={features} patch={patch} />
+      </div>
       <Table aria-label={`${table.label} fields`}>
         <thead>
           <tr>
@@ -59,12 +76,17 @@ export function FieldsGrid({
             <Th>Field name</Th>
             <Th>Label</Th>
             <Th>Type</Th>
+            <Th>Core type</Th>
+            <Th>Length</Th>
+            <Th>Validation</Th>
             <Th>Required</Th>
+            <Th>Features</Th>
+            <Th>Transformation rule</Th>
             {canEdit && <Th><span className="sr-only">Actions</span></Th>}
           </tr>
         </thead>
         <tbody>
-          {table.fields.map((f) => {
+          {shownFields.map((f) => {
             const stage = stages.field(table.key, f.key)
             return (
               <Fragment key={f.key}>
@@ -109,12 +131,26 @@ export function FieldsGrid({
                   {f.hidden && <Badge tone="warn" className="ml-1">Hidden</Badge>}
                 </Td>
                 <Td className="py-1.5">
-                  {TYPE_LABELS[f.type] ?? f.type}
-                  {f.ref_table && <span className="text-muted"> to {tables.find((t) => t.key === f.ref_table)?.label ?? f.ref_table}</span>}
+                  <TypeCell table={table} tables={tables} field={f} canEdit={canEdit} onAddNew={onAddNew} />
+                </Td>
+                <Td className="py-1.5">
+                  <code className="rounded bg-soft px-1.5 py-0.5 font-mono text-xs text-body">{f.type}</code>
+                </Td>
+                <Td className="py-1.5">
+                  <LengthCell table={table} field={f} canEdit={canEdit} />
+                </Td>
+                <Td className="py-1.5">
+                  <ValidationCell table={table} field={f} canEdit={canEdit} />
                 </Td>
                 <Td className="py-1.5">
                   <RequiredSwitch table={table} field={f} canEdit={canEdit} />
                   <span className="sr-only">{f.required ? 'Yes' : 'No'}</span>
+                </Td>
+                <Td className="py-1.5">
+                  <FeaturesCell table={table} field={f} f={features} patch={patch} canEdit={canEdit} />
+                </Td>
+                <Td className="py-1.5">
+                  <TransformCell table={table} field={f} canEdit={canEdit} />
                 </Td>
                 {canEdit && (
                   <Td className="py-1.5"><div className="flex items-center justify-end gap-1">
@@ -127,7 +163,7 @@ export function FieldsGrid({
               </tr>
               {open.has(f.key) && (
                 <tr data-details-of={f.key}>
-                  <Td colSpan={canEdit ? 6 : 4} className="p-0">
+                  <Td colSpan={canEdit ? 11 : 9} className="p-0">
                     <FieldDetails table={table} tables={tables} field={f} canEdit={canEdit} />
                   </Td>
                 </tr>
@@ -136,15 +172,18 @@ export function FieldsGrid({
             )
           })}
           {stages.removedFields(table.key).map((f) => (
-            <tr key={`removed-${f.key}`} className={cn(stageStripe('removed'), 'text-muted line-through')} data-stage="removed">
+            <tr key={`removed-${f.key}`} className={cn(stageStripe('removed'), 'text-muted')} data-stage="removed">
               {canEdit && <Td />}
-              <Td className="font-mono text-xs">{f.key}</Td>
+              <Td className="font-mono text-xs line-through">{f.key}</Td>
               <Td>
-                {f.label} <StageBadge stage="removed" className="ml-1 no-underline" />
+                <span className="line-through">{f.label}</span> <StageBadge stage="removed" className="ml-1 no-underline" />
               </Td>
-              <Td colSpan={canEdit ? 3 : 2}>
-                <span className="mr-3">Deleted in the Draft; goes away when published.</span>
-                {canEdit && <UndoRemove table={table.key} fieldKey={f.key} label={f.label} />}
+              <Td colSpan={canEdit ? 8 : 7} className="whitespace-normal">
+                <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <span>Deleted in the Draft; goes away when published.</span>
+                  <RemovedCount table={table.key} fieldKey={f.key} />
+                  {canEdit && <UndoRemove table={table.key} fieldKey={f.key} label={f.label} />}
+                </span>
               </Td>
             </tr>
           ))}

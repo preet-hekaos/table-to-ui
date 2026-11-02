@@ -16,7 +16,17 @@ from tableui.files.public import get_parse, mapped_values
 from tableui.identity.public import Principal
 from tableui.insights.public import snapshot
 from tableui.matching.public import matches
-from tableui.metadata.public import Pack, RuntimeApp, TableDef
+from tableui.metadata.public import (
+    TYPE_PRESETS,
+    FieldDef,
+    Pack,
+    RuntimeApp,
+    TableDef,
+    TransformRule,
+    apply_field_rules,
+    check_pattern,
+    rule_problem,
+)
 from tableui.platform.db import Database
 from tableui.platform.errors import NotFound, ValidationFailed
 from tableui.query.public import get_record
@@ -265,3 +275,195 @@ async def explain_number(
                     lambda v: {"text": need_text(v, "text", limit=700)}, subject=key, table=m.get("table"))  # fmt: skip
     r["figures"] = {"value": m["value"], "series": series[:60]}
     return r
+
+
+# ---- 8. describe a validation pattern in words (suggestion only) ---------------------------------------
+
+PATTERN_BASE = (
+    "You turn a plain description of what a value may look like into one regular expression. "
+    "Use only simple, portable syntax: anchors ^ and $, character classes, fixed counts like {5}, and groups; "
+    "no look-behind, no back-references and no repeats inside repeats. At most 300 characters. "
+    'Reply as JSON: {"pattern": "...", "explanation": "one plain sentence", "good": ["2 values it allows"], '
+    '"bad": ["2 values it refuses"]}.'
+)
+
+
+async def pattern_from_words(ctx: Ctx, p: Principal, description: str) -> dict[str, Any]:
+    """A pattern for a validation rule. The engine, not the model, decides whether it is usable: the pattern must
+    pass the safety checks, every sample must behave as claimed, and nothing is saved here."""
+    text_ = description.strip()
+    if not text_ or len(text_) > 300:
+        raise ValidationFailed(
+            errors=[
+                {
+                    "field": "description",
+                    "code": "invalid",
+                    "message": "Describe it in 1 to 300 characters.",
+                }
+            ]  # fmt: skip
+        )
+
+    def shape(v: Any) -> dict[str, Any]:
+        o = need_object(v)
+        pattern = need_text(o, "pattern", limit=300)
+        problem = check_pattern(pattern)
+        if problem:
+            raise BadReply(problem)
+        good = [str(x) for x in (o.get("good") or []) if isinstance(x, str | int | float)][:4]
+        bad = [str(x) for x in (o.get("bad") or []) if isinstance(x, str | int | float)][:4]
+        samples = [
+            {"value": g, "allowed": True} for g in good if not rule_problem("pattern", pattern, g)
+        ]
+        samples += [{"value": b, "allowed": False} for b in bad if rule_problem("pattern", pattern, b)]  # fmt: skip
+        if not any(x["allowed"] for x in samples):
+            raise BadReply("No sample matched the pattern.")
+        return {"pattern": pattern, "explanation": need_text(o, "explanation", limit=300), "samples": samples}  # fmt: skip
+
+    return await ctx.run(
+        p, "pattern", PATTERN_BASE, f"Description: <data>{redact(text_)}</data>", shape,
+        permission="metadata.write", max_tokens=400,
+    )  # fmt: skip
+
+
+# ---- 9. describe a transformation rule in words (suggestion only) -------------------------------------
+
+TRANSFORM_BASE = (
+    "You turn a plain description into one or two transformation rules for a field. A rule is: "
+    '{"when": one of blank, equals_any, contains, starts_with, ends_with, matches, above, below; '
+    '"args": [values to compare with]; "do": one of set, set_standard, keep_match, trim, case, remove_chars, clear; '
+    '"value": what the action uses; "stop": true or false}. '
+    'Reply as JSON: {"rules": [...], "explanation": "one plain sentence", "tries": ["2 example values"]}.'
+)
+
+
+async def transform_from_words(
+    ctx: Ctx, p: Principal, description: str, label: str, ftype: str
+) -> dict[str, Any]:
+    """Rules for a field. The engine, not the model, decides what is usable: each rule must be a valid rule, and the
+    examples are run through the real transformation function. Nothing is saved here."""
+    text_ = description.strip()
+    if not text_ or len(text_) > 300:
+        raise ValidationFailed(
+            errors=[
+                {
+                    "field": "description",
+                    "code": "invalid",
+                    "message": "Describe it in 1 to 300 characters.",
+                }
+            ]  # fmt: skip
+        )
+    stub = FieldDef(key="probe", label=label[:80] or "Field", type=ftype)
+
+    def shape(v: Any) -> dict[str, Any]:
+        o = need_object(v)
+        raw = o.get("rules")
+        if not isinstance(raw, list) or not 1 <= len(raw) <= 2:
+            raise BadReply("Expected one or two rules.")
+        try:
+            rules = [TransformRule.model_validate(r) for r in raw]
+        except ValueError as e:
+            raise BadReply(str(e)) from None
+        tries = [str(x) for x in (o.get("tries") or []) if isinstance(x, str | int | float)][:4]
+        probe = stub.model_copy(update={"transforms": rules})
+        samples = []
+        for t in tries:
+            res = apply_field_rules(probe, t, {"probe": t})
+            samples.append({"input": t, "output": res.value})
+        return {
+            "rules": [r.model_dump(mode="json") for r in rules],
+            "explanation": need_text(o, "explanation", limit=300),
+            "samples": samples,
+        }
+
+    return await ctx.run(
+        p, "transform", TRANSFORM_BASE,
+        f"Field: <data>{redact(label)} ({ftype})</data>\nDescription: <data>{redact(text_)}</data>", shape,
+        permission="metadata.write", max_tokens=500,
+    )  # fmt: skip
+
+
+# ---- 10. describe a new field in words (suggestion only) ----------------------------------------------
+
+FIELD_TYPES = "text, long_text, email, phone, integer, decimal, boolean, date, select, url, money, months, tags"
+
+
+def _field_base() -> str:
+    kinds = "; ".join(f"{k} = {v.name} ({v.core})" for k, v in TYPE_PRESETS.items())
+    return (
+        "You describe a new field for a table from a plain sentence. Reply as JSON: "
+        '{"label": "short field name", "preset": one of the ready-made type keys or null, '
+        f'"type": one of {FIELD_TYPES}, "required": true or false, "max_length": a whole number or null, '
+        '"options": [choices, only for type select], "explanation": "one plain sentence"}. '
+        f"Ready-made types: {kinds}. Use a ready-made type when one fits; its type must be its own core type."
+    )
+
+
+async def field_from_words(ctx: Ctx, p: Principal, description: str) -> dict[str, Any]:
+    """A suggested field. The engine decides what is usable: the type must be a real one, a ready-made type must exist
+    and agree with the core type, and the result must build a valid field. Nothing is saved here."""
+    text_ = description.strip()
+    if not text_ or len(text_) > 300:
+        raise ValidationFailed(
+            errors=[
+                {
+                    "field": "description",
+                    "code": "invalid",
+                    "message": "Describe it in 1 to 300 characters.",
+                }
+            ]  # fmt: skip
+        )
+
+    def shape(v: Any) -> dict[str, Any]:
+        o = need_object(v)
+        label = need_text(o, "label", limit=80)
+        preset_key = o.get("preset")
+        preset = None
+        if preset_key:
+            preset = TYPE_PRESETS.get(str(preset_key))
+            if preset is None:
+                raise BadReply("Unknown ready-made type.")
+        ftype = preset.core if preset else str(o.get("type") or "")
+        options = [str(x)[:60] for x in (o.get("options") or []) if isinstance(x, str | int | float)][:30]  # fmt: skip
+        ml = o.get("max_length")
+        max_length = ml if isinstance(ml, int) and not isinstance(ml, bool) and 1 <= ml <= 2000 else None  # fmt: skip
+        if preset is not None:
+            max_length = preset.max_length or max_length
+        try:
+            f = FieldDef.model_validate(
+                {
+                    "key": "probe",
+                    "label": label,
+                    "type": ftype,
+                    "required": bool(o.get("required")),
+                    "options": options if ftype == "select" else [],
+                    "max_length": max_length if ftype in ("text", "long_text") else None,
+                    **(
+                        {
+                            k: x
+                            for k, x in preset.settings().items()
+                            if k != "type" and x is not None
+                        }
+                        if preset
+                        else {}
+                    ),  # fmt: skip
+                }
+            )
+        except ValueError as e:
+            raise BadReply(str(e)) from None
+        if f.type == "select" and not f.options:
+            raise BadReply("A choice field needs choices.")
+        return {
+            "label": f.label,
+            "preset": preset.key if preset else None,
+            "type": f.type,
+            "type_name": f.type_name,
+            "required": f.required,
+            "max_length": f.max_length,
+            "options": list(f.options),
+            "explanation": need_text(o, "explanation", limit=300),
+        }
+
+    return await ctx.run(
+        p, "field", _field_base(), f"Description: <data>{redact(text_)}</data>", shape,
+        permission="metadata.write", max_tokens=400,
+    )  # fmt: skip

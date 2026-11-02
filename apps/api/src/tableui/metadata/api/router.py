@@ -7,11 +7,12 @@ from pydantic import BaseModel
 from tableui.identity.api.deps import PrincipalDep
 from tableui.metadata.api.deps import LiveAppDep
 from tableui.metadata.application import automations as automation_builder
-from tableui.metadata.application import draft, releases, studio
+from tableui.metadata.application import draft, releases, schema_changes, studio
 from tableui.metadata.application import measures as measure_builder
 from tableui.metadata.application import relationships as rel
 from tableui.metadata.domain.diff import diff_manifests
 from tableui.metadata.domain.models import menu_sorted
+from tableui.metadata.domain.patterns import LIBRARY
 from tableui.metadata.domain.stages import item_stages
 from tableui.platform.db import Database
 from tableui.platform.errors import NotFound, PermissionDenied
@@ -91,6 +92,96 @@ async def update_field(
         )
 
 
+@router.get("/studio/tables/{table}/fields/{field}/length-impact")
+async def length_impact(
+    table: str, field: str, p: PrincipalDep, db: DbDep, max_length: Annotated[int, Query(ge=1)]
+) -> dict[str, int]:
+    p.require("metadata.write")
+    assert p.tenant_id
+    async with db.control() as s:
+        return await studio.length_impact(
+            s, tenant_id=p.tenant_id, table_key=table, field_key=field, max_length=max_length
+        )
+
+
+@router.get("/studio/tables/{table}/fields/{field}/value-count")
+async def value_count(table: str, field: str, p: PrincipalDep, db: DbDep) -> dict[str, int]:
+    p.require("metadata.write")
+    assert p.tenant_id
+    async with db.control() as s:
+        return await studio.value_count(s, tenant_id=p.tenant_id, table_key=table, field_key=field)
+
+
+@router.get("/studio/validation-library")
+async def validation_library(p: PrincipalDep) -> list[dict[str, Any]]:
+    p.require("metadata.write")
+    return [
+        {
+            "key": i.key,
+            "name": i.name,
+            "kind": i.kind,
+            "pattern": i.pattern,
+            "message": i.message,
+            "good": list(i.good),
+            "bad": list(i.bad),
+        }
+        for i in LIBRARY
+    ]
+
+
+@router.post("/studio/validation-preview")
+async def validation_preview(body: dict[str, Any], p: PrincipalDep) -> dict[str, Any]:
+    """Runs one rule over sample values with the same engine the live app uses. Saves nothing."""
+    p.require("metadata.write")
+    rule = body.get("rule")
+    values = body.get("values")
+    if not isinstance(rule, dict) or not isinstance(values, list):
+        raise HTTPException(422, "send a rule and a list of values")
+    return {"results": studio.rule_preview(rule, [str(v) for v in values])}
+
+
+@router.post("/studio/tables/{table}/fields/{field}/transform-preview")
+async def transform_preview(
+    table: str, field: str, body: dict[str, Any], p: PrincipalDep, db: DbDep
+) -> dict[str, Any]:
+    """Try a value: what the drafted transformation rules do to sample values, and whether the result is then valid."""
+    p.require("metadata.write")
+    assert p.tenant_id
+    transforms, samples = body.get("transforms"), body.get("samples")
+    if not isinstance(transforms, list) or not isinstance(samples, list):
+        raise HTTPException(422, "send the rules and a list of samples")
+    async with db.control() as s:
+        return {
+            "results": await studio.transform_preview(
+                s, p.tenant_id, table, field, transforms, samples
+            )
+        }
+
+
+@router.get("/studio/standard-values")
+async def standard_values(p: PrincipalDep) -> list[dict[str, str]]:
+    p.require("metadata.write")
+    from tableui.metadata.domain.transforms import STANDARD
+
+    return [{"key": k, "label": v} for k, v in STANDARD.items() if k != "now"]
+
+
+@router.post("/studio/tables/{table}/fields/{field}/rules/check-existing")
+async def rules_check_existing(
+    table: str, field: str, body: dict[str, Any], p: PrincipalDep, db: DbDep
+) -> dict[str, int]:
+    p.require("metadata.write")
+    assert p.tenant_id
+    async with db.control() as s:
+        return await studio.rules_check_existing(
+            s,
+            tenant_id=p.tenant_id,
+            table_key=table,
+            field_key=field,
+            rules=body.get("rules"),
+        )
+
+
 @router.put("/studio/tables/{table}/field-order")
 async def reorder_fields(
     table: str, body: dict[str, Any], p: PrincipalDep, db: DbDep, request: Request
@@ -127,6 +218,42 @@ async def remove_field(
             request_id=get_request_id(request),
         )
     return Response(status_code=204)
+
+
+@router.get("/studio/type-presets")
+async def type_presets(p: PrincipalDep, db: DbDep) -> dict[str, Any]:
+    """The types a builder can pick (real-world names over core types), ranked by use, with the allowed type changes."""
+    p.require("metadata.read")
+    assert p.tenant_id
+    async with db.control() as s:
+        tables = await studio.read_draft(s, p.tenant_id, "table")
+    used: dict[str, int] = {}
+    for t in tables:
+        for f in t.get("fields", []):
+            if f.get("type_name"):
+                used[f["type_name"]] = used.get(f["type_name"], 0) + 1
+    from tableui.metadata.domain.presets import COMPATIBLE, PRESETS
+
+    ranked = sorted(PRESETS, key=lambda x: (-used.get(x.name, 0), PRESETS.index(x)))
+    return {
+        "presets": [
+            {
+                "key": x.key,
+                "name": x.name,
+                "core": x.core,
+                "area": x.area,
+                "description": x.description,
+                "example": x.example,
+                "max_length": x.max_length,
+                "save_as": x.save_as,
+                "min": x.min,
+                "max": x.max,
+                "used": used.get(x.name, 0),
+            }
+            for x in ranked
+        ],
+        "compatible": {k: sorted(v) for k, v in COMPATIBLE.items()},
+    }
 
 
 @router.post("/studio/tables/{table}/fields/{field}/restore")
@@ -304,10 +431,18 @@ async def studio_status(p: PrincipalDep, db: DbDep) -> dict[str, Any]:
     async with db.control() as s:
         live = await releases.environment_manifest(s, p.tenant_id, "live")
     changes = diff_manifests(live[1] if live else {}, d)
+    async with db.control() as s:
+        warnings = await studio.draft_rule_warnings(s, p.tenant_id, changes, d)
+    async with db.control() as s:
+        blockers = await schema_changes.unique_blockers(
+            s, p.tenant_id, live[1] if live else None, d
+        )
     return {
         "live_version": live[0] if live else None,
         "draft_changed": changes["changed"],
         "changes": changes,
+        "rule_warnings": warnings,
+        "unique_blockers": blockers,
     }
 
 

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { run, signUpWithPack } from './helpers'
+import { pickNewFieldType, run, signUpWithPack } from './helpers'
 import { freshSession, publishLive } from './live-effect'
 
 /** S1 of the Studio table redesign: the inline-editable Fields grid (mockup board 1). */
@@ -255,4 +255,229 @@ test('S1.7 row menu and details panel: help text, choices and hide all save to t
     await expect(live.getByLabel(/^Source/).locator('option', { hasText: 'Campus drive' })).toHaveCount(1)
     await live.context().close()
   })
+})
+
+test('S2.3 type picker: search, keyboard, blocked options explain themselves, and the chosen type reaches the live form', async ({ page, browser }) => {
+  await signUpWithPack(page, `S2 Typ ${run}`, `s2a-${run}@studio.test`)
+  await page.goto('/studio')
+  const typeBtn = (label: string) => page.getByRole('button', { name: new RegExp(`^Type of ${label}:`) })
+  const picker = page.getByRole('dialog', { name: 'Type picker' })
+
+  await test.step('The picker opens on the field type with the groups and the right pane', async () => {
+    await typeBtn('Current title').click()
+    await expect(picker).toBeVisible()
+    await expect(picker.getByRole('group', { name: 'Commonly used' })).toBeVisible()
+    await expect(picker.getByRole('group', { name: 'Recruitment' })).toBeVisible()
+    await expect(picker.getByText('What it sets for you')).toBeVisible()
+  })
+
+  await test.step('Search narrows the list; Enter on a compatible choice uses it', async () => {
+    const search = picker.getByLabel('Search types')
+    await search.fill('pan')
+    await expect(picker.getByRole('option', { name: /PAN \(India\)/ })).toBeVisible()
+    await expect(picker.getByRole('option', { name: /Whole number/ })).toHaveCount(0)
+    await picker.getByRole('option', { name: /PAN \(India\)/ }).click()
+    await expect(picker.getByText('Capital letters')).toBeVisible()
+    await search.press('Enter')
+    await expect(picker).toHaveCount(0)
+    const row = page.getByRole('row', { name: /^(?:Move [^.]*\. Drag, or use the up and down arrow keys\. )?current_title /})
+    await expect(row).toContainText('PAN (India)')
+    await expect(row.locator('code')).toHaveText('text')
+    await expect(page.getByTestId('draft-banner')).toContainText('unpublished change')
+  })
+
+  await test.step('An incompatible type is shown disabled with the reason and an Add a new field button', async () => {
+    await typeBtn('Notice period \\(days\\)').click()
+    await picker.getByRole('option', { name: /^Date/ }).click({ force: true }) // disabled options stay clickable so the reason can be read
+    await expect(picker.getByRole('button', { name: /^Use / })).toBeDisabled()
+    await expect(picker.getByText(/Cannot use this type here/)).toBeVisible()
+    await picker.getByRole('button', { name: 'Add a new field' }).click()
+    await expect(page.getByRole('dialog')).toContainText('Add a field to Candidate')
+    await page.getByRole('button', { name: 'Cancel' }).click()
+  })
+
+  await test.step('Whole number can become a number with decimals', async () => {
+    await typeBtn('Notice period \\(days\\)').click()
+    await picker.getByRole('option', { name: /Number with decimals/ }).click()
+    await picker.getByRole('button', { name: /^Use / }).click()
+    const row = page.getByRole('row', { name: /^(?:Move [^.]*\. Drag, or use the up and down arrow keys\. )?notice_period_days /})
+    await expect(row.locator('code')).toHaveText('decimal')
+  })
+
+  await test.step('After publishing, the live form saves capitals and stops values longer than 10', async () => {
+    await publishLive(page)
+    const live = await freshSession(browser, page)
+    await live.goto('/records/candidate/new')
+    await live.getByLabel(/^Full name/).fill('Capital Check')
+    await live.getByLabel(/^Email/).fill(`s2-${run}@pan.test`)
+    await live.getByLabel(/^Phone/).fill('+91 98450 55555')
+    await live.getByLabel(/^Current title/).fill('abcde1234fg')
+    await live.getByRole('button', { name: 'Save candidate' }).click()
+    await expect(live.getByText(/at most 10 characters/)).toBeVisible()
+    await live.getByLabel(/^Current title/).fill('abcde1234f')
+    await live.getByRole('button', { name: 'Save candidate' }).click()
+    await expect(live.getByText('ABCDE1234F').first()).toBeVisible()
+    await live.context().close()
+  })
+})
+
+test('S2.4 length column: edit with Enter, cancel with Esc, dash for other types, and the live form enforces it', async ({ page, browser }) => {
+  await signUpWithPack(page, `S2 Len ${run}`, `s2l-${run}@studio.test`)
+  await page.goto('/studio')
+  const row = (key: string) => page.getByRole('row', { name: new RegExp(`^(?:Move [^.]*\\. Drag, or use the up and down arrow keys\\. )?${key} `) })
+  const lenBtn = page.getByRole('button', { name: /^Maximum length of Current title:/ })
+
+  await test.step('Non text types show a dash; text types show their limit', async () => {
+    await expect(row('notice_period_days').getByLabel('Notice period (days) has no length')).toBeVisible()
+    await expect(lenBtn).toBeVisible()
+  })
+
+  await test.step('Esc cancels, a bad value is refused, Enter saves', async () => {
+    await lenBtn.click()
+    const input = page.getByLabel('Maximum length of current_title')
+    await input.fill('7')
+    await input.press('Escape')
+    await expect(input).toHaveCount(0)
+    await expect(page.getByTestId('draft-banner')).toHaveCount(0)
+    await lenBtn.click()
+    await input.fill('0')
+    await input.press('Enter')
+    await expect(page.getByRole('alert').filter({ hasText: 'whole number' })).toBeVisible()
+    await input.fill('12')
+    await input.press('Enter')
+    await expect(page.getByRole('button', { name: 'Maximum length of Current title: 12' })).toBeVisible()
+    await expect(page.getByTestId('draft-banner')).toContainText('unpublished change')
+  })
+
+  await test.step('After publishing, the live form stops values longer than 12', async () => {
+    await publishLive(page)
+    const live = await freshSession(browser, page)
+    await live.goto('/records/candidate/new')
+    await live.getByLabel(/^Full name/).fill('Length Check')
+    await live.getByLabel(/^Email/).fill(`s2l-${run}@len.test`)
+    await live.getByLabel(/^Phone/).fill('+91 98450 55555')
+    await live.getByLabel(/^Current title/).fill('1234567890123')
+    await live.getByRole('button', { name: 'Save candidate' }).click()
+    await expect(live.getByText(/at most 12 characters/)).toBeVisible()
+    await live.context().close()
+  })
+
+  await page.goto('/studio')
+  await expect(page.getByRole('button', { name: 'Maximum length of Current title: 12' })).toBeVisible()
+  await page.screenshot({ path: '../../docs/screens/studio-table/s2/after-length.png' })
+})
+
+test('S2.5 shrinking a length asks first, names how many records are affected, and leaves them as they are', async ({ page, browser }) => {
+  await signUpWithPack(page, `S2 Shr ${run}`, `s2s-${run}@studio.test`)
+  await page.goto('/records/candidate/new')
+  await page.getByLabel(/^Full name/).fill('Shrink Check')
+  await page.getByLabel(/^Email/).fill(`s2s-${run}@len.test`)
+  await page.getByLabel(/^Phone/).fill('+91 98450 55555')
+  await page.getByLabel(/^Current title/).fill('Senior Recruiter')
+  await page.getByRole('button', { name: 'Save candidate' }).click()
+  await expect(page.getByText('Senior Recruiter').first()).toBeVisible()
+
+  await page.goto('/studio')
+  const lenBtn = (v: string) => page.getByRole('button', { name: `Maximum length of Current title: ${v}` })
+  const input = page.getByLabel('Maximum length of current_title')
+  const dlg = page.getByRole('dialog', { name: /Shorten Current title to 5/ })
+
+  await test.step('A length no record exceeds saves straight away', async () => {
+    await lenBtn('No limit').click()
+    await input.fill('40')
+    await input.press('Enter')
+    await expect(lenBtn('40')).toBeVisible()
+  })
+
+  await test.step('Shrinking below an existing value names the count; Keep changes nothing', async () => {
+    await lenBtn('40').click()
+    await input.fill('5')
+    await input.press('Enter')
+    await expect(dlg).toContainText('1 record has a longer value')
+    await dlg.getByRole('button', { name: 'Keep 40' }).click()
+    await expect(dlg).toHaveCount(0)
+    await expect(lenBtn('40')).toBeVisible()
+  })
+
+  await test.step('Shorten saves it, and the existing record is untouched', async () => {
+    await lenBtn('40').click()
+    await input.fill('5')
+    await input.press('Enter')
+    await page.screenshot({ path: '../../docs/screens/studio-table/s2/after-shrink-confirm.png' })
+    await dlg.getByRole('button', { name: 'Shorten to 5' }).click()
+    await expect(lenBtn('5')).toBeVisible()
+    await publishLive(page)
+    const live = await freshSession(browser, page)
+    await live.goto('/records/candidate')
+    await expect(live.getByText('Senior Recruiter').first()).toBeVisible()
+    await live.context().close()
+  })
+})
+
+test('S2.6 the Add field dialog uses the Type picker, and a PAN field added there behaves as PAN on the live form', async ({ page, browser }) => {
+  await signUpWithPack(page, `S2 Add ${run}`, `s2d-${run}@studio.test`)
+  await page.goto('/studio')
+  await page.getByRole('button', { name: 'Add field' }).click()
+  const dialog = page.getByRole('dialog', { name: /^Add a field to/ })
+  await dialog.getByLabel(/^Label/).fill('Tax ID')
+  await expect(dialog.getByRole('button', { name: /^Type: Short text/ })).toBeVisible()
+  await pickNewFieldType(page, /PAN \(India\)/)
+  await expect(dialog.getByRole('button', { name: /^Type: PAN \(India\)/ })).toBeVisible()
+  await page.screenshot({ path: '../../docs/screens/studio-table/s2/after-add-field.png' })
+  await dialog.getByRole('button', { name: 'Add field' }).click()
+  const row = page.getByRole('row', { name: /^(?:Move [^.]*\. Drag, or use the up and down arrow keys\. )?tax_id /})
+  await expect(row).toContainText('PAN (India)')
+  await expect(row.locator('code')).toHaveText('text')
+
+  await publishLive(page)
+  const live = await freshSession(browser, page)
+  await live.goto('/records/candidate/new')
+  await live.getByLabel(/^Full name/).fill('Add Check')
+  await live.getByLabel(/^Email/).fill(`s2d-${run}@pan.test`)
+  await live.getByLabel(/^Phone/).fill('+91 98450 55555')
+  await live.getByLabel(/^Tax ID/).fill('abcde1234f')
+  await live.getByRole('button', { name: 'Save candidate' }).click()
+  await expect(live.getByText('ABCDE1234F').first()).toBeVisible()
+  await live.context().close()
+})
+
+test('S2.7 the grid and the field panel show the same real-world type name', async ({ page }) => {
+  await signUpWithPack(page, `S2 Nm ${run}`, `s2n-${run}@studio.test`)
+  await page.goto('/studio')
+  await page.getByRole('button', { name: /^Type of Current title:/ }).click()
+  const picker = page.getByRole('dialog', { name: 'Type picker' })
+  await picker.getByRole('option', { name: /PAN \(India\)/ }).click()
+  await picker.getByRole('button', { name: /^Use / }).click()
+  const row = page.getByRole('row', { name: /^(?:Move [^.]*\. Drag, or use the up and down arrow keys\. )?current_title /})
+  await expect(row).toContainText('PAN (India)')
+  await page.getByRole('button', { name: 'More actions for Current title' }).click()
+  await page.getByRole('menuitem', { name: 'Show details' }).click()
+  const panel = page.getByTestId('type-of-current_title')
+  await expect(panel).toContainText('PAN (India)')
+  await expect(panel).toContainText('saved in capital letters')
+  await expect(panel).toContainText('text')
+  await page.screenshot({ path: '../../docs/screens/studio-table/s2/after-type-name-panel.png' })
+})
+
+test('S2.8 a deleted field tells how many records hold a value in it, and Undo clears the note', async ({ page }) => {
+  await signUpWithPack(page, `S2 Rm ${run}`, `s2r-${run}@studio.test`)
+  await page.goto('/records/candidate/new')
+  await page.getByLabel(/^Full name/).fill('Count Check')
+  await page.getByLabel(/^Email/).fill(`s2r-${run}@cnt.test`)
+  await page.getByLabel(/^Phone/).fill('+91 98450 55555')
+  await page.getByLabel(/^Location/).fill('Pune')
+  await page.getByRole('button', { name: 'Save candidate' }).click()
+  await expect(page.getByText('Pune').first()).toBeVisible()
+
+  await page.goto('/studio')
+  await page.getByRole('button', { name: 'Edit Location' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Delete field' }).click()
+  const note = page.getByTestId('removed-count-location')
+  await expect(note).toContainText('1 record has a value here')
+  await note.scrollIntoViewIfNeeded()
+  await expect(page.getByText('Saved in Draft. Publish to make it live.')).toHaveCount(0, { timeout: 15000 })
+  await page.screenshot({ path: '../../docs/screens/studio-table/s2/after-removed-count.png' })
+
+  await page.getByRole('button', { name: 'Undo delete of Location' }).click()
+  await expect(page.locator('tr[data-stage="removed"]')).toHaveCount(0)
 })

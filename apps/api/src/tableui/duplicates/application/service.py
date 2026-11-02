@@ -188,7 +188,7 @@ async def merge(
                 take.get(f.key) == "drop" or mine in (None, "", [])
             ):
                 merged[f.key] = theirs
-        clean, errs = validate_record(table, merged, partial=False)
+        clean, errs = validate_record(table, merged, partial=False, transform=False)
         if errs:
             raise ValidationFailed(errors=errs)
         await s.execute(text(f'DELETE FROM "{table_key}" WHERE id = :i'), {"i": drop})  # noqa: S608 - identifiers are validated metadata keys

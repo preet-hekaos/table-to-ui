@@ -459,3 +459,45 @@ async def test_declined_offer_sends_the_candidate_back_to_interview(
     assert r.status_code == 200, r.text
     sub = (await client.get(f"/v1/records/submission/{entry['id']}", headers=a.h())).json()
     assert sub["data"]["stage"] == "Interview"
+
+
+async def test_a_policy_changed_in_the_studio_changes_what_happens_once_live(
+    client: httpx.AsyncClient,
+) -> None:
+    a = Agency(client, "Policy Co", f"w-{uuid.uuid4().hex[:8]}@pol.test")
+    await a.sign_up("recruitment")
+    cand = await _make(
+        client,
+        a,
+        "candidate",
+        {
+            "full_name": "Late Joiner",
+            "email": f"l.{uuid.uuid4().hex[:6]}@gmail.com",
+            "phone": f"+91 97{uuid.uuid4().int % 10**8:08d}",
+            "notice_period_days": 90,
+        },
+    )
+    client_id = await _make(client, a, "client", {"name": "Zen", "status": "Active"})
+    req = await _make(
+        client,
+        a,
+        "requirement",
+        {"title": "Fast hire", "client": client_id, "status": "Open", "max_notice_days": 30},
+    )
+    body = {"data": {"summary": "x", "candidate": cand, "requirement": req}}
+
+    async def severity(value: str) -> None:
+        r = await client.put(
+            "/v1/studio/rules/R-04/checks/R-04.notice", headers=a.h(), json={"severity": value}
+        )
+        assert r.status_code == 200, r.text
+        await a.publish_live()
+
+    await severity("block")
+    blocked = await client.post("/v1/records/submission", headers=a.h(), json=body)
+    assert blocked.status_code == 409 and blocked.json()["rule"]["check"] == "R-04.notice"
+
+    await severity("warn")
+    warned = await client.post("/v1/records/submission", headers=a.h(), json=body)
+    assert warned.status_code == 201
+    assert [x["check"] for x in warned.json()["warnings"]] == ["R-04.notice"]

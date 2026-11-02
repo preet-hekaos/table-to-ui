@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { run, signUpWithPack } from './helpers'
+import { run, signUpWithPack, setTableWide } from './helpers'
 
 const tags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 
@@ -60,10 +60,6 @@ test('Edit in the list: double-click, keyboard, cancel, error, switch off', asyn
   })
 
   await test.step('Switching it off removes the editor', async () => {
-    await page.goto('/studio?tab=data&table=candidate&part=features')
-    const panel = page.getByTestId('features-panel')
-    await panel.getByRole('switch', { name: /Edit in the list/ }).uncheck()
-    await panel.getByRole('button', { name: 'Save features' }).click()
-    await expect(page.getByText('Saved features for Candidate').first()).toBeVisible()
+    await setTableWide(page, 'Edit in the list', false)
   })
 })

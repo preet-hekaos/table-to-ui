@@ -65,36 +65,79 @@ FIELD: dict[str, Setting] = {
     ),
     "group": gap((FORM,), "S1", "field group heading on the record form"),
     "normalize": gap((IMPORT, API, FORM), "S2", "decides how values are compared and saved"),
-    "unique": gap(
+    "unique": Setting(
+        "live",
         (FORM, IMPORT, API, BULK),
-        "S4",
-        "can only be chosen when the field is created; duplicates already stored must block the publish",
+        (
+            "e2e:s4-features.spec.ts::S4.3 Unique: duplicates block the publish and are listed; then a second user cannot save a duplicate",
+            "api:test_field_switches.py::test_unique_is_blocked_while_records_hold_duplicates_then_holds_everywhere",
+            "api:test_field_switches.py::test_switching_unique_off_allows_duplicates_again",
+        ),
     ),
-    "default": gap(
+    "default": server(
         (FORM, IMPORT, API),
-        "S5",
-        "Studio cannot set one; a pack default applies on create when blank only",
+        "api:test_transforms.py::test_a_default_can_be_set_in_studio_and_old_defaults_still_apply",
+        stage="S6",
+        note="applies on create when blank; the S6 migration moves it into an 'if blank' rule",
+    ),
+    "transforms": Setting(
+        "live",
+        (FORM, IMPORT, API, BULK, INLINE),
+        (
+            "e2e:s5-transforms.spec.ts::S5.2 the Transformation rules panel",
+            "e2e:s5-transforms.spec.ts::S5.4 Studio to live",
+            "api:test_transforms.py::test_if_blank_sets_a_value_and_stops_and_an_update_without_the_field_leaves_it",
+            "api:test_transforms.py::test_every_condition_and_keep_the_match_hold_on_create_inline_bulk_and_api",
+            "api:test_transforms.py::test_every_action_on_a_text_field",
+            "api:test_transforms.py::test_import_applies_the_rules_and_the_file_is_not_changed",
+        ),
     ),
     "options": server(
         (FORM, LIST, IMPORT, BULK),
         "api:test_studio.py::test_removing_a_choice_in_use_is_refused_and_deleting_a_field_cleans_settings",
         stage="S1",
     ),
-    "min": gap(
+    "min": server(
         (FORM, IMPORT, API, INLINE, BULK),
-        "S2",
-        "Partly: Studio sets it, only whole numbers obey it",
+        "api:live_effects/test_live_effects_audit.py::test_a_minimum_set_in_studio_stops_smaller_decimals",
+        stage="S2",
+        note="Studio sets it; whole numbers and decimals both obey it",
     ),
-    "max": gap(
+    "max": server(
         (FORM, IMPORT, API, INLINE, BULK),
-        "S2",
-        "Partly: Studio sets it, only whole numbers obey it",
+        "api:live_effects/test_live_effects_audit.py::test_a_maximum_set_in_studio_stops_larger_decimals",
+        stage="S2",
+        note="Studio sets it; whole numbers and decimals both obey it",
     ),
     "max_length": server(
         (FORM, IMPORT, API, INLINE, BULK),
         "api:live_effects/test_live_effects_audit.py::test_a_length_set_in_studio_stops_longer_text_after_publish",
+        "api:live_effects/test_live_effects_audit.py::test_a_length_set_in_studio_stops_longer_web_addresses_too",
         stage="S2",
-        note="Partly: Studio sets it and text obeys it; email, phone and web address ignore it",
+        note="Studio sets it (Length column arrives in S2.4); text, email, phone and web address all obey it",
+    ),
+    "type_name": Setting(
+        "live",
+        (),
+        (
+            "e2e:s1-fields-grid.spec.ts::S2.7 the grid and the field panel show the same real-world type name",
+        ),
+        "S2",
+        "the real-world type name; the grid and the field panel show the same name",
+    ),
+    "save_as": server(
+        (FORM, IMPORT, API, INLINE, BULK),
+        "api:live_effects/test_live_effects_audit.py::test_a_pan_type_chosen_in_studio_saves_capitals_and_stops_longer_values_after_publish",
+        stage="S2",
+        note="Set by choosing a type such as PAN (India); S5 turns it into transformation rules",
+    ),
+    "rules": server(
+        (FORM, IMPORT, API, INLINE, BULK),
+        "api:test_studio.py::test_a_rule_added_in_studio_stops_bad_values_on_the_api_after_publish_and_can_be_switched_off",
+        "api:test_studio.py::test_rule_order_decides_which_message_is_shown",
+        "api:test_studio.py::test_every_library_rule_accepts_its_good_samples_and_refuses_its_bad_ones",
+        stage="S3",
+        note="one engine (validate_record) serves create, update, bulk, import and duplicate merge; the popover arrives in S3.3",
     ),
     "analytics": gap((STATS,), "S6", "marks a field for the insights database"),
     "source": gap((), "S1", "stored marker; the redesign stops reading it"),
@@ -110,16 +153,20 @@ FIELD: dict[str, Setting] = {
         "api:test_search.py::test_facets_count_and_narrow_and_respect_hidden_fields",
         stage="S1",
     ),
-    "searchable": gap(
+    "searchable": Setting(
+        "live",
         (SEARCH,),
-        "S4",
-        "fixed at creation (on for text); when switchable, records saved earlier must be re-indexed",
+        (
+            "e2e:s4-features.spec.ts::S4.4 Searchable: a record saved before the switch is found after publish; switching off hides it again",
+            "api:test_field_switches.py::test_searchable_rebuilds_the_search_text_of_records_saved_before",
+        ),
     ),
     "filterable": server(
         (LIST, SEARCH),
         "api:test_field_grid.py::test_filtering_can_be_off_while_sorting_stays_on",
-        stage="S4",
-        note="two flags exist (field.filterable and table unfilterable list); S4 decides how they combine",
+        "api:test_field_switches.py::test_filterable_sets_the_field_flag_and_the_table_list_together",
+        stage="S6",
+        note="the tick sets field.filterable and the table's unfilterable list together",
     ),
     "help": gap((FORM,), "S1", "help text under the input"),
     "aliases": gap((IMPORT,), "S6", "kept working; editor moves to the import wizard later"),
@@ -223,3 +270,58 @@ TABLE: dict[str, Setting] = {
         (LIST,), "api:test_row_order.py::test_switch_permission_and_scope_are_enforced", stage="S4"
     ),
 }
+
+
+# S6.2: a second session opens the live list after publish and uses each table setting.
+_MAIN = "e2e:s6-table-effects.spec.ts::S6.2 table settings: values reach the live list"
+_CHART = "e2e:s6-table-effects.spec.ts::S6.2 table settings: numbers as a chart"
+_CARDS = "e2e:s6-table-effects.spec.ts::S6.2 table settings: the chosen number fields"
+_TABLE_PROOF: dict[str, tuple[str, ...]] = {
+    **{
+        k: (_MAIN,)
+        for k in (
+            "sort_filter",
+            "sortable",
+            "filterable",
+            "unsortable",
+            "unfilterable",
+            "default_sort",
+            "select_bulk",
+            "bulk_scope",
+            "import_data",
+            "export_data",
+            "export_formats",
+            "export_email",
+            "inline_edit",
+            "grouping",
+            "statistics",
+            "stat_cards",
+            "stat_scope",
+            "default_columns",
+            "density",
+            "uneditable",
+            "ungroupable",
+            "unexported",
+            "nobulk",
+            "row_order",
+        )
+    },  # fmt: skip
+    "bulk_actions": (_MAIN, _CHART),
+    "stat_view": (_CHART,),
+    "chart": (_CHART,),
+    "nochart": (_CHART,),
+    "stat_fields": (_CARDS,),
+}
+for _k, _e2e in _TABLE_PROOF.items():
+    _old = TABLE[_k]
+    TABLE[_k] = Setting("live", _old.surfaces, (*_e2e, *_old.proofs), "", _old.note, _old.risks)
+
+# S6.2: a second session uses each field setting on the live form, list, API and import wizard.
+_FIELDS = "e2e:s6-field-effects.spec.ts::S6.2 field settings reach the live form"
+for _k in (
+    "key", "type", "group", "normalize", "default", "options", "min", "max", "max_length",
+    "save_as", "rules", "analytics", "source", "ref_table", "hidden", "filterable", "help",
+    "aliases",
+):  # fmt: skip
+    _old = FIELD[_k]
+    FIELD[_k] = Setting("live", _old.surfaces, (_FIELDS, *_old.proofs), "", _old.note, _old.risks)

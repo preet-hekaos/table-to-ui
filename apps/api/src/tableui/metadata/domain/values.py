@@ -8,6 +8,8 @@ from typing import Any
 import phonenumbers
 
 from tableui.metadata.domain.models import FieldDef, TableDef
+from tableui.metadata.domain.patterns import rule_problem
+from tableui.metadata.domain.transforms import transform_payload
 
 _EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 _URL = re.compile(r"^https?://\S+$")
@@ -85,6 +87,26 @@ def parse_months(value: Any) -> int | None:
 
 
 def _coerce(field: FieldDef, value: Any) -> tuple[Any, str | None]:
+    """Convert one value to what is stored, or say why it cannot be. A length limit applies to every text-like type."""
+    out, problem = _coerce_type(field, value)
+    if problem is None and field.save_as and isinstance(out, str):
+        out = out.upper() if field.save_as == "upper" else out.lower()
+    if (
+        problem is None
+        and field.type in ("email", "phone", "url")
+        and field.max_length
+        and isinstance(out, str)
+        and len(out) > field.max_length
+    ):
+        return None, f"must be at most {field.max_length} characters"
+    if problem is None and out is not None:
+        for rule in field.rules:  # top to bottom; the first failing message is the one shown
+            if rule.enabled and rule_problem(rule.kind, rule.pattern, out):
+                return None, rule.message
+    return out, problem
+
+
+def _coerce_type(field: FieldDef, value: Any) -> tuple[Any, str | None]:
     t = field.type
     if t in ("text", "long_text"):
         if not isinstance(value, str):
@@ -117,6 +139,10 @@ def _coerce(field: FieldDef, value: Any) -> tuple[Any, str | None]:
     if t == "decimal":
         if isinstance(value, bool) or not isinstance(value, int | float):
             return None, "must be a number"
+        if field.min is not None and value < field.min:
+            return None, f"must be at least {field.min:g}"
+        if field.max is not None and value > field.max:
+            return None, f"must be at most {field.max:g}"
         return value, None
     if t == "boolean":
         return (value, None) if isinstance(value, bool) else (None, "must be true or false")
@@ -156,9 +182,18 @@ def _coerce(field: FieldDef, value: Any) -> tuple[Any, str | None]:
 
 
 def validate_record(
-    table: TableDef, payload: dict[str, Any], *, partial: bool
+    table: TableDef,
+    payload: dict[str, Any],
+    *,
+    partial: bool,
+    transform: bool = True,
+    actor: str = "",
 ) -> tuple[dict[str, Any], list[dict[str, str]]]:
-    """Return (clean data, field errors). ``partial`` is true for updates."""
+    """Return (clean data, field errors). ``partial`` is true for updates. The fields' transformation rules run first
+    (``transform=False`` for data that already went through them, such as a merge of stored and new values)."""
+    changed: dict[str, Any] = {}
+    if transform:
+        payload, changed = transform_payload(table.fields, payload, partial=partial, actor=actor)
     errors: list[dict[str, str]] = []
     clean: dict[str, Any] = {}
     known = {f.key for f in table.fields}
@@ -179,6 +214,8 @@ def validate_record(
             continue
         value, err = _coerce(f, payload[f.key])
         if err:
+            if f.key in changed:  # say what the value became, so the person is never left guessing
+                err = f"{err} (your rules changed it to “{payload[f.key]}”)"
             errors.append({"field": f.key, "code": "invalid", "message": err})
         else:
             clean[f.key] = value

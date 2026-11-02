@@ -15,9 +15,10 @@ from tableui.commands.application.pipeline import (
 from tableui.commands.application.reorder import move_record
 from tableui.identity.api.deps import PrincipalDep
 from tableui.metadata.api.deps import LiveAppDep
+from tableui.metadata.public import validate_record
 from tableui.platform.config import Settings
 from tableui.platform.db import Database
-from tableui.platform.errors import ValidationFailed, VersionConflict
+from tableui.platform.errors import PermissionDenied, ValidationFailed, VersionConflict
 from tableui.platform.web import get_db, get_request_id, get_settings_dep
 from tableui.query.public import matching_ids
 
@@ -119,6 +120,24 @@ async def check(
     """Instant duplicate check for forms: runs the rules, writes nothing."""
     outcomes = await check_record(db, _ctx(p, app, settings, request, None), table, body.data)
     return {"outcomes": outcomes}
+
+
+class FieldValueBody(BaseModel):
+    field: str
+    value: Any = None
+
+
+@router.post("/{table}/validate-field")
+async def validate_field(
+    table: str, body: FieldValueBody, p: PrincipalDep, app: LiveAppDep
+) -> dict[str, str | None]:
+    """The message for one value of one field, from the same engine that saves records. Writes nothing.
+    Forms call it when a person leaves a field, so a broken rule shows beside the input before Save."""
+    if not (p.allows(f"record.{table}.create") or p.allows(f"record.{table}.update")):
+        raise PermissionDenied("You cannot add or change these records.")
+    _, errors = validate_record(app.table(table), {body.field: body.value}, partial=True)
+    mine = next((e for e in errors if e["field"] == body.field), None)
+    return {"message": mine["message"] if mine else None}
 
 
 MAX_BULK = 10_000

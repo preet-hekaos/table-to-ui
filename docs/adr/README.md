@@ -48,3 +48,9 @@
 | [44](0044-features-tab-layout.md) | Features tab layout; Sorting and Filtering as separate switches |
 | [45](0045-studio-section-switcher.md) | Studio header: section switcher instead of nine tabs |
 | [46](0046-table-charts.md) | A chart above the table; summary cards of equal size |
+| [47](0047-live-effect-gate.md) | Every Studio setting proven live; gap budget 0 |
+| [48](0048-fields-grid.md) | Fields as one inline grid |
+| [49](0049-real-world-types.md) | Real-world types over a core type |
+| [50](0050-validation-rules.md) | Validation rules (fx) |
+| [51](0051-features-switches.md) | Unique, Searchable, Filterable after a field exists |
+| [52](0052-transformation-rules-and-release.md) | Transformation rules and the release path |

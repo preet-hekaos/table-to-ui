@@ -2,6 +2,8 @@
  *  response shapes come from ./types until the API publishes response models for them. */
 import { api, unwrap } from './client'
 import type {
+  FieldRule,
+  TransformRule,
   ActivityRow,
   HeldChange,
   Board,
@@ -207,6 +209,18 @@ export const studio = {
   updateField: (table: string, field: string, body: Partial<FieldDef>) =>
     send<FieldDef>('PATCH', `/v1/studio/tables/${table}/fields/${field}`, body),
   restoreField: (table: string, field: string) => send<FieldDef>('POST', `/v1/studio/tables/${table}/fields/${field}/restore`),
+  typePresets: () => cast<TypePresets>(api.GET('/v1/studio/type-presets' as never, {} as never)),
+  standardValues: () => g<{ key: string; label: string }[]>('/v1/studio/standard-values'),
+  transformPreview: (table: string, field: string, transforms: TransformRule[], samples: { value: string; others?: Record<string, unknown> }[]) =>
+    send<{ results: TransformResult[] }>('POST', `/v1/studio/tables/${table}/fields/${field}/transform-preview`, { transforms, samples }),
+  validationLibrary: () => g<LibraryRule[]>('/v1/studio/validation-library'),
+  validationPreview: (rule: Pick<FieldRule, 'kind' | 'pattern'>, values: string[]) =>
+    send<{ results: { value: string; allowed: boolean }[] }>('POST', '/v1/studio/validation-preview', { rule, values }),
+  checkExisting: (table: string, field: string, rules: FieldRule[]) =>
+    send<{ count: number; checked: number }>('POST', `/v1/studio/tables/${table}/fields/${field}/rules/check-existing`, { rules }),
+  valueCount: (table: string, field: string) => g<{ count: number }>(`/v1/studio/tables/${table}/fields/${field}/value-count`),
+  lengthImpact: (table: string, field: string, maxLength: number) =>
+    g<{ count: number }>(`/v1/studio/tables/${table}/fields/${field}/length-impact?max_length=${maxLength}`),
   reorderFields: (table: string, order: string[]) => send<StudioTable>('PUT', `/v1/studio/tables/${table}/field-order`, { order }),
   removeField: (table: string, field: string) => send<void>('DELETE', `/v1/studio/tables/${table}/fields/${field}`),
   rules: () => g<{ id: string; checks: { id: string; severity: string; message: string; editable?: boolean; edited?: boolean }[] }[]>('/v1/studio/rules'),
@@ -231,7 +245,7 @@ export const studio = {
   saveScreen: (key: string, body: Omit<DraftScreen, 'key' | 'version' | 'source'>) => send<DraftScreen>('PUT', `/v1/studio/screens/${key}`, body),
   navigation: () => g<DraftNav[]>('/v1/studio/navigation'),
   saveNavigation: (items: Omit<DraftNav, 'version'>[]) => send<DraftNav[]>('PUT', '/v1/studio/navigation', { items }),
-  status: () => g<{ live_version: number | null; draft_changed: boolean; changes: ManifestDiff }>('/v1/studio/status'),
+  status: () => g<{ live_version: number | null; draft_changed: boolean; changes: ManifestDiff; rule_warnings: RuleWarning[]; unique_blockers: UniqueBlocker[] }>('/v1/studio/status'),
   stages: () => g<StageReport>('/v1/studio/stages'),
   compare: (from: string | number, to: string | number = 'draft') => g<ManifestDiff>(`/v1/apps/current/compare?from=${from}&to=${to}`),
   approvals: () => g<Approval[]>('/v1/apps/current/approvals'),
@@ -466,6 +480,8 @@ export const app = {
     cast<RecordPage>(api.GET('/v1/records/{table}', { params: { path: { table }, query: { limit: 200, sort: 'updated_at', direction: 'desc' } } })),
   check: (table: string, data: Json) =>
     cast<{ outcomes: RuleOutcome[] }>(api.POST('/v1/records/{table}/check', { params: { path: { table } }, body: { data } })),
+  validateField: (table: string, field: string, value: unknown) =>
+    send<{ message: string | null }>('POST', `/v1/records/${table}/validate-field`, { field, value }),
   measures: (range?: RangeQuery, home = false, opts?: { compare?: boolean; mine?: boolean }) =>
     g<Measure[]>(`/v1/measures${qs({ ...range, home: home ? 'true' : undefined, compare: opts?.compare ? 'true' : undefined, mine: opts?.mine ? 'true' : undefined })}`),
   measure: (key: string, range?: RangeQuery) => g<Measure>(`/v1/measures/${key}${qs({ ...range })}`),
@@ -643,6 +659,12 @@ export const ai = {
   setupApply: (id: string, steps: number[]) => send<SetupPlan>('POST', `/v1/ai/setup/plans/${id}/apply`, { steps }),
   setupUndo: (id: string) => send<SetupPlan>('POST', `/v1/ai/setup/plans/${id}/undo`),
   setupDiscard: (id: string) => send<void>('POST', `/v1/ai/setup/plans/${id}/discard`),
+  pattern: (description: string) =>
+    send<{ pattern: string; explanation: string; samples: { value: string; allowed: boolean }[] }>('POST', '/v1/ai/pattern', { description }),
+  transform: (description: string, label: string, type: string) =>
+    send<{ rules: TransformRule[]; explanation: string; samples: { input: string; output: unknown }[] }>('POST', '/v1/ai/transform', { description, label, type }),
+  field: (description: string) =>
+    send<{ label: string; preset: string | null; type: FieldDef['type']; type_name: string | null; required: boolean; max_length: number | null; options: string[]; explanation: string }>('POST', '/v1/ai/field', { description }),
   settings: () => g<AiSettings>('/v1/ai/settings'),
   saveSettings: (body: { enabled?: boolean; tables?: string[]; monthly_token_cap?: number }) => send<AiSettings>('PUT', '/v1/ai/settings', body),
   extract: (screen: string, file_id: string) => send<AiSuggestions>('POST', '/v1/ai/extract', { screen, file_id }),
@@ -651,4 +673,44 @@ export const ai = {
   ask: (table: string, question: string) => send<{ filters: Record<string, string>; q: string; cached: boolean }>('POST', '/v1/ai/ask', { table, question }),
   draft: (table: string, id: string, intent: string) => send<{ subject: string; body: string; cached: boolean }>('POST', '/v1/ai/draft', { table, id, intent }),
   explainNumber: (measure: string, range?: string) => send<AiText & { figures: { value: number | null } }>('POST', '/v1/ai/explain-number', { measure, range }),
+}
+
+/** A ready-made rule from the library, with samples that show what it allows and refuses. */
+/** A field whose new rules are already broken by some stored records. A warning, never a block. */
+export interface TransformResult { input: unknown; output: unknown; steps: { rule: number; matched: boolean; stopped: boolean }[]; problem: string | null }
+export interface UniqueBlocker { table: string; table_label: string; field: string; label: string; values: { value: string; count: number }[] }
+export interface RuleWarning {
+  table: string
+  table_label: string
+  field: string
+  label: string
+  count: number
+}
+
+export interface LibraryRule {
+  key: string
+  name: string
+  kind: FieldRule['kind']
+  pattern: string
+  message: string
+  good: string[]
+  bad: string[]
+}
+
+export interface TypePreset {
+  key: string
+  name: string
+  core: FieldDef['type']
+  area: string
+  description: string
+  example: string
+  max_length: number | null
+  save_as: 'upper' | 'lower' | null
+  min: number | null
+  max: number | null
+  used: number
+}
+export interface TypePresets {
+  presets: TypePreset[]
+  compatible: Record<string, string[]>
 }

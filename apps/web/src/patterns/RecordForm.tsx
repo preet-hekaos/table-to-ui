@@ -95,6 +95,15 @@ const OutcomeLink = ({ o }: { o: RuleOutcome }) =>
   ) : null
 
 /** Pattern: a form generated from table metadata, with instant rule checks and server errors beside their fields. */
+
+const STANDARD_WORDS: Record<string, string> = { today: 'today’s date', now: 'the current time', user: 'your name', zero: '0', empty: 'empty', not_provided: '“Not provided”', first_choice: 'the first choice' }
+/** What a left-blank value becomes, when the field has an "if blank, set to …" rule (S5): shown under the input. */
+function blankBecomes(f: FieldDef): string | null {
+  const r = f.transforms?.find((t) => t.enabled && t.when === 'blank' && (t.do === 'set' || t.do === 'set_standard'))
+  if (!r) return null
+  return r.do === 'set' ? `“${r.value}”` : (STANDARD_WORDS[r.value] ?? r.value)
+}
+
 export function RecordForm({
   table,
   initial,
@@ -137,6 +146,24 @@ export function RecordForm({
   const [askApproval, setAskApproval] = useState(false)
   const [failure, setFailure] = useState<string | null>(null)
   const checkSeq = useRef(0)
+  const [liveErrors, setLiveErrors] = useState<Record<string, string>>({})
+
+  /** Leaving a field with rules asks the server, the same engine that saves, so the message shows before Save. */
+  async function checkField(f: FieldDef) {
+    const raw = getValues(f.key)
+    const value = toPayload(table, { [f.key]: raw })[f.key] ?? ''
+    try {
+      const { message } = await app.validateField(table.key, f.key, value)
+      setLiveErrors((all) => {
+        const next = { ...all }
+        if (message) next[f.key] = message[0]!.toUpperCase() + message.slice(1)
+        else delete next[f.key]
+        return next
+      })
+    } catch {
+      /* a convenience only; the server still decides on submit */
+    }
+  }
 
   async function instantCheck() {
     const seq = ++checkSeq.current
@@ -184,6 +211,7 @@ export function RecordForm({
   })
 
   const groups = fieldGroups(table)
+  const blockedBy = table.fields.filter((f) => liveErrors[f.key]).map((f) => f.label)
   return (
     <form onSubmit={submit} noValidate className="flex max-w-3xl flex-col gap-5" aria-label={`${initial ? 'Edit' : 'Add'} ${table.label.toLowerCase()}`}>
       {/* eslint-disable-next-line react-hooks/refs -- react-hook-form register() returns ref callbacks by design */}
@@ -194,9 +222,15 @@ export function RecordForm({
             <legend className="px-1 text-sm font-semibold text-ink">{g.label}</legend>
             <div className="grid gap-4 md:grid-cols-2">
               {fields.map((f) => {
+                const hasRules = !!f.rules?.some((r) => r.enabled)
+                const blankHint = blankBecomes(f)
                 const reg = register(f.key, {
-                  required: f.required ? `${f.label} is required` : false,
-                  onBlur: f.unique || f.normalize === 'text' ? () => void instantCheck() : undefined,
+                  required: f.required && !blankHint ? `${f.label} is required` : false,
+                  onChange: () => setLiveErrors((all) => (all[f.key] ? Object.fromEntries(Object.entries(all).filter(([k]) => k !== f.key)) : all)),
+                  onBlur: () => {
+                    if (hasRules) void checkField(f)
+                    if (f.unique || f.normalize === 'text') void instantCheck()
+                  },
                 })
                 const unsure = review?.has(f.key)
                 return (
@@ -204,8 +238,8 @@ export function RecordForm({
                     <Field
                       label={unsure ? `${f.label} (check this)` : f.label}
                       required={f.required}
-                      hint={unsure ? 'Read with low confidence. Please check it.' : (f.help ?? undefined)}
-                      error={formState.errors[f.key]?.message}
+                      hint={unsure ? 'Read with low confidence. Please check it.' : [f.help, blankHint ? `Left blank, this becomes ${blankHint}.` : ''].filter(Boolean).join(' ') || undefined}
+                      error={liveErrors[f.key] ?? formState.errors[f.key]?.message}
                     >
                       {control(f, reg, defaults[f.key], (v) => setValue(f.key, v))}
                     </Field>
@@ -265,10 +299,15 @@ export function RecordForm({
           {failure}
         </p>
       )}
-      <div className="flex gap-2">
-        <Button type="submit" variant="primary" loading={formState.isSubmitting}>
+      <div className="flex flex-wrap items-center gap-3">
+        <Button type="submit" variant="primary" loading={formState.isSubmitting} disabled={blockedBy.length > 0} aria-describedby={blockedBy.length ? 'save-why' : undefined}>
           {submitLabel ?? `Save ${table.label.toLowerCase()}`}
         </Button>
+        {blockedBy.length > 0 && (
+          <p id="save-why" role="status" className="text-sm text-bad-ink">
+            Cannot save yet: {blockedBy.length === 1 ? 'fix' : 'fix these fields:'} {blockedBy.join(', ')}.
+          </p>
+        )}
       </div>
       <Dialog open={blocker.status === 'blocked'} onOpenChange={(o) => !o && blocker.reset?.()}>
         <DialogContent title="Leave without saving?" description="You have changes that are not saved yet.">

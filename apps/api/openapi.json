@@ -453,6 +453,35 @@
         "title": "ExtractBody",
         "type": "object"
       },
+      "FieldBody": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          }
+        },
+        "required": [
+          "description"
+        ],
+        "title": "FieldBody",
+        "type": "object"
+      },
+      "FieldValueBody": {
+        "properties": {
+          "field": {
+            "title": "Field",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value"
+          }
+        },
+        "required": [
+          "field"
+        ],
+        "title": "FieldValueBody",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -1015,6 +1044,19 @@
         "title": "PairBody",
         "type": "object"
       },
+      "PatternBody": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          }
+        },
+        "required": [
+          "description"
+        ],
+        "title": "PatternBody",
+        "type": "object"
+      },
       "PrefsBody": {
         "properties": {
           "channels": {
@@ -1438,6 +1480,29 @@
           "token"
         ],
         "title": "TokenBody",
+        "type": "object"
+      },
+      "TransformBody": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "label": {
+            "default": "",
+            "title": "Label",
+            "type": "string"
+          },
+          "type": {
+            "default": "text",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "description"
+        ],
+        "title": "TransformBody",
         "type": "object"
       },
       "Undo": {
@@ -2010,6 +2075,94 @@
         ]
       }
     },
+    "/v1/ai/field": {
+      "post": {
+        "description": "A suggested new field from a description. Nothing is saved; the builder presses Use.",
+        "operationId": "field_v1_ai_field_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FieldBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Field V1 Ai Field Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Field",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/v1/ai/pattern": {
+      "post": {
+        "description": "A suggested validation pattern from a description. Nothing is saved; the builder presses Use as rule.",
+        "operationId": "pattern_v1_ai_pattern_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatternBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Pattern V1 Ai Pattern Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Pattern",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
     "/v1/ai/schema-from-document": {
       "post": {
         "description": "Read a PDF, Word or text file and propose tables as a JSON Schema. Nothing is saved: the\nschema goes through the Import schema preview, where the person checks it.",
@@ -2359,6 +2512,50 @@
           }
         },
         "summary": "Summary",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/v1/ai/transform": {
+      "post": {
+        "description": "Suggested transformation rules from a description. Nothing is saved; the builder presses Use as rule.",
+        "operationId": "transform_v1_ai_transform_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransformBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Transform V1 Ai Transform Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Transform",
         "tags": [
           "ai"
         ]
@@ -7060,6 +7257,70 @@
         ]
       }
     },
+    "/v1/records/{table}/validate-field": {
+      "post": {
+        "description": "The message for one value of one field, from the same engine that saves records. Writes nothing.\nForms call it when a person leaves a field, so a broken rule shows beside the input before Save.",
+        "operationId": "validate_field_v1_records__table__validate_field_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "table",
+            "required": true,
+            "schema": {
+              "title": "Table",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FieldValueBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "title": "Response Validate Field V1 Records  Table  Validate Field Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Validate Field",
+        "tags": [
+          "records"
+        ]
+      }
+    },
     "/v1/records/{table}/values/{field}": {
       "get": {
         "description": "The distinct values of one column with counts, for the Excel-style column filter.",
@@ -8518,6 +8779,34 @@
         ]
       }
     },
+    "/v1/studio/standard-values": {
+      "get": {
+        "operationId": "standard_values_v1_studio_standard_values_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "type": "object"
+                  },
+                  "title": "Response Standard Values V1 Studio Standard Values Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Standard Values",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
     "/v1/studio/status": {
       "get": {
         "description": "Whether the Draft differs from Live, and how.",
@@ -8887,6 +9176,71 @@
         ]
       }
     },
+    "/v1/studio/tables/{table}/fields/{field}/length-impact": {
+      "get": {
+        "operationId": "length_impact_v1_studio_tables__table__fields__field__length_impact_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "table",
+            "required": true,
+            "schema": {
+              "title": "Table",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "field",
+            "required": true,
+            "schema": {
+              "title": "Field",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "max_length",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "title": "Max Length",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "title": "Response Length Impact V1 Studio Tables  Table  Fields  Field  Length Impact Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Length Impact",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
     "/v1/studio/tables/{table}/fields/{field}/restore": {
       "post": {
         "description": "Undo a field deletion that has not been published yet.",
@@ -8936,6 +9290,194 @@
           }
         },
         "summary": "Restore Field",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
+    "/v1/studio/tables/{table}/fields/{field}/rules/check-existing": {
+      "post": {
+        "operationId": "rules_check_existing_v1_studio_tables__table__fields__field__rules_check_existing_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "table",
+            "required": true,
+            "schema": {
+              "title": "Table",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "field",
+            "required": true,
+            "schema": {
+              "title": "Field",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "title": "Response Rules Check Existing V1 Studio Tables  Table  Fields  Field  Rules Check Existing Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Rules Check Existing",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
+    "/v1/studio/tables/{table}/fields/{field}/transform-preview": {
+      "post": {
+        "description": "Try a value: what the drafted transformation rules do to sample values, and whether the result is then valid.",
+        "operationId": "transform_preview_v1_studio_tables__table__fields__field__transform_preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "table",
+            "required": true,
+            "schema": {
+              "title": "Table",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "field",
+            "required": true,
+            "schema": {
+              "title": "Field",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Transform Preview V1 Studio Tables  Table  Fields  Field  Transform Preview Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Transform Preview",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
+    "/v1/studio/tables/{table}/fields/{field}/value-count": {
+      "get": {
+        "operationId": "value_count_v1_studio_tables__table__fields__field__value_count_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "table",
+            "required": true,
+            "schema": {
+              "title": "Table",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "field",
+            "required": true,
+            "schema": {
+              "title": "Field",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "title": "Response Value Count V1 Studio Tables  Table  Fields  Field  Value Count Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Value Count",
         "tags": [
           "studio"
         ]
@@ -8992,6 +9534,102 @@
           }
         },
         "summary": "Update Stages",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
+    "/v1/studio/type-presets": {
+      "get": {
+        "description": "The types a builder can pick (real-world names over core types), ranked by use, with the allowed type changes.",
+        "operationId": "type_presets_v1_studio_type_presets_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Type Presets V1 Studio Type Presets Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Type Presets",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
+    "/v1/studio/validation-library": {
+      "get": {
+        "operationId": "validation_library_v1_studio_validation_library_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Validation Library V1 Studio Validation Library Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Validation Library",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
+    "/v1/studio/validation-preview": {
+      "post": {
+        "description": "Runs one rule over sample values with the same engine the live app uses. Saves nothing.",
+        "operationId": "validation_preview_v1_studio_validation_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Validation Preview V1 Studio Validation Preview Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Validation Preview",
         "tags": [
           "studio"
         ]

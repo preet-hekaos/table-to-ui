@@ -86,7 +86,7 @@ def problems(
                 if tf.type == "select" and not tokens(txt) and txt not in tf.options:
                     out.append((f"{p}.values.{key}", f"'{txt}' is not a choice of '{tf.label}'."))
             for f in target.fields:
-                if f.required and f.key not in act.values and f.default is None:
+                if f.required and f.key not in act.values and not f.has_fallback:
                     out.append((f"{p}.values", f"'{f.label}' is required but not filled in."))
         else:
             sf = t.field(act.field or "")

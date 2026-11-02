@@ -49,7 +49,7 @@ function NavEditor({ saved, canEdit }: { saved: Item[]; canEdit: boolean }) {
   const sections: [string, string][] = keys.map((k) => [k, name(k)])
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm text-muted">Menu changes stay in Draft until you publish. Each person only sees entries for tables their role can read.</p>
+      <p className="text-sm text-muted">Menu changes stay in Draft until you publish. Each person only sees entries for tables their role can read. The name here is the sidebar entry; a page’s heading is its screen Title (Tables › Screens).</p>
       {sections.map(([section, title]) => (
         <Card key={section} className="p-0">
           <h2 className="border-b border-line p-3 text-sm font-bold text-ink">{title}</h2>

@@ -46,14 +46,12 @@ function RankedPicker({ screenKey, title, sourceTable }: { screenKey: string; ti
 /** A screen is data: a pattern applied to a table, plus its configuration. This picks the pattern. */
 export function ScreenView({ screenKey, saved, filter }: { screenKey: string; saved?: string; filter?: { ref: string; id: string } }) {
   const q = useQuery({ queryKey: ['screen', screenKey], queryFn: () => app.screen(screenKey), retry: false })
-  const nav = useQuery({ queryKey: ['navigation'], queryFn: app.navigation, retry: false })
   const searches = useQuery({ queryKey: ['saved-searches'], queryFn: search.saved, enabled: !!saved })
   if (q.isLoading || (saved && searches.isLoading)) return <LoadingState label="Loading screen" />
   if (q.error instanceof ApiError && q.error.status === 404) return <NotFound />
   if (q.error || !q.data) return <ErrorState requestId={(q.error as ApiError | null)?.requestId} onRetry={() => void q.refetch()} />
-  // The menu item is the name people know the screen by, so the page heading follows it.
-  const label = nav.data?.items.find((i) => i.screen === screenKey)?.label
-  const screen = label ? { ...q.data.screen, title: label } : q.data.screen
+  // The heading is the screen's own Title (set on the Studio Screens tab); the menu name only names the sidebar entry.
+  const screen = q.data.screen
   const config = screen.config as ScreenConfig
   switch (screen.pattern) {
     case 'document_review':

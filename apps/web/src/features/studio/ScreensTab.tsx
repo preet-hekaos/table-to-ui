@@ -166,13 +166,13 @@ function Configurator({ screen, table, canEdit }: { screen: DraftScreen; table: 
           <h2 className="text-base font-bold text-ink">Configure</h2>
           <Badge tone="accent">{PATTERNS.find((p) => p.key === screen.pattern)?.name ?? screen.pattern}</Badge>
         </div>
-        <Field label="Title">
+        <Field label="Title" hint="The heading at the top of the page. The menu name is set in Menu.">
           <Input value={title} onChange={(e) => setTitle(e.target.value)} disabled={!canEdit} />
         </Field>
         {listLike && <Checklist legend="Columns" options={fields} value={cfg.columns ?? []} onChange={(columns) => set({ columns })} />}
         {listLike && <Checklist legend="Filters" options={fields} value={cfg.filters ?? []} onChange={(filters) => set({ filters })} />}
         {listLike && (
-          <Field label="Group by">
+          <Field label="Group by" hint="Needs Group rows switched on in the table’s Features.">
             <Select value={cfg.group_by ?? ''} onChange={(e) => set({ group_by: e.target.value || undefined })} disabled={!canEdit}>
               <option value="">No grouping</option>
               {table.fields.filter((f) => ['select', 'reference', 'boolean', 'text'].includes(f.type)).map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}

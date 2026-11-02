@@ -7,7 +7,6 @@ import { useState, type ReactNode } from 'react'
 import { studio } from '@/api/endpoints'
 import type { StudioTable } from '@/api/types'
 import { Button, Chip, Input, Select, cn, useToast } from '@/design-system'
-import { FieldGrid } from './FieldGrid'
 import { DEFAULT_FEATURES, featuresOf, type StatCard, type TableFeatures } from './features'
 
 type Group<K extends keyof TableFeatures> = { value: TableFeatures[K] extends (infer U)[] ? U : never; label: string }
@@ -59,7 +58,7 @@ function Options({ label, disabled, children }: { label: string; disabled: boole
 const rowLabel = 'w-44 shrink-0 text-xs font-bold tracking-wide text-muted uppercase'
 const smallLabel = 'text-xs font-semibold text-muted'
 
-/** Per-table features: switches for the whole table, defaults, and the field options grid. */
+/** Per-table features: switches for the whole table and defaults. What each field offers is in the Features column of the Fields grid. */
 export function FeaturesPanel({ table, canEdit }: { table: StudioTable; canEdit: boolean }) {
   const qc = useQueryClient()
   const toast = useToast()
@@ -147,7 +146,7 @@ export function FeaturesPanel({ table, canEdit }: { table: StudioTable; canEdit:
             checked={f.stat_cards !== null}
             disabled={!canEdit || !f.statistics}
             onChange={(on) => set('stat_cards', on ? [{ kind: 'count' }] : null)}
-            hint={f.statistics ? 'Choose the summary cards myself: pick up to six. Left off, the cards are automatic (how many, plus the average of each number field). Each person can still switch to a chart on the table screen.' : 'Turn on Numbers above the table in the field options first.'}
+            hint={f.statistics ? 'Choose the summary cards myself: pick up to six. Left off, the cards are automatic (how many, plus the average of each number field). Each person can still switch to a chart on the table screen.' : 'Turn on Numbers above the table in the bar over the Fields grid first.'}
           >
             Custom cards
           </Chip>
@@ -159,8 +158,6 @@ export function FeaturesPanel({ table, canEdit }: { table: StudioTable; canEdit:
           </div>
         )}
       </div>
-
-      <FieldGrid table={table} f={f} set={set} canEdit={canEdit} />
 
       {canEdit && (
         <div className="sticky bottom-0 z-10 flex flex-wrap items-center gap-3 rounded-xl border border-line bg-surface px-5 py-3 shadow-[0_-4px_16px_rgba(20,26,38,0.06)]" role="region" aria-label="Save">

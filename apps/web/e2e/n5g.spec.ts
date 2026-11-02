@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { run, signUpWithPack } from './helpers'
+import { run, signUpWithPack, setFieldFeature, setTableWide } from './helpers'
 
 const tags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 
@@ -40,18 +40,12 @@ test('Numbers above the table follow the search; chosen in Studio; switch off', 
   })
 
   await test.step('Choose the fields in Studio', async () => {
-    await page.goto('/studio?tab=data&table=candidate&part=features')
-    const panel = page.getByTestId('features-panel')
-    for (const f of ['Notice period (days)', 'Total experience', 'Current CTC']) await panel.getByRole('checkbox', { name: `Summarise ${f}` }).uncheck()
-    await panel.getByRole('checkbox', { name: 'Summarise Expected CTC' }).check()
-    await panel.getByRole('button', { name: 'Save features' }).click()
-    await expect(page.getByText('Saved features for Candidate').first()).toBeVisible()
+    await page.goto('/studio?tab=data&table=candidate')
+    for (const f of ['Notice period \\(days\\)', 'Total experience', 'Current CTC']) await setFieldFeature(page, f, 'In the summary numbers', false)
+    await setFieldFeature(page, 'Expected CTC', 'In the summary numbers', true)
   })
 
   await test.step('Switching it off removes the strip from the preview data', async () => {
-    const panel = page.getByTestId('features-panel')
-    await panel.getByRole('switch', { name: /Numbers above the table/ }).uncheck()
-    await panel.getByRole('button', { name: 'Save features' }).click()
-    await expect(page.getByText('Saved features for Candidate').first()).toBeVisible()
+    await setTableWide(page, 'Numbers above the table', false)
   })
 })

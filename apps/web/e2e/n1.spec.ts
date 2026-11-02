@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { openTables, run, signUpWithPack } from './helpers'
+import { openTables, run, signUpWithPack, pickNewFieldType } from './helpers'
 
 /** N1: Draft, Test and Live each have their own colour, word and icon, and the colour follows a change. */
 test('Stage colours follow a field from Draft to Test to Live', async ({ page }) => {
@@ -12,7 +12,7 @@ test('Stage colours follow a field from Draft to Test to Live', async ({ page })
     await page.getByRole('button', { name: 'Add field' }).click()
     const dialog = page.getByRole('dialog')
     await dialog.getByLabel(/^Label/).fill('Preferred shift')
-    await dialog.getByLabel('Type').selectOption('select')
+    await pickNewFieldType(page, /^Choice from a list/)
     await dialog.getByLabel(/^Choices/).fill('Day, Night')
     await dialog.getByRole('button', { name: 'Add field' }).click()
     await expect(row()).toHaveAttribute('data-stage', 'draft')

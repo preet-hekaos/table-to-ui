@@ -1,6 +1,7 @@
 import { ArrowLeft, ArrowRight, X } from 'lucide-react'
 import { useState, type KeyboardEvent } from 'react'
 import type { FieldDef, StudioTable } from '@/api/types'
+import { TYPE_LABELS } from './typeLabels'
 import { useSaveField } from './useSaveField'
 
 /** The panel under a row: help text, the choices of a list, and where a link points. */
@@ -59,6 +60,14 @@ export function FieldDetails({ table, tables, field, canEdit }: { table: StudioT
           className="mt-1 h-9 w-full rounded-md border border-line bg-surface px-2 text-sm text-ink"
         />
         <p className="mt-1 text-xs text-muted">Shown under the field on forms.</p>
+      </div>
+      <div className="min-w-48" data-testid={`type-of-${field.key}`}>
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Type</p>
+        <p className="mt-1 text-sm text-ink">{field.type_name ?? TYPE_LABELS[field.type]}</p>
+        <p className="mt-1 text-xs text-muted">
+          Core type <code className="rounded bg-soft px-1 font-mono">{field.type}</code>
+          {field.save_as === 'upper' ? ', saved in capital letters' : field.save_as === 'lower' ? ', saved in lower case' : ''}.
+        </p>
       </div>
       {isList && (
         <div className="min-w-72 flex-1">

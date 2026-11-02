@@ -1,26 +1,17 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState, type FormEvent } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMemo, useState, type FormEvent } from 'react'
 import { ApiError } from '@/api/client'
-import { studio } from '@/api/endpoints'
+import { ai, studio } from '@/api/endpoints'
 import type { FieldDef, StudioTable } from '@/api/types'
 import { Button, Dialog, DialogContent, Field, Input, Select, useToast } from '@/design-system'
 
-export const TYPE_LABELS: Record<FieldDef['type'], string> = {
-  text: 'Short text',
-  long_text: 'Long text',
-  email: 'Email address',
-  phone: 'Phone number',
-  integer: 'Whole number',
-  decimal: 'Number with decimals',
-  money: 'Amount of money',
-  months: 'Duration in months',
-  boolean: 'Yes or no',
-  date: 'Date',
-  select: 'Choice from a list',
-  tags: 'List of labels',
-  url: 'Web link',
-  reference: 'Link to another table',
-}
+export { TYPE_LABELS } from './typeLabels'
+import { TYPE_LABELS } from './typeLabels'
+import { areaLabelOf } from './TypeCell'
+import { FieldWordsPanel } from './FieldWordsPanel'
+import { TypePicker } from './TypePicker'
+import { buildChoices, type TypeChoice } from './typeCatalog'
+import { useTypePresets } from './useTypePresets'
 
 const fieldErrors = (e: unknown) =>
   e instanceof ApiError ? Object.fromEntries(e.errors.map((x) => [x.field.split('.').pop() ?? x.field, x.message])) : {}
@@ -39,7 +30,12 @@ export function FieldDialog({ table, tables, field, open, onOpenChange }: Props)
   const toast = useToast()
   const isNew = !field
   const [label, setLabel] = useState(field?.label ?? '')
-  const [type, setType] = useState<FieldDef['type']>(field?.type ?? 'text')
+  const presets = useTypePresets()
+  const aiSetting = useQuery({ queryKey: ['ai', 'settings'], queryFn: ai.settings, staleTime: 60_000, retry: false, enabled: isNew })
+  const choices = useMemo(() => buildChoices(presets.data, ''), [presets.data])
+  const [picked, setPicked] = useState<TypeChoice | undefined>()
+  const chosen = picked ?? choices.find((c) => c.id === 'core:text')
+  const type: FieldDef['type'] = isNew ? (chosen?.core ?? 'text') : field.type
   const [options, setOptions] = useState((field?.options ?? []).join(', '))
   const [refTable, setRefTable] = useState(field?.ref_table ?? '')
   const [required, setRequired] = useState(field?.required ?? false)
@@ -61,6 +57,7 @@ export function FieldDialog({ table, tables, field, open, onOpenChange }: Props)
         return studio.addField(table.key, {
           label,
           type,
+          ...(chosen?.preset ? ({ preset: chosen.preset.key } as object) : {}),
           required,
           unique,
           help: help || null,
@@ -97,17 +94,40 @@ export function FieldDialog({ table, tables, field, open, onOpenChange }: Props)
         }
       >
         <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
+          {isNew && (
+            <FieldWordsPanel
+              aiOn={!!aiSetting.data?.enabled}
+              onUse={(p) => {
+                setLabel(p.label)
+                setPicked(choices.find((c) => c.id === (p.preset ? `preset:${p.preset}` : `core:${p.type}`)))
+                setRequired(p.required)
+                setOptions(p.options.join(', '))
+              }}
+            />
+          )}
           <Field label="Label" required error={errors.label ?? errors.key}>
             <Input value={label} onChange={(e) => setLabel(e.target.value)} autoFocus />
           </Field>
           <Field label="Type" error={errors.type}>
-            <Select value={type} onChange={(e) => setType(e.target.value as FieldDef['type'])} disabled={!isNew}>
-              {Object.entries(TYPE_LABELS).map(([k, v]) => (
-                <option key={k} value={k}>
-                  {v}
-                </option>
-              ))}
-            </Select>
+            {isNew && presets.data ? (
+              <span className="flex items-center gap-2">
+                <TypePicker
+                  choices={choices}
+                  current={chosen}
+                  label={`Type: ${chosen?.name ?? 'Short text'}. Change type`}
+                  onUse={setPicked}
+                  areaLabel={areaLabelOf(presets.data.presets.map((p) => p.area))}
+                />
+              </span>
+            ) : (
+              <Select value={type} disabled onChange={() => undefined}>
+                {Object.entries(TYPE_LABELS).map(([k, v]) => (
+                  <option key={k} value={k}>
+                    {v}
+                  </option>
+                ))}
+              </Select>
+            )}
           </Field>
           {(type === 'select' || type === 'tags') && (
             <Field label="Choices" hint="Separate with commas" error={errors.options}>
