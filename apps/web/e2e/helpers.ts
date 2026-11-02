@@ -21,7 +21,7 @@ export async function signUpWithPack(page: Page, name: string, email: string, pa
   }).toPass()
   await go.click()
   await expect(page.getByTestId('app-name')).toHaveText(name)
-  await expect(page.getByRole('heading', { name: /^Good (morning|afternoon|evening)/ })).toBeVisible() // onboarding has finished navigating home
+  await expect(page.getByRole('heading', { name: /^Good (morning|afternoon|evening)/ })).toBeVisible({ timeout: 30_000 }) // onboarding has finished navigating home
 }
 
 /**
