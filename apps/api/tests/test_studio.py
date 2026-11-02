@@ -742,3 +742,22 @@ async def test_validate_field_gives_the_live_message_for_one_value_and_writes_no
     other = await client.post(url, headers=a.h(), json={"field": "phone", "value": "12"})
     assert other.json()["message"]  # not only rules: the same engine as saving
     assert (await client.get("/v1/records/candidate", headers=a.h())).json()["items"] == []
+
+
+async def test_a_menu_entry_limited_to_a_role_is_hidden_from_other_roles_once_live(
+    client: httpx.AsyncClient, agency: Agency, mailer: InMemoryMailer
+) -> None:
+    from tests.test_access import _member
+
+    a = agency
+    rec = await _member(client, a, mailer, "recruiter")
+    nav = (await client.get("/v1/studio/navigation", headers=a.h())).json()
+    nav = [{**n, "roles": ["admin"]} if n["screen"] == "skills" else n for n in nav]
+    r = await client.put("/v1/studio/navigation", headers=a.h(), json={"items": nav})
+    assert r.status_code == 200, r.text
+    await a.publish_live()
+    mine = (await client.get("/v1/app/navigation", headers=a.h())).json()["items"]
+    theirs = (await client.get("/v1/app/navigation", headers=rec.h())).json()["items"]
+    assert any(i["screen"] == "skills" for i in mine)
+    assert not any(i["screen"] == "skills" for i in theirs)
+    assert any(i["screen"] == "candidates" for i in theirs)

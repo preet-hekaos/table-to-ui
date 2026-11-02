@@ -186,6 +186,35 @@ async def test_a_new_candidate_gets_a_screening_task_for_the_person_who_added_th
     assert runs[0]["status"] == "done" and runs[0]["did"] == ["Created 1 task"]
 
 
+async def test_switching_an_automation_off_in_the_studio_stops_it_once_live(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    off = await client.put(
+        "/v1/studio/automations/screening_task_new_candidate",
+        headers=agency.h(),
+        json={"enabled": False},
+    )
+    assert off.status_code == 200
+    await agency.publish_live()
+    res = await agency.create_candidate(candidate(full_name="Quiet Person"))
+    assert res.status_code == 201, res.text
+    await _flush(client)
+    assert await _records(client, agency, "task") == []
+    on = await client.put(
+        "/v1/studio/automations/screening_task_new_candidate",
+        headers=agency.h(),
+        json={"enabled": True},
+    )
+    assert on.status_code == 200
+    await agency.publish_live()
+    res = await agency.create_candidate(
+        candidate(full_name="Loud Person", email="loud@x.test", phone="+91 98450 33333")
+    )
+    assert res.status_code == 201, res.text
+    await _flush(client)
+    assert len(await _records(client, agency, "task")) == 1
+
+
 async def test_five_redeliveries_of_one_event_run_the_automation_once(
     client: httpx.AsyncClient, agency: Agency, db: Database
 ) -> None:
