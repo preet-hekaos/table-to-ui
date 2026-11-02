@@ -114,9 +114,12 @@ test('Stages: a renamed stage and a new stage show on the live Pipeline board af
   await expect(page.getByText('Stages saved in Draft', { exact: true })).toBeVisible()
   await page.waitForLoadState('networkidle') // the card redraws after the save; fill only once it has settled
   const card = page.locator('section, div').filter({ has: page.getByLabel('Label for stage Interview') }).filter({ has: page.getByLabel('New stage name') }).last()
-  await card.getByLabel('New stage name').fill('Assessment')
-  await card.getByLabel('Add after').selectOption('Screened')
-  await expect(card.getByRole('button', { name: 'Add stage' })).toBeEnabled()
+  // the card can redraw once more after the save and clear what was typed, so fill again until it holds
+  await expect(async () => {
+    await card.getByLabel('New stage name').fill('Assessment')
+    await card.getByLabel('Add after').selectOption('Screened')
+    await expect(card.getByRole('button', { name: 'Add stage' })).toBeEnabled({ timeout: 1000 })
+  }).toPass({ timeout: 20_000 })
   await card.getByRole('button', { name: 'Add stage' }).click()
   await expect(page.getByLabel('Label for stage Assessment')).toBeVisible()
   await publishLive(page)
