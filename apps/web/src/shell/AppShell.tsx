@@ -150,32 +150,32 @@ export function AppShell() {
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-surface focus:p-2">Skip to content</a>
       <aside className={`${open ? 'fixed inset-0 z-40 flex' : hidden ? 'hidden' : 'hidden md:flex'} ${side.fullScreen ? '!hidden' : ''}`}>
         <div className={`flex h-full flex-col gap-4 overflow-y-auto bg-nav p-3 transition-[width] duration-150 motion-reduce:transition-none ${rail ? 'w-16 items-center' : 'w-62'}`} data-sidebar={rail ? 'collapsed' : 'expanded'}>
-          <div className="flex items-center gap-2 px-1 text-sm font-bold text-white">
+          <div className={`flex gap-2 px-1 text-sm font-bold text-white ${rail ? 'flex-col items-center' : 'items-center'}`}>
             {logo ? (
               <img src={logo} alt="" className="size-7 rounded-lg bg-white object-contain" data-testid="app-logo" />
             ) : (
               <span className="flex size-7 items-center justify-center rounded-lg bg-accent text-xs" aria-hidden>{(brand?.app_name ?? me.data.tenant_name)?.[0] ?? 'T'}</span>
             )}
             <span className={rail ? 'sr-only' : 'truncate'} data-testid="app-name">{brand?.app_name ?? me.data.tenant_name}</span>
+            {desktop && !open && (
+              <div className={`flex gap-0.5 ${rail ? 'flex-col' : 'ml-auto'}`} data-testid="sidebar-controls">
+                <button
+                  type="button"
+                  className="flex size-8 items-center justify-center rounded-md text-nav-text hover:bg-white/10 hover:text-white"
+                  aria-label={rail ? 'Expand sidebar' : 'Collapse sidebar'}
+                  aria-expanded={!rail}
+                  title={rail ? 'Expand sidebar (Ctrl+B)' : 'Collapse sidebar (Ctrl+B)'}
+                  onClick={() => side.choose(rail ? 'expanded' : 'collapsed')}
+                >
+                  {rail ? <PanelLeftOpen className="size-4" aria-hidden /> : <PanelLeftClose className="size-4" aria-hidden />}
+                </button>
+                <button type="button" className="flex size-8 items-center justify-center rounded-md text-nav-text hover:bg-white/10 hover:text-white" aria-label="Hide sidebar" title="Hide sidebar" onClick={() => side.choose('hidden')}>
+                  <X className="size-4" aria-hidden />
+                </button>
+              </div>
+            )}
           </div>
           {nav}
-          {desktop && !open && (
-            <div className={`mt-auto flex gap-1 border-t border-white/10 pt-2 ${rail ? 'flex-col' : ''}`}>
-              <button
-                type="button"
-                className="flex size-9 items-center justify-center rounded-md text-nav-text hover:text-white"
-                aria-label={rail ? 'Expand sidebar' : 'Collapse sidebar'}
-                aria-expanded={!rail}
-                title={rail ? 'Expand sidebar (Ctrl+B)' : 'Collapse sidebar (Ctrl+B)'}
-                onClick={() => side.choose(rail ? 'expanded' : 'collapsed')}
-              >
-                {rail ? <PanelLeftOpen className="size-4" aria-hidden /> : <PanelLeftClose className="size-4" aria-hidden />}
-              </button>
-              <button type="button" className="flex size-9 items-center justify-center rounded-md text-nav-text hover:text-white" aria-label="Hide sidebar" title="Hide sidebar" onClick={() => side.choose('hidden')}>
-                <X className="size-4" aria-hidden />
-              </button>
-            </div>
-          )}
         </div>
         {open && <button aria-label="Close menu" className={`flex-1 bg-ink/40 ${hidden ? '' : 'md:hidden'}`} onClick={close} />}
       </aside>
