@@ -14,12 +14,13 @@ test('Sidebar collapse and hide buttons sit at the top beside the app name, in f
     const c = (await controls.boundingBox())!
     expect(c.y + c.height).toBeLessThanOrEqual(await navTop())
     expect(c.y).toBeLessThan(60)
-    await side.screenshot({ path: `${SHOTS}/sidebar-full-top.png`, clip: { x: 0, y: 0, width: 250, height: 330 } })
+    await page.screenshot({ path: `${SHOTS}/sidebar-full-top.png`, clip: { x: 0, y: 0, width: 250, height: 330 } })
   })
 
   await test.step('Rail: the buttons stack under the logo, still above the menu, and work', async () => {
     await page.getByRole('button', { name: 'Collapse sidebar' }).click()
     await expect(side).toHaveAttribute('data-sidebar', 'collapsed')
+    await expect.poll(async () => (await side.boundingBox())!.width).toBeLessThan(80)
     const c = (await controls.boundingBox())!
     expect(c.y + c.height).toBeLessThanOrEqual(await navTop())
     expect(c.x + c.width).toBeLessThanOrEqual(64)
