@@ -5,7 +5,6 @@ import type { FieldDef, StudioTable } from '@/api/types'
 import { Badge, Button, Card, ErrorState, LoadingState, StageBadge, Tabs, TabsContent, TabsList, TabsTrigger } from '@/design-system'
 import { FieldDialog, NewTableDialog } from './FieldDialog'
 import { FieldsGrid } from './FieldsGrid'
-import { FeaturesPanel } from './FeaturesPanel'
 import { SchemaExportDialog } from './SchemaExportDialog'
 import { SchemaImportDialog } from './SchemaImportDialog'
 import { ScreensTab } from './ScreensTab'
@@ -14,8 +13,8 @@ import { useDraftTables } from './useDraftTables'
 import { useStages } from './useStages'
 
 
-/** Screen 2.4: pick a table from the header; its fields, screens and features sit below. */
-export type TablePart = 'fields' | 'screens' | 'features'
+/** Screen 2.4: pick a table from the header; its fields and screens sit below. */
+export type TablePart = 'fields' | 'screens'
 
 export function DataTab({
   selected,
@@ -58,7 +57,7 @@ export function DataTab({
             <Badge>{current.fields.length} fields</Badge>
             <div className="ml-auto flex flex-wrap items-center gap-3">
               <TabsList aria-label={`${current.label} parts`} className="gap-0.5 overflow-visible rounded-lg border border-line bg-soft p-0.5">
-                {(['fields', 'screens', 'features'] as const).map((v) => (
+                {(['fields', 'screens'] as const).map((v) => (
                   <TabsTrigger key={v} value={v} className="m-0 rounded-md border-0 px-3 py-1 capitalize text-body hover:bg-surface data-[state=active]:bg-surface data-[state=active]:shadow-sm">
                     {v}
                   </TabsTrigger>
@@ -78,9 +77,6 @@ export function DataTab({
           </TabsContent>
           <TabsContent value="screens" className="p-3">
             <ScreensTab canEdit={canEdit} tableKey={current.key} />
-          </TabsContent>
-          <TabsContent value="features" className="p-3">
-            <FeaturesPanel key={`${current.key}-${current.version}-${JSON.stringify(current.features ?? null)}`} table={current as StudioTable} canEdit={canEdit} />
           </TabsContent>
           </Tabs>
         </Card>

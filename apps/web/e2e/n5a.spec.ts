@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { run, signUpWithPack, setTableWide } from './helpers'
+import { featuresSaved, run, signUpWithPack, setTableWide } from './helpers'
 
 const tags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 
@@ -10,7 +10,7 @@ test('Table features: all on by default, set per table, applied to all, shown in
   await test.step('A table starts with every feature on', async () => {
     await page.goto('/studio?tab=data&table=candidate&part=features')
     const panel = page.getByTestId('features-panel')
-    await expect(panel.getByRole('switch')).toHaveCount(4)
+    await expect(panel.getByRole('switch')).toHaveCount(9)
     for (const sw of await panel.getByRole('switch').all()) await expect(sw).toBeChecked()
     await page.getByRole('button', { name: 'Bulk action options' }).click()
     await expect(page.getByLabel('Bulk actions include')).toHaveValue('view')
@@ -23,16 +23,13 @@ test('Table features: all on by default, set per table, applied to all, shown in
   await test.step('Switch some off and choose options; saving makes a Draft change', async () => {
     await setTableWide(page, 'Group rows', false)
     await page.goto('/studio?tab=data&table=candidate&part=features')
-    const panel = page.getByTestId('features-panel')
     await page.getByRole('button', { name: 'Bulk action options' }).click()
-    await page.getByRole('checkbox', { name: 'Delete (with Undo)' }).uncheck()
-    await page.getByLabel('Bulk actions include').selectOption('all')
+    await featuresSaved(page, () => page.getByRole('checkbox', { name: 'Delete (with Undo)' }).uncheck())
+    await featuresSaved(page, () => page.getByLabel('Bulk actions include').selectOption('all'))
     await page.keyboard.press('Escape')
     await page.getByRole('button', { name: 'Export options' }).click()
-    await page.getByRole('checkbox', { name: 'Excel' }).uncheck()
+    await featuresSaved(page, () => page.getByRole('checkbox', { name: 'Excel' }).uncheck())
     await page.keyboard.press('Escape')
-    await panel.getByRole('button', { name: 'Save features' }).click()
-    await expect(page.getByText('Saved features for Candidate').first()).toBeVisible()
     await page.reload()
     await setTableWide(page, 'Group rows', false)
     await page.goto('/studio?tab=data&table=candidate&part=features')
@@ -50,11 +47,11 @@ test('Table features: all on by default, set per table, applied to all, shown in
 
   await test.step('Apply to all tables', async () => {
     await page.goto('/studio?tab=data&table=candidate&part=features')
-    await page.getByTestId('features-panel').getByRole('switch', { name: /Drag to reorder/ }).uncheck()
+    await featuresSaved(page, () => page.getByTestId('features-panel').getByRole('switch', { name: /^Reorder rows/ }).uncheck())
     await page.getByRole('button', { name: 'Apply to all tables' }).click()
     await expect(page.getByText('Applied to every table').first()).toBeVisible()
     await page.goto('/studio?tab=data&table=skill&part=features')
-    await expect(page.getByTestId('features-panel').getByRole('switch', { name: /Drag to reorder/ })).not.toBeChecked()
+    await expect(page.getByTestId('features-panel').getByRole('switch', { name: /^Reorder rows/ })).not.toBeChecked()
   })
 
   await test.step('Lists carry a slim toolbar saying what is shown', async () => {

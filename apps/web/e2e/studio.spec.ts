@@ -67,7 +67,7 @@ test('Studio: fields, tables, map, screens, menu, preview and versions', async (
     const preview = page.getByTestId('screen-preview')
     await page.getByLabel('Empty-state text').fill('Nobody here yet, add a candidate')
     await expect(preview).toContainText('Nobody here yet, add a candidate', { timeout: 1000 })
-    await expect(page.getByText('Export and Import for this table are set in its Features tab.')).toBeVisible()
+    await expect(page.getByText('Export and Import for this table are set in the Table-wide bar on the Fields tab.')).toBeVisible()
     await page.getByRole('button', { name: 'Save screen' }).click()
     await expect(page.getByText('Saved Candidates in Draft').first()).toBeVisible()
   })

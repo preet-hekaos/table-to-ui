@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { run, signUpWithPack } from './helpers'
+import { featuresSaved, run, signUpWithPack } from './helpers'
 
 const tags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 
@@ -61,8 +61,6 @@ test('Drag to reorder: custom order, drag, keyboard, switch off', async ({ page 
   await test.step('Switching it off removes the toggle', async () => {
     await page.goto('/studio?tab=data&table=candidate&part=features')
     const panel = page.getByTestId('features-panel')
-    await panel.getByRole('switch', { name: /Drag to reorder/ }).uncheck()
-    await panel.getByRole('button', { name: 'Save features' }).click()
-    await expect(page.getByText('Saved features for Candidate').first()).toBeVisible()
+    await featuresSaved(page, () => panel.getByRole('switch', { name: /^Reorder rows/ }).uncheck())
   })
 })

@@ -39,8 +39,7 @@ test('Quiet scrollbars, and lists fade where there is more', async ({ page }) =>
     await page.keyboard.press('Escape')
   })
 
-  await test.step('Nothing breaks for axe on the Features tab', async () => {
-    await page.getByRole('tab', { name: 'Features' }).click()
+  await test.step('Nothing breaks for axe on the Fields tab with the Table-wide bar', async () => {
     await page.setViewportSize({ width: 900, height: 800 })
     await shot(page, 'r9-grid')
     const r = await new AxeBuilder({ page }).analyze()

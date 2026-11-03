@@ -61,7 +61,7 @@ test('S4.1 the Features cell: chips, +N, the dropdown with its eleven ticks, key
     await page.keyboard.press('Escape')
   })
 
-  await test.step('A table-wide switch greys the tick on every field and the same flag shows on the Features tab', async () => {
+  await test.step('A table-wide switch greys the tick on every field and it stays off in the bar', async () => {
     const bar = page.getByRole('group', { name: 'Table-wide switches for Candidate' })
     await bar.getByRole('switch', { name: /^Export data/ }).click()
     await cell(page, 'Email').click()
@@ -69,10 +69,7 @@ test('S4.1 the Features cell: chips, +N, the dropdown with its eleven ticks, key
     await expect(pop.getByRole('checkbox', { name: /^Exportable/ })).toBeDisabled()
     await expect(pop.getByText('Turn on Export data in the bar above first.')).toBeVisible()
     await page.keyboard.press('Escape')
-    await page.getByRole('tab', { name: 'Features' }).click()
     await expect(page.getByTestId('features-panel').getByRole('switch', { name: /Export data/ })).not.toBeChecked()
-    await expect(page.getByTestId('field-grid')).toHaveCount(0)
-    await page.getByRole('tab', { name: 'Fields' }).click()
     await bar.getByRole('switch', { name: /^Export data/ }).click()
     await expect(bar.getByRole('switch', { name: /^Export data/ })).toBeChecked()
     await page.screenshot({ path: `${SHOTS}/after-fields-tab.png`, fullPage: true })
