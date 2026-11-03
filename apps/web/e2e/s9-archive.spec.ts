@@ -1,0 +1,98 @@
+import { expect, test } from '@playwright/test'
+import { run, signUpWithPack } from './helpers'
+
+const SHOTS = '../../docs/screens/studio-table/s9'
+
+test('Archive instead of delete: type to confirm, hidden everywhere, restore, delete forever, auto-delete setting', async ({ page }) => {
+  await page.setViewportSize({ width: 1500, height: 1000 })
+  await signUpWithPack(page, `Archive ${run}`, `ar-${run}@studio.test`)
+  const token = () => page.evaluate(() => sessionStorage.getItem('tableui.token'))
+  await page.evaluate(async (t) => {
+    await fetch('/v1/studio/tables/candidate/fields', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` }, body: JSON.stringify({ label: 'Shoe size', type: 'text' }) })
+  }, await token())
+  await page.goto('/studio')
+  const row = () => page.getByRole('row', { name: /Shoe size/ }).first()
+
+  await test.step('The field editor offers Archive, not Delete, and asks the GitHub way', async () => {
+    await expect(row()).toBeVisible()
+    await row().getByRole('button', { name: /^More actions for / }).click()
+    await page.getByRole('menuitem', { name: 'Edit details' }).click()
+    await expect(page.getByRole('button', { name: /^Delete field/ })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Archive field…' }).click()
+    const dlg = page.getByTestId('archive-dialog')
+    await expect(dlg).toBeVisible()
+    await expect(dlg).toContainText('Are you absolutely sure?')
+    await expect(dlg).toContainText('Hide it from every form, list, filter, chart and export')
+    await expect(dlg).toContainText('Delete it for good after 30 days')
+    const go = dlg.getByRole('button', { name: 'I understand, archive this field' })
+    await expect(go).toBeDisabled()
+    await dlg.getByLabel(/Please type/).fill('Shoe size')
+    await expect(go).toBeDisabled() // needs "Candidate/Shoe size"
+    await dlg.getByLabel(/Please type/).fill('Candidates/Shoe size')
+    await page.screenshot({ path: `${SHOTS}/archive-confirm.png` })
+    await expect(go).toBeEnabled()
+    await go.click()
+    await expect(page.getByTestId('archive-dialog')).toHaveCount(0)
+    await expect(page.getByRole('row', { name: /Shoe size/ })).toHaveCount(0)
+  })
+
+  await test.step('The field name field cannot be archived: the dialog says why and offers nothing to click', async () => {
+    const name = page.getByRole('row', { name: /Full name/ }).first()
+    await name.getByRole('button', { name: /^More actions for / }).click()
+    await page.getByRole('menuitem', { name: 'Edit details' }).click()
+    await page.getByRole('button', { name: 'Archive field…' }).click()
+    await expect(page.getByTestId('archive-blocked')).toContainText('name field')
+    await expect(page.getByRole('button', { name: 'I understand, archive this field' })).toBeDisabled()
+    await page.keyboard.press('Escape')
+    await page.keyboard.press('Escape')
+  })
+
+  await test.step('Settings › Archive lists it with a countdown; Restore puts it back', async () => {
+    await page.goto('/settings?tab=archive')
+    const page_ = page.getByTestId('archive-page')
+    await expect(page_.getByTestId('archive-row')).toHaveCount(1)
+    await expect(page_.getByTestId('archive-row')).toContainText('Shoe size')
+    await expect(page_.getByTestId('archive-row')).toContainText(/in 2[89] days|in 30 days/)
+    await page.screenshot({ path: `${SHOTS}/archive-page.png` })
+    await page_.getByRole('button', { name: 'Restore Shoe size' }).click()
+    await expect(page_.getByTestId('archive-row')).toHaveCount(0)
+    await page.goto('/studio')
+    await expect(row()).toBeVisible()
+  })
+
+  await test.step('Delete forever: select, type the name, gone for good', async () => {
+    await row().getByRole('button', { name: /^More actions for / }).click()
+    await page.getByRole('menuitem', { name: 'Edit details' }).click()
+    await page.getByRole('button', { name: 'Archive field…' }).click()
+    await page.getByLabel(/Please type/).fill('Candidates/Shoe size')
+    await page.getByRole('button', { name: 'I understand, archive this field' }).click()
+    await page.goto('/settings?tab=archive')
+    const page_ = page.getByTestId('archive-page')
+    await page_.getByRole('checkbox', { name: 'Select Shoe size' }).check()
+    await expect(page_.getByTestId('archive-bar')).toContainText('1 selected')
+    await page_.getByRole('button', { name: 'Delete forever…' }).click()
+    const dlg = page.getByTestId('delete-forever')
+    const go = dlg.getByRole('button', { name: 'I understand, delete forever' })
+    await expect(go).toBeDisabled()
+    await dlg.getByLabel(/Please type/).fill('Shoe size')
+    await page.screenshot({ path: `${SHOTS}/delete-forever.png` })
+    await go.click()
+    await expect(page_.getByTestId('archive-row')).toHaveCount(0)
+    await expect(page_).toContainText('The archive is empty')
+  })
+
+  await test.step('Auto-delete setting: change the days, a short time asks first', async () => {
+    const page_ = page.getByTestId('archive-page')
+    await page_.getByTestId('open-auto-delete').click()
+    const panel = page.getByTestId('auto-delete-panel')
+    await expect(panel).toBeVisible()
+    await panel.getByLabel('Days before deleting').selectOption('14')
+    await panel.getByLabel('Records time').selectOption('0')
+    await page.screenshot({ path: `${SHOTS}/auto-delete.png` })
+    await panel.getByRole('button', { name: 'Save' }).click()
+    await expect(page.getByTestId('auto-delete-panel')).toHaveCount(0)
+    await expect(page_.getByTestId('open-auto-delete')).toContainText('14 days')
+    const saved = await page.evaluate(async (t) => (await (await fetch('/v1/archive/settings', { headers: { Authorization: `Bearer ${t}` } })).json()), await token())
+    expect(saved).toMatchObject({ auto_delete: true, days: 14, per_kind: { record: 0 } })
+  })
+})

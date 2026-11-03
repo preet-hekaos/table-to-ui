@@ -224,7 +224,7 @@
           "matching": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/Matching"
+                "$ref": "#/components/schemas/tableui__commands__api__router__Matching"
               },
               {
                 "type": "null"
@@ -655,82 +655,6 @@
           "mapping"
         ],
         "title": "MappingIn",
-        "type": "object"
-      },
-      "Matching": {
-        "description": "Every record that matches the list's current search, instead of a hand-picked set.",
-        "properties": {
-          "anyof": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "default": {},
-            "title": "Anyof",
-            "type": "object"
-          },
-          "contains": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "default": {},
-            "title": "Contains",
-            "type": "object"
-          },
-          "expected_count": {
-            "title": "Expected Count",
-            "type": "integer"
-          },
-          "filters": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "default": {},
-            "title": "Filters",
-            "type": "object"
-          },
-          "has": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "default": {},
-            "title": "Has",
-            "type": "object"
-          },
-          "owner": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Owner"
-          },
-          "q": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Q"
-          },
-          "ranges": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "default": {},
-            "title": "Ranges",
-            "type": "object"
-          }
-        },
-        "required": [
-          "expected_count"
-        ],
-        "title": "Matching",
         "type": "object"
       },
       "MeResponse": {
@@ -1187,12 +1111,29 @@
       "RecordsBody": {
         "properties": {
           "ids": {
-            "items": {
-              "format": "uuid",
-              "type": "string"
-            },
-            "title": "Ids",
-            "type": "array"
+            "anyOf": [
+              {
+                "items": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ids"
+          },
+          "matching": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/tableui__archive__api__router__Matching"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "table": {
             "title": "Table",
@@ -1200,8 +1141,7 @@
           }
         },
         "required": [
-          "table",
-          "ids"
+          "table"
         ],
         "title": "RecordsBody",
         "type": "object"
@@ -1780,6 +1720,151 @@
           }
         },
         "title": "Why",
+        "type": "object"
+      },
+      "tableui__archive__api__router__Matching": {
+        "properties": {
+          "anyof": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "title": "Anyof",
+            "type": "object"
+          },
+          "contains": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "title": "Contains",
+            "type": "object"
+          },
+          "expected_count": {
+            "title": "Expected Count",
+            "type": "integer"
+          },
+          "filters": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "title": "Filters",
+            "type": "object"
+          },
+          "has": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "title": "Has",
+            "type": "object"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner"
+          },
+          "q": {
+            "default": "",
+            "title": "Q",
+            "type": "string"
+          },
+          "ranges": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "title": "Ranges",
+            "type": "object"
+          }
+        },
+        "required": [
+          "expected_count"
+        ],
+        "title": "Matching",
+        "type": "object"
+      },
+      "tableui__commands__api__router__Matching": {
+        "description": "Every record that matches the list's current search, instead of a hand-picked set.",
+        "properties": {
+          "anyof": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "title": "Anyof",
+            "type": "object"
+          },
+          "contains": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "title": "Contains",
+            "type": "object"
+          },
+          "expected_count": {
+            "title": "Expected Count",
+            "type": "integer"
+          },
+          "filters": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "title": "Filters",
+            "type": "object"
+          },
+          "has": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "title": "Has",
+            "type": "object"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner"
+          },
+          "q": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q"
+          },
+          "ranges": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "title": "Ranges",
+            "type": "object"
+          }
+        },
+        "required": [
+          "expected_count"
+        ],
+        "title": "Matching",
         "type": "object"
       },
       "tableui__ops__api__router__ExportBody": {

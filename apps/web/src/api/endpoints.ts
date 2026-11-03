@@ -720,3 +720,31 @@ export interface TypePresets {
   presets: TypePreset[]
   compatible: Record<string, string[]>
 }
+
+export type ArchiveKind = 'field' | 'link' | 'measure' | 'automation' | 'record'
+export interface ArchiveItem {
+  id: string
+  kind: ArchiveKind
+  table: string | null
+  key: string
+  label: string
+  detail: string
+  archived_at: string
+  archived_by: string | null
+  delete_after: string | null
+  days_left: number | null
+}
+export interface ArchiveSetting { auto_delete: boolean; days: number; per_kind: Record<string, number>; warn_days: number }
+export interface ArchiveImpact { label: string; where: string | null; blockers: string[]; effects: string[]; kept: number; days: number | null; delete_on: string | null }
+
+export const archive = {
+  list: () => g<{ items: ArchiveItem[]; setting: ArchiveSetting }>('/v1/archive'),
+  count: () => g<{ count: number }>('/v1/archive/count'),
+  impact: (kind: ArchiveKind, key: string, table?: string) =>
+    g<ArchiveImpact>(`/v1/archive/impact?kind=${kind}&key=${encodeURIComponent(key)}${table ? `&table=${encodeURIComponent(table)}` : ''}`),
+  add: (kind: Exclude<ArchiveKind, 'record'>, key: string, table?: string) => send<ArchiveItem>('POST', '/v1/archive', { kind, key, table: table ?? null }),
+  addRecords: (table: string, b: { ids?: string[]; matching?: BulkMatching }) => send<{ archived: number; failed: { id: string; message: string }[] }>('POST', '/v1/archive/records', { table, ids: b.ids ?? null, matching: b.matching ?? null }),
+  restore: (ids: string[]) => send<{ restored: string[]; failed: { id: string; message: string }[] }>('POST', '/v1/archive/restore', { ids }),
+  deleteForever: (ids: string[]) => send<{ deleted: number }>('POST', '/v1/archive/delete', { ids }),
+  save: (body: Partial<ArchiveSetting> & { confirm?: boolean }) => send<ArchiveSetting>('PUT', '/v1/archive/settings', body),
+}

@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Download, Pencil, Trash2, X } from 'lucide-react'
+import { Archive, Download, Pencil, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
 import { ApiError } from '@/api/client'
-import { app, type BulkBody, type BulkResult, type ListQuery } from '@/api/endpoints'
+import { app, archive, type BulkBody, type BulkResult, type ListQuery } from '@/api/endpoints'
 import type { FieldDef, TableDef } from '@/api/types'
 import { Button, Dialog, DialogContent, Field, Input, Select, useToast } from '@/design-system'
 import type { TableFeatures } from '@/features/studio/features'
+import { can as hasPermission, useMe } from '@/features/auth/useMe'
 
 export const MAX_BULK = 10_000
 const TYPES_NOT_EDITED_IN_BULK = new Set(['long_text', 'reference'])
@@ -61,6 +62,8 @@ export function BulkBar({
 }) {
   const qc = useQueryClient()
   const toast = useToast()
+  const me = useMe()
+  const canArchive = !!me.data && hasPermission(me.data.permissions, 'workspace.manage')
   const [everyMatch, setEveryMatch] = useState(false)
   const [dialog, setDialog] = useState<'edit' | 'delete' | null>(null)
   const [field, setField] = useState('')
@@ -87,6 +90,23 @@ export function BulkBar({
       await refresh()
     },
     onError: (e) => toast({ title: 'Could not undo', description: e instanceof ApiError ? e.message : undefined, tone: 'bad' }),
+  })
+  const archiveRecords = useMutation({
+    mutationFn: (b: BulkBody) => archive.addRecords(table.key, b),
+    onSuccess: async (r) => {
+      const failed = r.failed.length
+      toast({
+        title: `${r.archived.toLocaleString('en-IN')} archived${failed ? `, ${failed} could not be` : ''}`,
+        description: failed ? r.failed[0]?.message : 'Restore them in Settings › Archive.',
+        tone: failed ? 'bad' : 'ok',
+      })
+      setDialog(null)
+      setError('')
+      onClear()
+      await refresh()
+      await qc.invalidateQueries({ queryKey: ['archive'] })
+    },
+    onError: (e) => setError(e instanceof ApiError ? (e.errors[0]?.message ?? e.message) : 'Nothing was archived.'),
   })
   const run = useMutation({
     mutationFn: (b: BulkBody) => app.bulk(table.key, b),
@@ -128,7 +148,7 @@ export function BulkBar({
         )}
         {can('delete') && canDelete && (
           <Button variant="secondary" onClick={() => { setError(''); setDialog('delete') }}>
-            <Trash2 className="size-4" aria-hidden /> Delete
+            {canArchive ? <Archive className="size-4" aria-hidden /> : <Trash2 className="size-4" aria-hidden />} {canArchive ? 'Archive' : 'Delete'}
           </Button>
         )}
         <Button variant="ghost" onClick={() => { setEveryMatch(false); onClear() }} aria-label="Clear selection">
@@ -166,13 +186,23 @@ export function BulkBar({
       </Dialog>
 
       <Dialog open={dialog === 'delete'} onOpenChange={(o) => !o && setDialog(null)}>
-        <DialogContent title={`Delete ${n.toLocaleString('en-IN')} ${n === 1 ? table.label.toLowerCase() : table.plural_label.toLowerCase()}?`} description="They leave the list. You can undo this for 15 minutes, and the history keeps what they held.">
-          {error && <p role="alert" className="mb-3 text-sm text-bad">{error}</p>}
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setDialog(null)}>Cancel</Button>
-            <Button variant="primary" loading={run.isPending} onClick={() => run.mutate(body({ action: 'delete' }))}>Delete {n.toLocaleString('en-IN')}</Button>
-          </div>
-        </DialogContent>
+        {canArchive ? (
+          <DialogContent title={`Archive ${n.toLocaleString('en-IN')} ${n === 1 ? table.label.toLowerCase() : table.plural_label.toLowerCase()}?`} description="They leave every list, search and chart. Nothing is deleted yet: restore them from Settings › Archive, or let the auto-delete time pass.">
+            {error && <p role="alert" className="mb-3 text-sm text-bad">{error}</p>}
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setDialog(null)}>Cancel</Button>
+              <Button variant="primary" loading={archiveRecords.isPending} onClick={() => archiveRecords.mutate(body({ action: 'delete' }))}>Archive {n.toLocaleString('en-IN')}</Button>
+            </div>
+          </DialogContent>
+        ) : (
+          <DialogContent title={`Delete ${n.toLocaleString('en-IN')} ${n === 1 ? table.label.toLowerCase() : table.plural_label.toLowerCase()}?`} description="They leave the list. You can undo this for 15 minutes, and the history keeps what they held.">
+            {error && <p role="alert" className="mb-3 text-sm text-bad">{error}</p>}
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setDialog(null)}>Cancel</Button>
+              <Button variant="primary" loading={run.isPending} onClick={() => run.mutate(body({ action: 'delete' }))}>Delete {n.toLocaleString('en-IN')}</Button>
+            </div>
+          </DialogContent>
+        )}
       </Dialog>
     </div>
   )

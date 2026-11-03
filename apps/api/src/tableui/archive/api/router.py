@@ -16,7 +16,7 @@ from tableui.platform.web import get_db, get_request_id, get_settings_dep
 router = APIRouter(prefix="/v1/archive", tags=["archive"])
 DbDep = Annotated[Database, Depends(get_db)]
 SettingsDep = Annotated[Settings, Depends(get_settings_dep)]
-MAX = 500
+MAX = 10_000
 
 
 class AddBody(BaseModel):
@@ -25,9 +25,21 @@ class AddBody(BaseModel):
     key: str
 
 
+class Matching(BaseModel):
+    q: str = ""
+    filters: dict[str, str] = {}
+    ranges: dict[str, str] = {}
+    contains: dict[str, str] = {}
+    anyof: dict[str, str] = {}
+    has: dict[str, str] = {}
+    owner: str | None = None
+    expected_count: int
+
+
 class RecordsBody(BaseModel):
     table: str
-    ids: list[uuid.UUID]
+    ids: list[uuid.UUID] | None = None
+    matching: Matching | None = None
 
 
 class IdsBody(BaseModel):

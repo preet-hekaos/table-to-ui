@@ -3294,7 +3294,7 @@ export interface components {
             field?: string | null;
             /** Ids */
             ids?: string[] | null;
-            matching?: components["schemas"]["Matching"] | null;
+            matching?: components["schemas"]["tableui__commands__api__router__Matching"] | null;
             undo?: components["schemas"]["Undo"] | null;
             /** Value */
             value?: unknown;
@@ -3467,53 +3467,6 @@ export interface components {
             /** Mapping */
             mapping: {
                 [key: string]: string | null;
-            };
-        };
-        /**
-         * Matching
-         * @description Every record that matches the list's current search, instead of a hand-picked set.
-         */
-        Matching: {
-            /**
-             * Anyof
-             * @default {}
-             */
-            anyof: {
-                [key: string]: string;
-            };
-            /**
-             * Contains
-             * @default {}
-             */
-            contains: {
-                [key: string]: string;
-            };
-            /** Expected Count */
-            expected_count: number;
-            /**
-             * Filters
-             * @default {}
-             */
-            filters: {
-                [key: string]: string;
-            };
-            /**
-             * Has
-             * @default {}
-             */
-            has: {
-                [key: string]: string;
-            };
-            /** Owner */
-            owner?: string | null;
-            /** Q */
-            q?: string | null;
-            /**
-             * Ranges
-             * @default {}
-             */
-            ranges: {
-                [key: string]: string;
             };
         };
         /** MeResponse */
@@ -3699,7 +3652,8 @@ export interface components {
         /** RecordsBody */
         RecordsBody: {
             /** Ids */
-            ids: string[];
+            ids?: string[] | null;
+            matching?: components["schemas"]["tableui__archive__api__router__Matching"] | null;
             /** Table */
             table: string;
         };
@@ -3940,6 +3894,100 @@ export interface components {
              * @default
              */
             reason: string;
+        };
+        /** Matching */
+        tableui__archive__api__router__Matching: {
+            /**
+             * Anyof
+             * @default {}
+             */
+            anyof: {
+                [key: string]: string;
+            };
+            /**
+             * Contains
+             * @default {}
+             */
+            contains: {
+                [key: string]: string;
+            };
+            /** Expected Count */
+            expected_count: number;
+            /**
+             * Filters
+             * @default {}
+             */
+            filters: {
+                [key: string]: string;
+            };
+            /**
+             * Has
+             * @default {}
+             */
+            has: {
+                [key: string]: string;
+            };
+            /** Owner */
+            owner?: string | null;
+            /**
+             * Q
+             * @default
+             */
+            q: string;
+            /**
+             * Ranges
+             * @default {}
+             */
+            ranges: {
+                [key: string]: string;
+            };
+        };
+        /**
+         * Matching
+         * @description Every record that matches the list's current search, instead of a hand-picked set.
+         */
+        tableui__commands__api__router__Matching: {
+            /**
+             * Anyof
+             * @default {}
+             */
+            anyof: {
+                [key: string]: string;
+            };
+            /**
+             * Contains
+             * @default {}
+             */
+            contains: {
+                [key: string]: string;
+            };
+            /** Expected Count */
+            expected_count: number;
+            /**
+             * Filters
+             * @default {}
+             */
+            filters: {
+                [key: string]: string;
+            };
+            /**
+             * Has
+             * @default {}
+             */
+            has: {
+                [key: string]: string;
+            };
+            /** Owner */
+            owner?: string | null;
+            /** Q */
+            q?: string | null;
+            /**
+             * Ranges
+             * @default {}
+             */
+            ranges: {
+                [key: string]: string;
+            };
         };
         /** ExportBody */
         tableui__ops__api__router__ExportBody: {

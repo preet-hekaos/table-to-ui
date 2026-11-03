@@ -4,6 +4,7 @@ import { useMemo, useState, type FormEvent } from 'react'
 import { ApiError } from '@/api/client'
 import { ai, studio } from '@/api/endpoints'
 import type { FieldDef, StudioTable } from '@/api/types'
+import { ArchiveDialog } from '@/features/archive/ArchiveDialog'
 import { Button, Dialog, DialogContent, Field, SideContent, Input, Select, useToast } from '@/design-system'
 
 export { TYPE_LABELS } from './typeLabels'
@@ -77,11 +78,7 @@ export function FieldDialog({ table, tables, field, open, onOpenChange }: Props)
       if (!(e instanceof ApiError) || !e.errors.length) toast({ title: 'Could not save', description: (e as Error).message, tone: 'bad' })
     },
   })
-  const remove = useMutation({
-    mutationFn: () => studio.removeField(table.key, field!.key),
-    onSuccess: () => done(`Removed ${field!.label}`),
-    onError: (e) => toast({ title: 'Could not remove', description: (e as Error).message, tone: 'bad' }),
-  })
+  const [archiving, setArchiving] = useState(false)
   const submit = (e: FormEvent) => {
     e.preventDefault()
     setErrors({})
@@ -98,8 +95,8 @@ export function FieldDialog({ table, tables, field, open, onOpenChange }: Props)
         footer={
           <>
             {!isNew && (
-              <Button type="button" variant="danger" onClick={() => remove.mutate()} loading={remove.isPending}>
-                Delete field
+              <Button type="button" variant="secondary" onClick={() => setArchiving(true)}>
+                Archive field…
               </Button>
             )}
             <span className="flex-1" />
@@ -202,6 +199,9 @@ export function FieldDialog({ table, tables, field, open, onOpenChange }: Props)
           </div>
         </form>
       </SideContent>
+      {archiving && field && (
+        <ArchiveDialog kind={field.type === 'reference' ? 'link' : 'field'} itemKey={field.key} table={table.key} label={field.label} tableLabel={table.label} onClose={() => setArchiving(false)} onArchived={() => { setArchiving(false); onOpenChange(false) }} />
+      )}
       {explaining && field && <ExplainPanel table={table} tables={tables} field={field} canEdit={false} onClose={() => setExplaining(false)} onEdit={() => undefined} />}
     </Dialog>
   )

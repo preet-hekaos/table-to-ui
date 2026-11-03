@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react'
 import { ApiError } from '@/api/client'
 import { app, studio } from '@/api/endpoints'
 import type { MeasureDraft } from '@/api/types'
+import { ArchiveDialog } from '@/features/archive/ArchiveDialog'
 import { Badge, Button, Card, Dialog, SideContent, EmptyState, ErrorState, Field, Input, LoadingState, Select, useToast } from '@/design-system'
 import { useDraftTables } from './useDraftTables'
 
@@ -127,15 +128,7 @@ function MeasureDialog({ measure, onClose }: { measure: MeasureDraft | null; onC
     },
     onError: (e) => setErrors(fieldErrors(e)),
   })
-  const remove = useMutation({
-    mutationFn: () => studio.removeMeasure(measure!.key),
-    onSuccess: async () => {
-      toast({ title: `Removed ${label}`, description: 'Saved in Draft. Publish to make it live.', tone: 'ok' })
-      await refresh(qc)
-      onClose()
-    },
-    onError: (e) => toast({ title: 'Could not remove', description: (e as Error).message, tone: 'bad' }),
-  })
+  const [archiving, setArchiving] = useState(false)
   const numeric = fields.filter((f) => NUMERIC.includes(f.type))
   const choices = fields.filter((f) => f.type === 'select' || f.type === 'boolean')
   const dates = fields.filter((f) => f.type === 'date')
@@ -152,7 +145,7 @@ function MeasureDialog({ measure, onClose }: { measure: MeasureDraft | null; onC
         footer={(
           <>
             {measure && !isPack ? (
-              <Button type="button" variant="secondary" onClick={() => remove.mutate()} disabled={remove.isPending}>Remove measure</Button>
+              <Button type="button" variant="secondary" onClick={() => setArchiving(true)}>Archive measure…</Button>
             ) : <span />}
             <span className="flex-1" />
             <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
@@ -285,6 +278,9 @@ function MeasureDialog({ measure, onClose }: { measure: MeasureDraft | null; onC
           </label>
         </form>
       </SideContent>
+      {archiving && (
+        <ArchiveDialog kind="measure" itemKey={measure!.key} label={measure!.label} onClose={() => setArchiving(false)} onArchived={() => { setArchiving(false); onClose() }} />
+      )}
     </Dialog>
   )
 }
