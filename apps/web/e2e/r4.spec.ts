@@ -41,8 +41,8 @@ test('Summary strip: cards chosen in Studio, and a whole-table switch', async ({
 
   await test.step('Choose three cards in Studio', async () => {
     await page.goto('/studio?tab=data&table=candidate&part=features')
-    await page.getByRole('button', { name: 'Numbers options' }).click()
-    const panel = page.getByRole('dialog', { name: 'Numbers options' })
+    await page.getByRole('button', { name: 'Summary options' }).click()
+    const panel = page.getByRole('dialog', { name: 'Summary options' })
     await featuresSaved(page, () => panel.getByRole('checkbox', { name: 'Choose the summary cards myself' }).check())
     await expect(panel.getByRole('group', { name: 'Card 1' })).toBeVisible()
     await featuresSaved(page, () => panel.getByRole('button', { name: 'Add a card' }).click())
@@ -97,8 +97,8 @@ test('Summary strip: cards chosen in Studio, and a whole-table switch', async ({
     await page.goto('/s/candidates')
     await page.getByRole('checkbox', { name: 'Whole table' }).uncheck()
     await page.goto('/studio?tab=data&table=candidate&part=features')
-    await page.getByRole('button', { name: 'Numbers options' }).click()
-    await featuresSaved(page, () => page.getByRole('dialog', { name: 'Numbers options' }).getByRole('checkbox', { name: 'Choose the summary cards myself' }).uncheck())
+    await page.getByRole('button', { name: 'Summary options' }).click()
+    await featuresSaved(page, () => page.getByRole('dialog', { name: 'Summary options' }).getByRole('checkbox', { name: 'Choose the summary cards myself' }).uncheck())
     await page.keyboard.press('Escape')
     await goLive(page)
     await page.goto('/s/candidates')

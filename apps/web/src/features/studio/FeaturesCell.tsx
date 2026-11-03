@@ -59,8 +59,8 @@ export function ticksOf(table: StudioTable, f: TableFeatures, field: FieldDef, l
     t('group', 'Group', 'Groupable', 'group rows by it', !long && !f.ungroupable.includes(field.key), long ? 'Long text cannot be grouped.' : null, off('grouping', 'Group rows'), listless ? noScreen : null),
     t('export', 'Export', 'Exportable', 'a column in exports', !f.unexported.includes(field.key), null, off('export_data', 'Export data')),
     t('bulk', 'Bulk', 'Bulk edit', 'change on many rows', !long && !f.nobulk.includes(field.key), long ? 'Long text cannot be changed in bulk.' : null, off('select_bulk', 'Select rows'), listless ? noScreen : null),
-    t('summary', 'Summary', 'In the summary numbers', 'a card above the table', summarised.includes(field.key), NUMERIC.includes(field.type) ? (f.stat_cards !== null ? 'Summary cards are chosen by hand.' : null) : 'Only number fields can be summarised.', off('statistics', 'Numbers above the table')),
-    t('chart', 'Chart', 'Chart axis', 'offered in the chart builder', CHARTABLE.includes(field.type) && !f.nochart.includes(field.key), CHARTABLE.includes(field.type) ? null : 'This type of field cannot be a chart axis.', off('statistics', 'Numbers above the table')),
+    t('summary', 'Summary', 'In the summary numbers', 'a card above the table', summarised.includes(field.key), NUMERIC.includes(field.type) ? (f.stat_cards !== null ? 'Summary cards are chosen by hand.' : null) : 'Only number fields can be summarised.', off('statistics', 'Summary')),
+    t('chart', 'Chart', 'Chart axis', 'offered in the chart builder', CHARTABLE.includes(field.type) && !f.nochart.includes(field.key), CHARTABLE.includes(field.type) ? null : 'This type of field cannot be a chart axis.', off('statistics', 'Summary')),
     t('unique', 'Unique', 'Unique', 'no two share a value', !!field.unique, NO_COMPARE.includes(field.type) ? 'Values of this type cannot be compared.' : null, null),
     t('search', 'Search', 'Searchable', 'keyword search', field.searchable !== false, null, null),
   ]

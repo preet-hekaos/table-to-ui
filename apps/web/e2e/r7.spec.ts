@@ -35,7 +35,7 @@ test('Features: whole-table switches in the bar over the Fields grid and a Featu
   await test.step('The Table-wide bar holds every switch; there is no Features tab and no Save bar', async () => {
     await expect(page.getByRole('tab', { name: 'Features' })).toHaveCount(0)
     await expect(panel.getByRole('switch')).toHaveCount(9)
-    await expect(panel.getByRole('button', { name: 'Apply to all tables' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Apply to all tables' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Save features' })).toHaveCount(0)
     await shot(page, 'r7-features-on')
   })
@@ -84,6 +84,10 @@ test('Every change in the bar saves at once, and flipping something off and on a
     const t = ((await r.json()) as { key: string; features?: Record<string, unknown> | null }[]).find((x) => x.key === 'candidate')
     return JSON.stringify(t?.features ?? null)
   })
+  // A first save writes the whole set once, so what is compared below is always a saved copy.
+  const sorting = panel.getByRole('switch', { name: /^Sorting/ })
+  await featuresSaved(page, () => sorting.click())
+  await featuresSaved(page, () => sorting.click())
   const start = await read()
 
   const flips: [string, () => ReturnType<typeof panel.getByRole>, string?][] = [

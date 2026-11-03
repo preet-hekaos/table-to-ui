@@ -10,7 +10,7 @@ import { InlineLabel } from './InlineLabel'
 import { LengthCell } from './LengthCell'
 import { RequiredSwitch } from './RequiredSwitch'
 import { ValidationCell } from './ValidationCell'
-import { TableWideBar } from './TableWideBar'
+import { ApplyToAll, TableWideBar } from './TableWideBar'
 import { TransformCell } from './TransformCell'
 import { TypeCell } from './TypeCell'
 import { RemovedCount, UndoRemove } from './UndoRemove'
@@ -70,6 +70,7 @@ export function FieldsGrid({
       <p className="sr-only" role="status" aria-live="polite">{note}</p>
       <div className="flex flex-wrap items-center gap-3 border-b border-line px-3 py-2">
         <Input aria-label="Search fields" placeholder="Search fields" className="h-8 w-56" value={find} onChange={(e) => setFind(e.target.value)} />
+        {canEdit && <span className="ml-auto"><ApplyToAll features={features} /></span>}
         <TableWideBar table={table} canEdit={canEdit} features={features} patch={patch} />
       </div>
       <Table aria-label={`${table.label} fields`}>

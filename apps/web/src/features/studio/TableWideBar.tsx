@@ -21,7 +21,7 @@ const SWITCHES: { flag: Flag; label: string; help: string; menu?: Menu; needsLis
   { flag: 'select_bulk', label: 'Select rows', help: 'tick rows and act on many', menu: 'bulk', needsList: true },
   { flag: 'import_data', label: 'Import data', help: 'CSV, JSON or Excel from the toolbar' },
   { flag: 'row_order', label: 'Reorder rows', help: 'rows can be moved up or down; the order is shared across all users', needsList: true },
-  { flag: 'statistics', label: 'Numbers above the table', help: 'summary cards or a chart over the list', menu: 'numbers' },
+  { flag: 'statistics', label: 'Summary', help: 'summary cards or a chart over the list', menu: 'numbers' },
 ]
 const BULK: { value: TableFeatures['bulk_actions'][number]; label: string }[] = [
   { value: 'export', label: 'Export' },
@@ -65,25 +65,11 @@ function MenuButton({ label, disabled, wide, children }: { label: string; disabl
  * tables. Each change saves to the Draft straight away and goes live on publish.
  */
 export function TableWideBar({ table, canEdit, features, patch }: { table: StudioTable; canEdit: boolean; features: TableFeatures; patch: (c: Partial<TableFeatures>, onFail?: () => void) => void }) {
-  const qc = useQueryClient()
-  const toast = useToast()
   // Rows to tick or drag exist only on a table screen; a table shown only as master-detail has none.
   const screens = useQuery({ queryKey: ['studio-screens'], queryFn: studio.screens, retry: false })
   const noList = screens.data && !screens.data.some((x) => x.table === table.key && x.pattern === 'searchable_table')
     ? 'This table has no table screen, only master-detail and other layouts, so there are no rows to tick or drag. Add a Searchable table screen to use this.'
     : false
-  const all = useMutation({
-    mutationFn: () => studio.setAllFeatures(features),
-    onSuccess: async (r) => {
-      toast({ title: 'Applied to every table', description: `${r.tables.length} ${r.tables.length === 1 ? 'table' : 'tables'} changed in Draft.`, tone: 'ok' })
-      await Promise.all(['studio-tables', 'studio-status'].map((k) => qc.invalidateQueries({ queryKey: [k] })))
-    },
-    onError: (e) => {
-      const first = e instanceof ApiError ? e.errors[0] : undefined
-      toast({ title: 'Could not apply', description: first ? first.message : (e as Error).message, tone: 'bad' })
-    },
-  })
-
   const menu = (m: Menu | undefined, on: boolean) => {
     if (m === 'export') {
       return (
@@ -127,7 +113,7 @@ export function TableWideBar({ table, canEdit, features, patch }: { table: Studi
     }
     if (m === 'numbers') {
       return (
-        <MenuButton label="Numbers options" disabled={!on} wide>
+        <MenuButton label="Summary options" disabled={!on} wide>
           <Chip
             label="Choose the summary cards myself"
             checked={features.stat_cards !== null}
@@ -145,7 +131,7 @@ export function TableWideBar({ table, canEdit, features, patch }: { table: Studi
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2" role="group" aria-label={`Table-wide switches for ${table.label}`} data-testid="features-panel">
+    <div className="flex w-full flex-wrap items-center gap-2" role="group" aria-label={`Table-wide switches for ${table.label}`} data-testid="features-panel">
       <span className="text-xs font-bold tracking-wide text-muted uppercase">Table-wide</span>
       {SWITCHES.map((s) => {
         const blocked = s.needsList ? noList : false
@@ -164,12 +150,30 @@ export function TableWideBar({ table, canEdit, features, patch }: { table: Studi
           </span>
         )
       })}
-      {canEdit && (
-        <Button size="sm" variant="secondary" className="ml-auto" loading={all.isPending} onClick={() => all.mutate()} title="Copy these table-wide settings to every table">
-          Apply to all tables
-        </Button>
-      )}
     </div>
+  )
+}
+
+/** Copies this table's table-wide settings to every table. Sits beside the field search, not in the chip row. */
+export function ApplyToAll({ features }: { features: TableFeatures }) {
+  const qc = useQueryClient()
+  const toast = useToast()
+  const all = useMutation({
+    mutationFn: () => studio.setAllFeatures(features),
+    onSuccess: async (r) => {
+      toast({ title: 'Applied to every table', description: `${r.tables.length} ${r.tables.length === 1 ? 'table' : 'tables'} changed in Draft.`, tone: 'ok' })
+      await Promise.all(['studio-tables', 'studio-status'].map((k) => qc.invalidateQueries({ queryKey: [k] })))
+    },
+    onError: (e) => {
+      const first = e instanceof ApiError ? e.errors[0] : undefined
+      toast({ title: 'Could not apply', description: first ? first.message : (e as Error).message, tone: 'bad' })
+    },
+  })
+
+  return (
+    <Button size="sm" variant="secondary" loading={all.isPending} onClick={() => all.mutate()} title="Copy these table-wide settings to every table">
+      Apply to all tables
+    </Button>
   )
 }
 

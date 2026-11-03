@@ -46,6 +46,6 @@ test('Numbers above the table follow the search; chosen in Studio; switch off', 
   })
 
   await test.step('Switching it off removes the strip from the preview data', async () => {
-    await setTableWide(page, 'Numbers above the table', false)
+    await setTableWide(page, 'Summary', false)
   })
 })

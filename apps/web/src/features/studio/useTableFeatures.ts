@@ -15,11 +15,13 @@ export function useTableFeatures(table: StudioTable) {
   const toast = useToast()
   const saved = featuresOf(table)
   const latest = useRef<TableFeatures>(saved)
+  const inFlight = useRef(0)
   const json = JSON.stringify(saved)
   // What the person just chose, shown at once while it saves; dropped when the saved copy arrives or a save fails.
   const [shown, setShown] = useState<{ base: string; value: TableFeatures } | null>(null)
   useEffect(() => {
-    latest.current = JSON.parse(json) as TableFeatures
+    // Not while a save is on its way: the copy that arrives first is older than what was just chosen.
+    if (inFlight.current === 0) latest.current = JSON.parse(json) as TableFeatures
   }, [json])
   const save = useMutation({
     mutationFn: (next: TableFeatures) => studio.setFeatures(table.key, next),
@@ -33,9 +35,13 @@ export function useTableFeatures(table: StudioTable) {
       latest.current = JSON.parse(json) as TableFeatures
       setShown(null)
     },
+    onSettled: () => {
+      inFlight.current = Math.max(0, inFlight.current - 1)
+    },
   })
   const patch = (change: Partial<TableFeatures>, onFail?: () => void) => {
     latest.current = { ...latest.current, ...change }
+    inFlight.current += 1
     setShown({ base: json, value: latest.current })
     save.mutate(latest.current, { onError: onFail })
   }
