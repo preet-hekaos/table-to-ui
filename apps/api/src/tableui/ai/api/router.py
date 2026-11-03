@@ -229,6 +229,22 @@ async def field(
     return await features.field_from_words(await _ctx(req, p, db, an, s), p, body.description)
 
 
+class FieldAskBody(BaseModel):
+    table: str
+    field: str
+    question: str
+
+
+@router.post("/field-question")
+async def field_question(
+    body: FieldAskBody, req: Request, p: PrincipalDep, db: DbDep, an: AnalyticsDep, s: SettingsDep
+) -> dict[str, Any]:
+    """An answer about one field from its own settings. Nothing is saved."""
+    return await features.field_question(
+        await _ctx(req, p, db, an, s), p, body.table, body.field, body.question
+    )
+
+
 @router.post("/explain-number")
 async def explain_number(
     body: NumberBody,

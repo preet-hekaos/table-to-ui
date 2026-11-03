@@ -453,6 +453,29 @@
         "title": "ExtractBody",
         "type": "object"
       },
+      "FieldAskBody": {
+        "properties": {
+          "field": {
+            "title": "Field",
+            "type": "string"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "table": {
+            "title": "Table",
+            "type": "string"
+          }
+        },
+        "required": [
+          "table",
+          "field",
+          "question"
+        ],
+        "title": "FieldAskBody",
+        "type": "object"
+      },
       "FieldBody": {
         "properties": {
           "description": {
@@ -2114,6 +2137,50 @@
           }
         },
         "summary": "Field",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/v1/ai/field-question": {
+      "post": {
+        "description": "An answer about one field from its own settings. Nothing is saved.",
+        "operationId": "field_question_v1_ai_field_question_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FieldAskBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Field Question V1 Ai Field Question Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Field Question",
         "tags": [
           "ai"
         ]
@@ -9171,6 +9238,59 @@
           }
         },
         "summary": "Update Field",
+        "tags": [
+          "studio"
+        ]
+      }
+    },
+    "/v1/studio/tables/{table}/fields/{field}/about": {
+      "get": {
+        "operationId": "field_about_v1_studio_tables__table__fields__field__about_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "table",
+            "required": true,
+            "schema": {
+              "title": "Table",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "field",
+            "required": true,
+            "schema": {
+              "title": "Field",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Field About V1 Studio Tables  Table  Fields  Field  About Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Field About",
         "tags": [
           "studio"
         ]

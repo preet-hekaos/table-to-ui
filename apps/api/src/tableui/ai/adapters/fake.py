@@ -41,6 +41,8 @@ def demo_answer(system: str, user: str) -> object:
             if len(chunk) == 3:
                 out[f["key"]] = {"value": " ".join(chunk), "quote": " ".join(chunk)}
         return {"fields": out}
+    if "one question about one field" in system or "answer one question about one field" in system:
+        return _demo_field_answer(user)
     if "describe a new field" in system:
         return _demo_field(data)
     if "transformation rules for a field" in system:
@@ -220,6 +222,29 @@ def _demo_transform(words: str) -> object:
             "tries": ["", "keep me"],
         }
     return {"rules": [], "explanation": "Demo could not read that.", "tries": []}
+
+
+def _demo_field_answer(user: str) -> object:
+    """A plain answer from the facts in the prompt, so the Explain panel can be tried without a key."""
+    facts = json.loads(user.split("Facts: <data>", 1)[1].split("</data>", 1)[0])
+    f = facts["field"]
+    q = user.rsplit("Question: <data>", 1)[1].split("</data>", 1)[0].lower()
+    used = facts["used_by"]
+    if "remove" in q or "break" in q or "depend" in q:
+        n = sum(len(v) for v in used.values())
+        text_ = (
+            f"Demo answer: {n} screen, measure or automation point at {f['label']}."
+            if n
+            else f"Demo answer: nothing points at {f['label']}, so removing it breaks no screen, measure or automation."
+        )
+    elif "unique" in q:
+        text_ = f"Demo answer: {f['label']} is {'unique, so no two records can share a value' if f.get('unique') else 'not unique, so records can share a value'}."
+    elif "blank" in q or "no " in q or "empty" in q or "without" in q:
+        text_ = f"Demo answer: {f['label']} is {'required, so a record cannot be saved blank' if f.get('required') else 'optional, so a record can be saved with it blank'}."
+    else:
+        r = facts["records"]
+        text_ = f"Demo answer: {f['label']} is a {f.get('type_name') or f['type']} field; {r['filled']} of {r['total']} records have a value."
+    return {"text": text_}
 
 
 def _demo_field(words: str) -> object:

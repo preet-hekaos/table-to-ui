@@ -629,6 +629,61 @@ async def value_count(
     return {"count": int(n or 0)}
 
 
+def _mentions(node: Any, key: str) -> bool:
+    """True when a field key appears as a whole value (or a dict key) anywhere inside a definition."""
+    if isinstance(node, str):
+        return node == key
+    if isinstance(node, dict):
+        return any(k == key or _mentions(v, key) for k, v in node.items())
+    if isinstance(node, list):
+        return any(_mentions(v, key) for v in node)
+    return False
+
+
+async def field_about(
+    s: AsyncSession, *, tenant_id: uuid.UUID, table_key: str, field_key: str
+) -> dict[str, Any]:
+    """Read-only facts for "Explain this field": how many records hold a value, and what points at the field."""
+    await _enter_tenant(s, tenant_id)
+    if await _draft(s, "table", table_key) is None:
+        raise NotFound(f"There is no table '{table_key}'.")
+    if not re.fullmatch(r"[a-z][a-z0-9_]{0,49}", field_key):
+        raise NotFound(f"There is no field '{field_key}' on '{table_key}'.")
+    total = filled = 0
+    if (await s.execute(text("SELECT to_regclass(:t)"), {"t": f'"{table_key}"'})).scalar():
+        row = (
+            await s.execute(
+                text(
+                    f"SELECT count(*) AS total, "  # noqa: S608 - both identifiers are checked above
+                    f"count(*) FILTER (WHERE COALESCE(data->>'{field_key}', '') <> '') AS filled "
+                    f'FROM "{table_key}"'
+                )
+            )
+        ).one()
+        total, filled = int(row.total), int(row.filled)
+
+    def scope(kind: str, d: dict[str, Any]) -> bool:
+        if kind == "automation":
+            return (d.get("trigger") or {}).get("table") == table_key
+        return d.get("table") == table_key
+
+    out: dict[str, list[str]] = {"screens": [], "measures": [], "automations": []}
+    for kind, name in (
+        ("screen", "screens"),
+        ("measure", "measures"),
+        ("automation", "automations"),
+    ):
+        for d in await read_draft(s, tenant_id, kind):
+            body = {
+                k: v
+                for k, v in d.items()
+                if k not in ("key", "label", "title", "table", "source", "version", "help")
+            }
+            if scope(kind, d) and _mentions(body, field_key):
+                out[name].append(str(d.get("title") or d.get("label") or d.get("key")))
+    return {"total": total, "filled": filled, **out}
+
+
 async def rules_check_existing(
     s: AsyncSession,
     *,

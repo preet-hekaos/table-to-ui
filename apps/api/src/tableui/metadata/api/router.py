@@ -112,6 +112,14 @@ async def value_count(table: str, field: str, p: PrincipalDep, db: DbDep) -> dic
         return await studio.value_count(s, tenant_id=p.tenant_id, table_key=table, field_key=field)
 
 
+@router.get("/studio/tables/{table}/fields/{field}/about")
+async def field_about(table: str, field: str, p: PrincipalDep, db: DbDep) -> dict[str, Any]:
+    p.require("metadata.write")
+    assert p.tenant_id
+    async with db.control() as s:
+        return await studio.field_about(s, tenant_id=p.tenant_id, table_key=table, field_key=field)
+
+
 @router.get("/studio/validation-library")
 async def validation_library(p: PrincipalDep) -> list[dict[str, Any]]:
     p.require("metadata.write")

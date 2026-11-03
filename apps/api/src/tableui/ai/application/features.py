@@ -25,6 +25,8 @@ from tableui.metadata.public import (
     TransformRule,
     apply_field_rules,
     check_pattern,
+    field_about,
+    read_draft_tables,
     rule_problem,
 )
 from tableui.platform.db import Database
@@ -466,4 +468,57 @@ async def field_from_words(ctx: Ctx, p: Principal, description: str) -> dict[str
     return await ctx.run(
         p, "field", _field_base(), f"Description: <data>{redact(text_)}</data>", shape,
         permission="metadata.write", max_tokens=400,
+    )  # fmt: skip
+
+
+# ---- 10. ask a question about one field (read only) ------------------------------------------------------
+
+FIELD_ASK_BASE = (
+    "You answer one question about one field of a business table. You are given the field's settings and what "
+    "depends on it. Answer in 1 to 4 plain sentences using only those facts; if they do not say, say you cannot "
+    "tell from the settings. Never suggest that anything was changed. "
+    'Reply as JSON: {"text": "<the answer>"}.'
+)
+
+_ASK_KEYS = (
+    "label", "type", "type_name", "required", "unique", "max_length", "min", "max", "options", "default",
+    "save_as", "rules", "transforms", "searchable", "filterable", "hidden", "help", "ref_table",
+)  # fmt: skip
+
+
+async def field_question(
+    ctx: Ctx, p: Principal, table: str, field: str, question: str
+) -> dict[str, Any]:
+    """An answer about one field, built from its own settings. Reads only; nothing is saved."""
+    q = question.strip()
+    if not q or len(q) > 300:
+        raise ValidationFailed(
+            errors=[{"field": "question", "code": "invalid", "message": "Ask in 1 to 300 characters."}]
+        )  # fmt: skip
+    assert p.tenant_id
+    async with ctx.db.control() as s:
+        about = await field_about(s, tenant_id=p.tenant_id, table_key=table, field_key=field)
+        rows = await read_draft_tables(s)
+    t = next((r["definition"] for r in rows if r["key"] == table), None)
+    f = next((x for x in (t or {}).get("fields", []) if x.get("key") == field), None)
+    if t is None or f is None:
+        raise NotFound(f"There is no field '{field}' on '{table}'.")
+    facts = {
+        "table": t.get("label"),
+        "field": {k: f[k] for k in _ASK_KEYS if f.get(k) not in (None, [], "")},
+    }
+    facts["records"] = {"total": about["total"], "filled": about["filled"]}
+    facts["used_by"] = {k: about[k] for k in ("screens", "measures", "automations")}
+    if t.get("workflow"):
+        facts["asked_at_stages"] = [
+            st.get("label") or st.get("key")
+            for st in t["workflow"].get("stages", [])
+            if field in (st.get("ask") or [])
+        ]
+    user = (
+        f"Facts: <data>{json.dumps(facts, default=str)}</data>\nQuestion: <data>{redact(q)}</data>"
+    )
+    return await ctx.run(
+        p, "field_ask", FIELD_ASK_BASE, user, lambda v: {"text": need_text(v, "text", limit=700)},
+        permission="metadata.write", max_tokens=300, subject=f"{table}.{field}",
     )  # fmt: skip

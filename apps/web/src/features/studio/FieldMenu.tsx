@@ -1,12 +1,12 @@
 import * as Popover from '@radix-ui/react-popover'
-import { Eye, EyeOff, MoreHorizontal, PanelBottomOpen, Pencil } from 'lucide-react'
+import { Eye, EyeOff, MoreHorizontal, PanelBottomOpen, Pencil, Sparkles } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import type { FieldDef } from '@/api/types'
 import { Button, cn } from '@/design-system'
 import { useSaveField } from './useSaveField'
 
 /** The ⋯ menu of a row: show the details panel, open the full editor, hide the field from screens. */
-export function FieldMenu({ table, field, expanded, onToggleDetails, onEdit }: { table: string; field: FieldDef; expanded: boolean; onToggleDetails: () => void; onEdit: () => void }) {
+export function FieldMenu({ table, field, expanded, onToggleDetails, onEdit, onExplain }: { table: string; field: FieldDef; expanded: boolean; onToggleDetails: () => void; onEdit: () => void; onExplain: () => void }) {
   const [open, setOpen] = useState(false)
   const save = useSaveField(table, field.key, 'visibility')
   const item = (label: string, icon: ReactNode, run: () => void) => (
@@ -31,6 +31,7 @@ export function FieldMenu({ table, field, expanded, onToggleDetails, onEdit }: {
         <Popover.Content align="end" sideOffset={4} aria-label={`Actions for ${field.label}`} className="z-50 w-52 rounded-lg border border-line bg-surface p-1 shadow-lg">
           <div role="menu" aria-label={`Actions for ${field.label}`}>
             {item(expanded ? 'Hide details' : 'Show details', <PanelBottomOpen className="size-4" aria-hidden />, onToggleDetails)}
+            {item('Explain this field', <Sparkles className="size-4 text-violet-700" aria-hidden />, onExplain)}
             {item('Edit details', <Pencil className="size-4" aria-hidden />, onEdit)}
             {item(field.hidden ? 'Show on screens' : 'Hide from screens', field.hidden ? <Eye className="size-4" aria-hidden /> : <EyeOff className="size-4" aria-hidden />, () => save.mutate({ hidden: !field.hidden }))}
           </div>
