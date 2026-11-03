@@ -1,5 +1,6 @@
 """Public interface of the metadata module."""
 
+from tableui.metadata.application import archive as archive_steps
 from tableui.metadata.application.draft import build_manifest, read_draft_tables, seed_draft
 from tableui.metadata.application.ops import (
     REGISTRY,
@@ -62,6 +63,7 @@ from tableui.metadata.domain.values import (
 )
 
 __all__ = [
+    "archive_steps",
     "field_about",
     "apply_field_rules",
     "check_pattern",
