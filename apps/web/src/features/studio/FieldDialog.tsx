@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Sparkles } from 'lucide-react'
 import { useMemo, useState, type FormEvent } from 'react'
 import { ApiError } from '@/api/client'
 import { ai, studio } from '@/api/endpoints'
@@ -8,6 +9,7 @@ import { Button, Dialog, DialogContent, Field, Input, Select, useToast } from '@
 export { TYPE_LABELS } from './typeLabels'
 import { TYPE_LABELS } from './typeLabels'
 import { areaLabelOf } from './TypeCell'
+import { ExplainPanel } from './ExplainPanel'
 import { FieldWordsPanel } from './FieldWordsPanel'
 import { TypePicker } from './TypePicker'
 import { buildChoices, type TypeChoice } from './typeCatalog'
@@ -29,6 +31,7 @@ export function FieldDialog({ table, tables, field, open, onOpenChange }: Props)
   const qc = useQueryClient()
   const toast = useToast()
   const isNew = !field
+  const [explaining, setExplaining] = useState(false)
   const [label, setLabel] = useState(field?.label ?? '')
   const presets = useTypePresets()
   const aiSetting = useQuery({ queryKey: ['ai', 'settings'], queryFn: ai.settings, staleTime: 60_000, retry: false, enabled: isNew })
@@ -94,6 +97,13 @@ export function FieldDialog({ table, tables, field, open, onOpenChange }: Props)
         }
       >
         <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
+          {!isNew && (
+            <div className="-mt-1 flex">
+              <Button type="button" size="sm" variant="secondary" className="text-violet-800" onClick={() => setExplaining(true)}>
+                <Sparkles className="size-3.5" aria-hidden /> Explain this field
+              </Button>
+            </div>
+          )}
           {isNew && (
             <FieldWordsPanel
               aiOn={!!aiSetting.data?.enabled}
@@ -189,6 +199,7 @@ export function FieldDialog({ table, tables, field, open, onOpenChange }: Props)
           </div>
         </form>
       </DialogContent>
+      {explaining && field && <ExplainPanel table={table} tables={tables} field={field} canEdit={false} onClose={() => setExplaining(false)} onEdit={() => undefined} />}
     </Dialog>
   )
 }

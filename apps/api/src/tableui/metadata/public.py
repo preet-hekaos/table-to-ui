@@ -18,7 +18,7 @@ from tableui.metadata.application.releases import (
     rollback_live,
 )
 from tableui.metadata.application.runtime import RuntimeApp, live_app
-from tableui.metadata.application.studio import add_field, create_table, read_draft
+from tableui.metadata.application.studio import add_field, create_table, field_about, read_draft
 from tableui.metadata.domain.automations import problems as automation_problems
 from tableui.metadata.domain.ddl import (
     add_field_index_sql,
@@ -62,6 +62,7 @@ from tableui.metadata.domain.values import (
 )
 
 __all__ = [
+    "field_about",
     "apply_field_rules",
     "check_pattern",
     "rule_problem",

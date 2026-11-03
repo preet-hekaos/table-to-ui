@@ -184,6 +184,8 @@ export interface SchemaTable {
 }
 export interface SchemaPreview { tables: SchemaTable[]; problems: { file: string; message: string }[] }
 
+export interface FieldAbout { total: number; filled: number; screens: string[]; measures: string[]; automations: string[] }
+
 export const studio = {
   setFeatures: (table: string, features: unknown) =>
     send<{ features: Record<string, unknown>; tables: string[] }>('PUT', `/v1/studio/tables/${table}/features`, features),
@@ -218,6 +220,8 @@ export const studio = {
     send<{ results: { value: string; allowed: boolean }[] }>('POST', '/v1/studio/validation-preview', { rule, values }),
   checkExisting: (table: string, field: string, rules: FieldRule[]) =>
     send<{ count: number; checked: number }>('POST', `/v1/studio/tables/${table}/fields/${field}/rules/check-existing`, { rules }),
+  fieldAbout: (table: string, field: string) =>
+    g<FieldAbout>(`/v1/studio/tables/${table}/fields/${field}/about`),
   valueCount: (table: string, field: string) => g<{ count: number }>(`/v1/studio/tables/${table}/fields/${field}/value-count`),
   lengthImpact: (table: string, field: string, maxLength: number) =>
     g<{ count: number }>(`/v1/studio/tables/${table}/fields/${field}/length-impact?max_length=${maxLength}`),
@@ -654,6 +658,8 @@ export interface SetupState {
 }
 
 export const ai = {
+  fieldQuestion: (table: string, field: string, question: string) =>
+    send<{ text: string }>('POST', '/v1/ai/field-question', { table, field, question }),
   setupState: () => g<SetupState>('/v1/ai/setup'),
   setupSay: (message: string) => send<{ reply: string; plan: SetupPlan | null }>('POST', '/v1/ai/setup/messages', { message }),
   setupApply: (id: string, steps: number[]) => send<SetupPlan>('POST', `/v1/ai/setup/plans/${id}/apply`, { steps }),
