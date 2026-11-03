@@ -163,6 +163,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/ai/field-question": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Field Question
+         * @description An answer about one field from its own settings. Nothing is saved.
+         */
+        post: operations["field_question_v1_ai_field_question_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/ai/pattern": {
         parameters: {
             query?: never;
@@ -2538,6 +2558,23 @@ export interface paths {
         patch: operations["update_field_v1_studio_tables__table__fields__field__patch"];
         trace?: never;
     };
+    "/v1/studio/tables/{table}/fields/{field}/about": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Field About */
+        get: operations["field_about_v1_studio_tables__table__fields__field__about_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/studio/tables/{table}/fields/{field}/length-impact": {
         parameters: {
             query?: never;
@@ -3239,6 +3276,15 @@ export interface components {
             file_id: string;
             /** Screen */
             screen: string;
+        };
+        /** FieldAskBody */
+        FieldAskBody: {
+            /** Field */
+            field: string;
+            /** Question */
+            question: string;
+            /** Table */
+            table: string;
         };
         /** FieldBody */
         FieldBody: {
@@ -4069,6 +4115,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["FieldBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    field_question_v1_ai_field_question_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FieldAskBody"];
             };
         };
         responses: {
@@ -8917,6 +8998,40 @@ export interface operations {
                 };
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    field_about_v1_studio_tables__table__fields__field__about_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                table: string;
+                field: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {

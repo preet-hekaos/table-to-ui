@@ -761,3 +761,22 @@ async def test_a_menu_entry_limited_to_a_role_is_hidden_from_other_roles_once_li
     assert any(i["screen"] == "skills" for i in mine)
     assert not any(i["screen"] == "skills" for i in theirs)
     assert any(i["screen"] == "candidates" for i in theirs)
+
+
+async def test_field_about_gives_counts_and_what_depends_on_the_field(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    for name, phone, loc in (("Ann", "+91 98450 11111", "Pune"), ("Bo", "+91 98450 22222", None)):
+        r = await a.create_candidate(candidate(full_name=name, phone=phone, location=loc))
+        assert r.status_code == 201, r.text
+    got = await client.get("/v1/studio/tables/candidate/fields/location/about", headers=a.h())
+    assert got.status_code == 200, got.text
+    body = got.json()
+    assert (body["total"], body["filled"]) == (2, 1)
+    assert set(body) == {"total", "filled", "screens", "measures", "automations"}
+    assert any("andidate" in n for n in body["screens"]), body
+    bad = await client.get("/v1/studio/tables/candidate/fields/x'--/about", headers=a.h())
+    assert bad.status_code == 404
+    none = await client.get("/v1/studio/tables/nope/fields/location/about", headers=a.h())
+    assert none.status_code == 404

@@ -1,8 +1,9 @@
-import { GripVertical } from 'lucide-react'
+import { GripVertical, Sparkles } from 'lucide-react'
 import { Fragment, useState, type KeyboardEvent } from 'react'
 import type { FieldDef, StudioTable } from '@/api/types'
 import { Badge, Button, Input, StageBadge, Table, Td, Th, cn, stageStripe } from '@/design-system'
 import { FeaturesCell } from './FeaturesCell'
+import { ExplainPanel } from './ExplainPanel'
 import { FieldDetails } from './FieldDetails'
 import { FieldMenu } from './FieldMenu'
 import { InlineLabel } from './InlineLabel'
@@ -39,6 +40,8 @@ export function FieldsGrid({
   const [dragKey, setDragKey] = useState<string | null>(null)
   const [overKey, setOverKey] = useState<string | null>(null)
   const [open, setOpen] = useState<Set<string>>(new Set())
+  const [explainKey, setExplainKey] = useState<string | null>(null)
+  const explained = table.fields.find((f) => f.key === explainKey)
   const toggle = (k: string) => setOpen((o) => { const n = new Set(o); if (n.has(k)) n.delete(k); else n.add(k); return n })
   const keys = table.fields.map((f) => f.key)
 
@@ -91,7 +94,7 @@ export function FieldsGrid({
             return (
               <Fragment key={f.key}>
               <tr
-                className={cn(stageStripe(stage), dragKey && overKey === f.key && dragKey !== f.key && 'shadow-[inset_0_2px_0_0_var(--color-accent,#1d4fd7)]')}
+                className={cn('group', stageStripe(stage), dragKey && overKey === f.key && dragKey !== f.key && 'shadow-[inset_0_2px_0_0_var(--color-accent,#1d4fd7)]')}
                 data-stage={stage}
                 onDragOver={canEdit && dragKey ? (e) => { e.preventDefault(); setOverKey(f.key) } : undefined}
                 onDrop={
@@ -154,10 +157,13 @@ export function FieldsGrid({
                 </Td>
                 {canEdit && (
                   <Td className="py-1.5"><div className="flex items-center justify-end gap-1">
+                    <Button size="sm" variant="ghost" className="h-6 px-2 text-violet-800 opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:hidden" onClick={() => setExplainKey(f.key)} aria-label={`Explain ${f.label}`}>
+                      <Sparkles className="size-3.5" aria-hidden /> Explain
+                    </Button>
                     <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => onEdit(f)} aria-label={`Edit ${f.label}`}>
                       Edit
                     </Button>
-                    <FieldMenu table={table.key} field={f} expanded={open.has(f.key)} onToggleDetails={() => toggle(f.key)} onEdit={() => onEdit(f)} />
+                    <FieldMenu table={table.key} field={f} expanded={open.has(f.key)} onToggleDetails={() => toggle(f.key)} onEdit={() => onEdit(f)} onExplain={() => setExplainKey(f.key)} />
                   </div></Td>
                 )}
               </tr>
@@ -189,6 +195,7 @@ export function FieldsGrid({
           ))}
         </tbody>
       </Table>
+      {explained && <ExplainPanel table={table} tables={tables} field={explained} stage={stages.field(table.key, explained.key)} canEdit={canEdit} onClose={() => setExplainKey(null)} onEdit={() => onEdit(explained)} />}
       <p className="flex flex-wrap justify-between gap-2 border-t border-line px-4 py-2 text-xs text-muted">
         <span>{table.fields.length} fields{canEdit && ' · changes save to the Draft as you edit'}</span>
         {canEdit && <span className="font-mono">Enter save · Esc cancel · Arrows on the handle move a field</span>}
