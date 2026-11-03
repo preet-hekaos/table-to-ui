@@ -15,20 +15,20 @@ test('The Table-wide bar replaces the Features tab: Import and Reorder switches,
     await expect(bar.getByRole('switch')).toHaveCount(9)
     for (const n of ['Import data', 'Reorder rows', 'Export data', 'Select rows', 'Summary']) await expect(bar.getByRole('switch', { name: new RegExp(`^${n}`) })).toBeChecked()
     await expect(page.getByRole('button', { name: 'Apply to all tables' })).toBeVisible()
-    await page.screenshot({ path: `${SHOTS}/table-wide-bar.png`, clip: { x: 300, y: 150, width: 1200, height: 230 } })
+    await page.screenshot({ path: `${SHOTS}/table-wide-bar.png`, clip: { x: 250, y: 190, width: 1250, height: 150 } })
   })
 
   await test.step('Each ▾ menu opens its own choices and saves at once', async () => {
     await bar.getByRole('button', { name: 'Export options' }).click()
     await featuresSaved(page, () => page.getByRole('checkbox', { name: 'Excel' }).uncheck())
-    await page.screenshot({ path: `${SHOTS}/table-wide-export-menu.png`, clip: { x: 300, y: 150, width: 1200, height: 230 } })
+    await page.screenshot({ path: `${SHOTS}/table-wide-export-menu.png`, clip: { x: 250, y: 190, width: 1250, height: 150 } })
     await page.keyboard.press('Escape')
     await bar.getByRole('button', { name: 'Summary options' }).click()
     const pop = page.getByRole('dialog', { name: 'Summary options' })
     await featuresSaved(page, () => pop.getByRole('checkbox', { name: 'Choose the summary cards myself' }).check())
     await featuresSaved(page, () => pop.getByLabel('Card 1 shows').selectOption('count'))
     await featuresSaved(page, async () => { await pop.getByLabel('Card 1 name').fill('Everyone'); await pop.getByLabel('Card 1 name').press('Enter') })
-    await page.screenshot({ path: `${SHOTS}/table-wide-numbers-menu.png`, clip: { x: 300, y: 150, width: 1200, height: 420 } })
+    await page.screenshot({ path: `${SHOTS}/table-wide-numbers-menu.png`, clip: { x: 250, y: 190, width: 1250, height: 520 } })
     await page.keyboard.press('Escape')
   })
 
@@ -37,6 +37,12 @@ test('The Table-wide bar replaces the Features tab: Import and Reorder switches,
     await featuresSaved(page, () => bar.getByRole('switch', { name: /^Reorder rows/ }).click())
     await publishLive(page)
     const rec = await freshSession(browser, page)
+    const made = await rec.evaluate(async () => (await fetch('/v1/records/candidate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionStorage.getItem('tableui.token')}` },
+      body: JSON.stringify({ data: { full_name: 'Bar Person', email: 'bar@example.in', phone: '+91 98450 12345', status: 'Active' } }),
+    })).status)
+    expect(made).toBe(201)
     await rec.goto('/s/candidates')
     await expect(rec.getByTestId('stats-strip')).toContainText('Everyone')
     await expect(rec.getByRole('button', { name: 'Import data' })).toHaveCount(0)

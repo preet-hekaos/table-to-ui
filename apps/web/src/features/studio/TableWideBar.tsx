@@ -33,7 +33,8 @@ const FORMATS: { value: TableFeatures['export_formats'][number]; label: string }
   { value: 'json', label: 'JSON' },
   { value: 'xlsx', label: 'Excel' },
 ]
-const toggle = <V extends string>(list: V[], v: V, on: boolean): V[] => (on ? [...new Set([...list, v])] : list.filter((x) => x !== v))
+/** Add or remove one choice, keeping the order the choices are listed in, so off and on again is no change. */
+const toggle = <V extends string>(list: V[], v: V, on: boolean, order: V[]): V[] => order.filter((x) => (x === v ? on : list.includes(x)))
 const smallLabel = 'text-xs font-semibold text-muted'
 
 /** The ▾ beside a switch: that feature's extra choices in a small pop-over. Every change saves to the Draft at once. */
@@ -78,7 +79,7 @@ export function TableWideBar({ table, canEdit, features, patch }: { table: Studi
           <fieldset className="flex flex-wrap gap-2" disabled={!canEdit}>
             <legend className="sr-only">Export formats</legend>
             {FORMATS.map((b) => (
-              <Chip key={b.value} checked={features.export_formats.includes(b.value)} disabled={!canEdit} onChange={(v) => patch({ export_formats: toggle(features.export_formats, b.value, v) })}>
+              <Chip key={b.value} checked={features.export_formats.includes(b.value)} disabled={!canEdit} onChange={(v) => patch({ export_formats: toggle(features.export_formats, b.value, v, FORMATS.map((x) => x.value)) })}>
                 {b.label}
               </Chip>
             ))}
@@ -96,7 +97,7 @@ export function TableWideBar({ table, canEdit, features, patch }: { table: Studi
           <fieldset className="flex flex-wrap gap-2" disabled={!canEdit}>
             <legend className="sr-only">Bulk actions allowed</legend>
             {BULK.map((b) => (
-              <Chip key={b.value} checked={features.bulk_actions.includes(b.value)} disabled={!canEdit} onChange={(v) => patch({ bulk_actions: toggle(features.bulk_actions, b.value, v) })}>
+              <Chip key={b.value} checked={features.bulk_actions.includes(b.value)} disabled={!canEdit} onChange={(v) => patch({ bulk_actions: toggle(features.bulk_actions, b.value, v, BULK.map((x) => x.value)) })}>
                 {b.label}
               </Chip>
             ))}
