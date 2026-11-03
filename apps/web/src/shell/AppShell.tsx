@@ -146,7 +146,7 @@ export function AppShell() {
   )
 
   return (
-    <div data-theme="agency" className="flex h-full" style={style as CSSProperties | undefined}>
+    <div data-theme="agency" className="flex h-full overflow-hidden" style={style as CSSProperties | undefined}>
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-surface focus:p-2">Skip to content</a>
       <aside className={`${open ? 'fixed inset-0 z-40 flex' : hidden ? 'hidden' : 'hidden md:flex'} ${side.fullScreen ? '!hidden' : ''}`}>
         <div className={`flex h-full flex-col gap-4 overflow-y-auto bg-nav p-3 transition-[width] duration-150 motion-reduce:transition-none ${rail ? 'w-16 items-center' : 'w-62'}`} data-sidebar={rail ? 'collapsed' : 'expanded'}>
@@ -218,7 +218,7 @@ export function AppShell() {
             <Link to="/security" className="font-semibold underline">Set it up</Link>
           </div>
         )}
-        <main id="main" className="min-h-0 flex-1 overflow-auto p-4 md:p-6">
+        <main id="main" className="relative min-h-0 flex-1 overflow-auto p-4 md:p-6">
           <FullScreenContext.Provider value={{ fullScreen: side.fullScreen, setFullScreen: side.setFullScreen }}>
             <Outlet />
           </FullScreenContext.Provider>
