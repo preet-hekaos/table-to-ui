@@ -20,9 +20,9 @@ test('S4.1 the Features cell: chips, +N, the dropdown with its eleven ticks, key
     await expect(cell(page, 'Full name')).toContainText('Shown')
   })
 
-  await test.step('The table-wide bar is above the grid with seven switches', async () => {
+  await test.step('The table-wide bar is above the grid with nine switches', async () => {
     const bar = page.getByRole('group', { name: 'Table-wide switches for Candidate' })
-    await expect(bar.getByRole('switch')).toHaveCount(7)
+    await expect(bar.getByRole('switch')).toHaveCount(9)
     for (const n of ['Sorting', 'Filtering', 'Edit in the list', 'Group rows', 'Export data', 'Select rows', 'Numbers above the table'])
       await expect(bar.getByRole('switch', { name: new RegExp(`^${n}`) })).toBeChecked()
   })

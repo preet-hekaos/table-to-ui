@@ -80,8 +80,9 @@ test('Every change in the bar saves at once, and flipping something off and on a
   await page.goto('/studio?tab=data&table=candidate')
   const panel = page.getByTestId('features-panel')
   const read = () => page.evaluate(async () => {
-    const r = await fetch('/v1/studio/tables/candidate', { headers: { Authorization: `Bearer ${sessionStorage.getItem('tableui.token')}` } })
-    return JSON.stringify(((await r.json()) as { features?: unknown }).features ?? null)
+    const r = await fetch('/v1/studio/tables', { headers: { Authorization: `Bearer ${sessionStorage.getItem('tableui.token')}` } })
+    const t = ((await r.json()) as { key: string; features?: Record<string, unknown> | null }[]).find((x) => x.key === 'candidate')
+    return JSON.stringify(t?.features ?? null)
   })
   const start = await read()
 
