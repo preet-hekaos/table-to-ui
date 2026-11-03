@@ -4,7 +4,7 @@ import { useMemo, useState, type FormEvent } from 'react'
 import { ApiError } from '@/api/client'
 import { ai, studio } from '@/api/endpoints'
 import type { FieldDef, StudioTable } from '@/api/types'
-import { Button, Dialog, DialogContent, Field, Input, Select, useToast } from '@/design-system'
+import { Button, Dialog, DialogContent, Field, SideContent, Input, Select, useToast } from '@/design-system'
 
 export { TYPE_LABELS } from './typeLabels'
 import { TYPE_LABELS } from './typeLabels'
@@ -90,13 +90,29 @@ export function FieldDialog({ table, tables, field, open, onOpenChange }: Props)
   const textual = ['text', 'email', 'phone'].includes(type)
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
+      <SideContent
         title={isNew ? `Add a field to ${table.label}` : `Edit ${field.label}`}
         description={
           isNew ? 'New fields are searchable and can be used as filters. They stay in Draft until you publish.' : undefined
         }
+        footer={
+          <>
+            {!isNew && (
+              <Button type="button" variant="danger" onClick={() => remove.mutate()} loading={remove.isPending}>
+                Delete field
+              </Button>
+            )}
+            <span className="flex-1" />
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" form="field-form" variant="primary" loading={save.isPending}>
+              {isNew ? 'Add field' : 'Save'}
+            </Button>
+          </>
+        }
       >
-        <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
+        <form id="field-form" onSubmit={submit} className="flex flex-col gap-4" noValidate>
           {!isNew && (
             <div className="-mt-1 flex">
               <Button type="button" size="sm" variant="secondary" className="text-violet-800" onClick={() => setExplaining(true)}>
@@ -184,21 +200,8 @@ export function FieldDialog({ table, tables, field, open, onOpenChange }: Props)
               </p>
             )}
           </div>
-          <div className="flex flex-wrap justify-end gap-2">
-            {!isNew && (
-              <Button type="button" variant="danger" className="mr-auto" onClick={() => remove.mutate()} loading={remove.isPending}>
-                Delete field
-              </Button>
-            )}
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" variant="primary" loading={save.isPending}>
-              {isNew ? 'Add field' : 'Save'}
-            </Button>
-          </div>
         </form>
-      </DialogContent>
+      </SideContent>
       {explaining && field && <ExplainPanel table={table} tables={tables} field={field} canEdit={false} onClose={() => setExplaining(false)} onEdit={() => undefined} />}
     </Dialog>
   )

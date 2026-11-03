@@ -3,7 +3,7 @@ import { FileUp, Upload } from 'lucide-react'
 import { useRef, useState, type DragEvent } from 'react'
 import { ApiError } from '@/api/client'
 import { studio, type SchemaField, type SchemaPreview, type SchemaTable } from '@/api/endpoints'
-import { Badge, Button, Dialog, DialogContent, Input, Select, cn, useToast } from '@/design-system'
+import { Badge, Button, Dialog, Input, SideContent, Select, cn, useToast } from '@/design-system'
 import { TYPE_LABELS } from './FieldDialog'
 
 const ACCEPT = '.csv,.tsv,.xlsx,.json,.sql,.pdf,.docx,.txt,.md'
@@ -123,10 +123,21 @@ export function SchemaImportDialog({ open, onOpenChange, onCreated }: { open: bo
         onOpenChange(o)
       }}
     >
-      <DialogContent
-        wide
+      <SideContent
+        size="lg"
         title="Import schema"
         description="Drop CSV, Excel, JSON or SQL files, or a PDF, Word or text document that describes your data (AI reads it). You see the tables before anything is created."
+        footer={
+          rows ? (
+            <>
+              <Button type="button" variant="ghost" onClick={() => { setRows(null); setError('') }}>Choose other files</Button>
+              <span className="flex-1" />
+              <Button type="submit" form="schema-form" variant="primary" disabled={chosen.length === 0} loading={create.isPending}>
+                Create {chosen.length} {chosen.length === 1 ? 'table' : 'tables'} in Draft
+              </Button>
+            </>
+          ) : undefined
+        }
       >
         {!rows ? (
           <div className="flex flex-col gap-3">
@@ -154,6 +165,7 @@ export function SchemaImportDialog({ open, onOpenChange, onCreated }: { open: bo
           </div>
         ) : (
           <form
+            id="schema-form"
             className="flex flex-col gap-4"
             onSubmit={(e) => {
               e.preventDefault()
@@ -226,15 +238,9 @@ export function SchemaImportDialog({ open, onOpenChange, onCreated }: { open: bo
               ))}
             </ul>
             {error && <p role="alert" className="text-sm text-bad">{error}</p>}
-            <div className="flex flex-wrap justify-end gap-2">
-              <Button type="button" variant="ghost" onClick={() => { setRows(null); setError('') }}>Choose other files</Button>
-              <Button type="submit" variant="primary" disabled={chosen.length === 0} loading={create.isPending}>
-                Create {chosen.length} {chosen.length === 1 ? 'table' : 'tables'} in Draft
-              </Button>
-            </div>
           </form>
         )}
-      </DialogContent>
+      </SideContent>
     </Dialog>
   )
 }

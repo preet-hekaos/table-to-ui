@@ -1,11 +1,10 @@
-import * as Popover from '@radix-ui/react-popover'
-import { ArrowDown, ArrowUp, Delete, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, Delete } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useId, useRef, useState } from 'react'
 import { ApiError } from '@/api/client'
 import { ai, studio, type LibraryRule } from '@/api/endpoints'
 import type { FieldDef, FieldRule, StudioTable } from '@/api/types'
-import { Button, Switch, Tooltip, cn } from '@/design-system'
+import { Button, Dialog, DialogTrigger, SideContent, Switch, Tooltip, cn } from '@/design-system'
 import { DescribePanel } from './DescribePanel'
 import { useSaveField } from './useSaveField'
 import { useValidationLibrary } from './useValidationLibrary'
@@ -118,25 +117,24 @@ export function ValidationCell({ table, field, canEdit }: { table: StudioTable; 
   if (!canEdit) return n ? <span className="flex items-center gap-1.5 text-sm"><Fx />{text}</span> : <span className="text-muted">None</span>
 
   return (
-    <Popover.Root open={open} onOpenChange={begin}>
-      <Popover.Trigger asChild>{trigger}</Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Content
-          align="end"
-          sideOffset={6}
-          collisionPadding={16}
-          aria-label={`Validation for ${field.label}`}
-          className="z-50 flex max-h-[var(--radix-popover-content-available-height)] w-[38rem] max-w-[95vw] flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-xl"
-        >
-          <div className="flex items-start gap-3 border-b border-line p-4">
-            <Fx />
-            <div className="flex-1">
-              <p className="font-semibold text-ink">Validation for {field.label}</p>
-              <p className="text-xs text-muted">A value must pass every switched-on rule before the record can be saved. Rules run top to bottom.</p>
-            </div>
-            <Popover.Close aria-label="Close without saving" className="rounded p-1 text-muted hover:bg-soft hover:text-ink"><X className="size-4" aria-hidden /></Popover.Close>
-          </div>
-          <div className="min-h-0 flex-1 overflow-y-auto p-4">
+    <Dialog open={open} onOpenChange={begin}>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <SideContent
+        size="lg"
+        title={`Validation for ${field.label}`}
+        description="A value must pass every switched-on rule before the record can be saved. Rules run top to bottom."
+        footer={
+          <>
+            <p className="text-xs text-muted">
+              {aiOn ? 'AI is on for this workspace (Settings › AI).' : 'AI is off for this workspace (Settings › AI).'} Without it, library and manual patterns still work.
+            </p>
+            <span className="flex-1" />
+            <Button variant="secondary" size="sm" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button variant="primary" size="sm" onClick={done} loading={save.isPending}>Done</Button>
+          </>
+        }
+      >
+        <div>
             <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Rules on this field</p>
             {rules.length === 0 && <p className="mt-2 text-sm text-muted">No rules yet. Add one from the library or write your own pattern.</p>}
             <ul className="mt-2 flex flex-col gap-2" aria-label="Rules">
@@ -192,18 +190,8 @@ export function ValidationCell({ table, field, canEdit }: { table: StudioTable; 
               <span id={`${id}-check`} role="status" className="text-xs text-body">{check}</span>
             </div>
             {problem && <p role="alert" className="mt-3 rounded-md border border-bad bg-bad-soft px-3 py-2 text-xs text-bad-ink">{problem}</p>}
-          </div>
-          <div className="flex items-center justify-between gap-3 border-t border-line px-4 py-3">
-            <p className="text-xs text-muted">
-              {aiOn ? 'AI is on for this workspace (Settings › AI).' : 'AI is off for this workspace (Settings › AI).'} Without it, library and manual patterns still work.
-            </p>
-            <div className="flex shrink-0 items-center gap-2">
-            <Button variant="secondary" size="sm" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button variant="primary" size="sm" onClick={done} loading={save.isPending}>Done</Button>
-            </div>
-          </div>
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
+                  </div>
+      </SideContent>
+    </Dialog>
   )
 }

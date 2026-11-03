@@ -3,7 +3,7 @@ import { useState, type FormEvent } from 'react'
 import { ApiError } from '@/api/client'
 import { app, studio } from '@/api/endpoints'
 import type { MeasureDraft } from '@/api/types'
-import { Badge, Button, Card, Dialog, DialogContent, EmptyState, ErrorState, Field, Input, LoadingState, Select, useToast } from '@/design-system'
+import { Badge, Button, Card, Dialog, SideContent, EmptyState, ErrorState, Field, Input, LoadingState, Select, useToast } from '@/design-system'
 import { useDraftTables } from './useDraftTables'
 
 const NUMERIC = ['integer', 'decimal', 'money', 'months']
@@ -146,8 +146,21 @@ function MeasureDialog({ measure, onClose }: { measure: MeasureDraft | null; onC
   }
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent title={measure ? `Edit ${measure.label}` : 'Add a measure'} description={isPack ? 'This measure comes with the pack. You can rename it, hide it or put it on Home. To change what it counts, add a new measure.' : 'A measure is a number your team can trust. It always reads from the same records.'}>
-        <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
+      <SideContent
+        title={measure ? `Edit ${measure.label}` : 'Add a measure'}
+        description={isPack ? 'This measure comes with the pack. You can rename it, hide it or put it on Home. To change what it counts, add a new measure.' : 'A measure is a number your team can trust. It always reads from the same records.'}
+        footer={(
+          <>
+            {measure && !isPack ? (
+              <Button type="button" variant="secondary" onClick={() => remove.mutate()} disabled={remove.isPending}>Remove measure</Button>
+            ) : <span />}
+            <span className="flex-1" />
+            <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+            <Button type="submit" form="side-form" disabled={!label.trim() || !table && !measure || save.isPending}>Save</Button>
+          </>
+        )}
+      >
+        <form id="side-form" onSubmit={submit} className="flex flex-col gap-4" noValidate>
           <Field label="Name" required error={errors.label}>
             <Input value={label} onChange={(e) => setLabel(e.target.value)} autoFocus />
           </Field>
@@ -270,17 +283,8 @@ function MeasureDialog({ measure, onClose }: { measure: MeasureDraft | null; onC
           <label className="flex items-center gap-2 text-sm text-ink">
             <input type="checkbox" checked={hidden} onChange={(e) => setHidden(e.target.checked)} /> Hide from Insights
           </label>
-          <div className="flex flex-wrap justify-between gap-2">
-            {measure && !isPack ? (
-              <Button type="button" variant="secondary" onClick={() => remove.mutate()} disabled={remove.isPending}>Remove measure</Button>
-            ) : <span />}
-            <div className="flex gap-2">
-              <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
-              <Button type="submit" disabled={!label.trim() || !table && !measure || save.isPending}>Save</Button>
-            </div>
-          </div>
         </form>
-      </DialogContent>
+      </SideContent>
     </Dialog>
   )
 }
