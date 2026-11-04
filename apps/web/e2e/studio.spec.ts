@@ -36,7 +36,7 @@ test('Studio: fields, tables, map, screens, menu, preview and versions', async (
     const dialog = page.getByRole('dialog')
     await expect(dialog).not.toContainText('comes with the pack')
     await expect(dialog.getByLabel('Required')).toBeVisible()
-    await expect(dialog.getByRole('button', { name: 'Delete field' })).toBeVisible()
+    await expect(dialog.getByRole('button', { name: /^Archive field/ })).toBeVisible()
     await dialog.getByLabel(/^Label/).fill('Employer')
     await dialog.getByRole('button', { name: 'Save' }).click()
     await expect(page.getByRole('row', { name: /^(?:Move [^.]*\. Drag, or use the up and down arrow keys\. )?current_employer Employer Draft/ })).toBeVisible()
