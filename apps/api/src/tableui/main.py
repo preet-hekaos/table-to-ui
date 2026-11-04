@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 import tableui.ai.public as ai
 import tableui.approvals.public as approvals
+import tableui.archive.public as archive
 import tableui.automation.public as automation
 import tableui.catalog.public as catalog
 import tableui.commands.public as commands
@@ -143,6 +144,7 @@ def create_app(
         app.state.relay = relay
         task: asyncio.Task[None] | None = None
         ticker: asyncio.Task[None] | None = None
+        swept: asyncio.Task[None] | None = None
         if settings.run_outbox_relay:
 
             async def loop() -> None:
@@ -166,10 +168,21 @@ def create_app(
                     await asyncio.sleep(settings.automation_tick_seconds)
 
             ticker = asyncio.create_task(automation_loop())
+
+            async def archive_loop() -> None:
+                while True:  # the clean-up: delete archived things that waited long enough
+                    try:
+                        for tid in await list_tenants():
+                            await archive.sweep(app.state.db, tid)
+                    except Exception:
+                        log.exception("archive clean-up failed; will retry")
+                    await asyncio.sleep(3600)
+
+            swept = asyncio.create_task(archive_loop())
         try:
             yield
         finally:
-            for t in (task, ticker, consumer_task):
+            for t in (task, ticker, swept, consumer_task):
                 if t:
                     t.cancel()
                     with contextlib.suppress(asyncio.CancelledError):
@@ -263,6 +276,7 @@ def create_app(
         workflow.router,
         approvals.router,
         duplicates.router,
+        archive.router,
         catalog.router,
     ):
         app.include_router(r)

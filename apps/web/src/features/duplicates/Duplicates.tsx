@@ -5,7 +5,7 @@ import { ApiError } from '@/api/client'
 import { duplicates } from '@/api/endpoints'
 import type { DuplicatePair } from '@/api/types'
 import { can, useMe } from '@/features/auth/useMe'
-import { Badge, Button, Dialog, DialogContent, EmptyState, ErrorState, LoadingState, Table, Td, Th, useToast } from '@/design-system'
+import { Badge, Button, Dialog, SideContent, EmptyState, ErrorState, LoadingState, Table, Td, Th, useToast } from '@/design-system'
 
 const show = (v: unknown) => (v === null || v === undefined || v === '' ? '—' : Array.isArray(v) ? v.join(', ') : String(v))
 
@@ -128,7 +128,21 @@ function CompareDialog({ tableKey, pair, mayMerge, onDone }: { tableKey: string;
   }
 
   return (
-    <DialogContent title="Compare records" description="Choose the record to keep. Pick which value wins where they differ.">
+    <SideContent
+      size="lg"
+      title="Compare records"
+      description="Choose the record to keep. Pick which value wins where they differ."
+      footer={
+        cmp.data ? (
+          <>
+            <span className="flex-1" />
+            <Button variant="primary" disabled={!mayMerge} loading={busy} onClick={() => void merge()}>
+              Merge into the kept record
+            </Button>
+          </>
+        ) : undefined
+      }
+    >
       {cmp.isLoading ? (
         <LoadingState label="Comparing" />
       ) : cmp.isError || !cmp.data ? (
@@ -182,13 +196,8 @@ function CompareDialog({ tableKey, pair, mayMerge, onDone }: { tableKey: string;
           )}
           {!mayMerge && <p role="status" className="rounded-md bg-soft p-2 text-sm text-body">Only a manager can merge records. You can still mark them as different.</p>}
           {error && <p role="alert" className="rounded-md bg-bad-soft p-2 text-sm text-bad-ink">{error}</p>}
-          <div className="flex justify-end gap-2">
-            <Button variant="primary" disabled={!mayMerge} loading={busy} onClick={() => void merge()}>
-              Merge into the kept record
-            </Button>
-          </div>
         </div>
       )}
-    </DialogContent>
+    </SideContent>
   )
 }

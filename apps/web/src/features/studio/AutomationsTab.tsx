@@ -3,7 +3,8 @@ import { formatDateTime } from '@/patterns/format'
 import { useState, type FormEvent } from 'react'
 import { ApiError } from '@/api/client'
 import { admin, automations, studio, type AutomationAction, type AutomationDraft } from '@/api/endpoints'
-import { Badge, Button, Card, Dialog, DialogContent, EmptyState, ErrorState, Field, Input, LoadingState, Select, StageBadge, cn, stageStripe, useToast } from '@/design-system'
+import { ArchiveDialog } from '@/features/archive/ArchiveDialog'
+import { Badge, Button, Card, Dialog, SideContent, EmptyState, ErrorState, Field, Input, LoadingState, Select, StageBadge, cn, stageStripe, useToast } from '@/design-system'
 import { useStages } from './useStages'
 import { useDraftTables } from './useDraftTables'
 
@@ -186,15 +187,7 @@ function AutomationDialog({ automation, onClose }: { automation: AutomationDraft
     },
     onError: (e) => setErrors(fieldErrors(e)),
   })
-  const remove = useMutation({
-    mutationFn: () => studio.removeAutomation(automation!.key),
-    onSuccess: async () => {
-      toast({ title: `Removed ${label}`, description: 'Saved in Draft. Publish to make it live.', tone: 'ok' })
-      await refresh(qc)
-      onClose()
-    },
-    onError: (e) => toast({ title: 'Could not remove', description: (e as Error).message, tone: 'bad' }),
-  })
+  const [archiving, setArchiving] = useState(false)
   const setAction = (i: number, patch: Partial<AutomationAction>) => setActions((xs) => xs.map((x, j) => (j === i ? { ...x, ...patch } : x)))
   const submit = (e: FormEvent) => {
     e.preventDefault()
@@ -203,8 +196,19 @@ function AutomationDialog({ automation, onClose }: { automation: AutomationDraft
   }
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent title={automation ? `Edit ${automation.label}` : 'Add an automation'} description={isPack ? 'This automation comes with the pack. You can rename it or switch it off. To change what it does, add a new one.' : 'Say when it should happen and what it should do. Use {title} or {any field} to put values in the text.'}>
-        <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
+      <SideContent
+        title={automation ? `Edit ${automation.label}` : 'Add an automation'}
+        description={isPack ? 'This automation comes with the pack. You can rename it or switch it off. To change what it does, add a new one.' : 'Say when it should happen and what it should do. Use {title} or {any field} to put values in the text.'}
+        footer={(
+          <>
+            {automation && !isPack ? <Button type="button" variant="secondary" onClick={() => setArchiving(true)}>Archive automation…</Button> : <span />}
+            <span className="flex-1" />
+            <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+            <Button type="submit" form="side-form" disabled={!label.trim() || (!ready && !automation) || save.isPending}>Save</Button>
+          </>
+        )}
+      >
+        <form id="side-form" onSubmit={submit} className="flex flex-col gap-4" noValidate>
           <Field label="Name" required error={errors.label}>
             <Input value={label} onChange={(e) => setLabel(e.target.value)} autoFocus />
           </Field>
@@ -333,15 +337,11 @@ function AutomationDialog({ automation, onClose }: { automation: AutomationDraft
           <label className="flex items-center gap-2 text-sm text-ink">
             <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} /> Switched on
           </label>
-          <div className="flex flex-wrap justify-between gap-2">
-            {automation && !isPack ? <Button type="button" variant="secondary" onClick={() => remove.mutate()} disabled={remove.isPending}>Remove automation</Button> : <span />}
-            <div className="flex gap-2">
-              <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
-              <Button type="submit" disabled={!label.trim() || (!ready && !automation) || save.isPending}>Save</Button>
-            </div>
-          </div>
         </form>
-      </DialogContent>
+      </SideContent>
+      {archiving && (
+        <ArchiveDialog kind="automation" itemKey={automation!.key} label={automation!.label} onClose={() => setArchiving(false)} onArchived={() => { setArchiving(false); onClose() }} />
+      )}
     </Dialog>
   )
 }

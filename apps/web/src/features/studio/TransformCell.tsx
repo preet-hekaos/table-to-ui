@@ -3,7 +3,7 @@ import { ArrowDown, ArrowUp, Plus, Trash2, Wand2 } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 import { studio } from '@/api/endpoints'
 import type { FieldDef, StudioTable, TransformDo, TransformRule, TransformWhen } from '@/api/types'
-import { Button, Dialog, DialogContent, Input, Select, Switch, cn } from '@/design-system'
+import { Button, Dialog, Input, Select, SideContent, Switch, cn } from '@/design-system'
 import { useQuery as useQ } from '@tanstack/react-query'
 import { ai } from '@/api/endpoints'
 import { WordsPanel } from './WordsPanel'
@@ -116,8 +116,21 @@ function TransformDialog({ table, field, canEdit, onClose }: { table: StudioTabl
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent title={`Transformation rules · ${field.label}`} description="Each rule says: if this, then that. They run when a record is saved, from forms, imports and the list, before validation. Imported files are never changed." wide>
-        <div className="grid gap-4 md:grid-cols-[14rem_1fr]">
+      <SideContent
+        size="lg"
+        testId="transform-panel"
+        title={`Transformation rules · ${field.label}`}
+        description="Each rule says: if this, then that. They run when a record is saved, from forms, imports and the list, before validation. Imported files are never changed."
+        footer={
+          <>
+            <p className="text-xs text-muted">{incomplete > 0 ? `${incomplete} unfinished ${incomplete === 1 ? 'rule is' : 'rules are'} left out when you press Done. ` : ''}Changes go to the Draft with the field.</p>
+            <span className="flex-1" />
+            <Button variant="secondary" onClick={onClose}>Cancel</Button>
+            {canEdit && <Button variant="primary" loading={save.isPending} onClick={done}>Done</Button>}
+          </>
+        }
+      >
+        <div className="flex flex-col gap-5">
           <div className="flex flex-col gap-3" aria-label="Palette">
             <div>
               <p className="mb-1 text-xs font-bold tracking-wide text-muted uppercase">If this … (conditions)</p>
@@ -225,13 +238,7 @@ function TransformDialog({ table, field, canEdit, onClose }: { table: StudioTabl
             {canEdit && <WordsPanel aiOn={!!aiSetting.data?.enabled} label={field.label} type={field.type} describe={(r) => describeRule(r, table.fields, Object.fromEntries(standard.map((x) => [x.key, x.label])))} onUse={addMany} />}
           </div>
         </div>
-        <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-line pt-3">
-          <p className="text-xs text-muted">{incomplete > 0 ? `${incomplete} unfinished ${incomplete === 1 ? 'rule is' : 'rules are'} left out when you press Done. ` : ''}Changes go to the Draft with the field.</p>
-          <span className="flex-1" />
-          <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          {canEdit && <Button variant="primary" loading={save.isPending} onClick={done}>Done</Button>}
-        </div>
-      </DialogContent>
+      </SideContent>
     </Dialog>
   )
 }

@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { openTables, run, signUpWithPack, pickNewFieldType } from './helpers'
+import { confirmArchive } from './archive-helper'
 
 /** N1: Draft, Test and Live each have their own colour, word and icon, and the colour follows a change. */
 test('Stage colours follow a field from Draft to Test to Live', async ({ page }) => {
@@ -51,7 +52,7 @@ test('Stage colours follow a field from Draft to Test to Live', async ({ page })
 
   await test.step('A removed field shows as Removed until published; the page passes the accessibility check', async () => {
     await page.getByRole('button', { name: 'Edit Preferred shift' }).click()
-    await page.getByRole('dialog').getByRole('button', { name: 'Delete field' }).click()
+    await confirmArchive(page, /^Archive field/, 'field')
     await expect(page.getByRole('dialog')).toHaveCount(0)
     const gone = page.locator('tr[data-stage="removed"]')
     await expect(gone).toContainText('Preferred shift')

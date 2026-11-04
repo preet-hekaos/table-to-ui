@@ -128,3 +128,12 @@ export async function expectFieldFeature(page: Page, fieldLabel: string, tick: s
   else await expect(box).not.toBeChecked()
   await page.keyboard.press('Escape')
 }
+
+/** Run an action that changes a table-wide setting and wait until the Draft has saved it. */
+export async function featuresSaved<T>(page: Page, action: () => Promise<T>): Promise<T> {
+  const [, result] = await Promise.all([
+    page.waitForResponse((r) => /\/v1\/studio\/tables\/[^/]+\/features$/.test(r.url()) && r.request().method() === 'PUT'),
+    action(),
+  ])
+  return result
+}

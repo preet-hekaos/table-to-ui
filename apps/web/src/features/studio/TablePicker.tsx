@@ -1,5 +1,5 @@
 import * as Popover from '@radix-ui/react-popover'
-import { Check, ChevronDown, FileDown, FileUp, MoreHorizontal, Plus, Search } from 'lucide-react'
+import { Archive, Check, ChevronDown, FileDown, FileUp, MoreHorizontal, Plus, Search } from 'lucide-react'
 import { useState } from 'react'
 import { Button, ScrollArea, StageDot, cn } from '@/design-system'
 
@@ -74,7 +74,7 @@ export function TablePicker({ items, current, onSelect }: { items: Item[]; curre
 }
 
 /** The table-level actions: New table up front, the rarer schema actions in a small menu. */
-export function TableActions({ canEdit, onNew, onImport, onExport }: { canEdit: boolean; onNew: () => void; onImport: () => void; onExport: () => void }) {
+export function TableActions({ canEdit, onNew, onImport, onExport, onArchive }: { canEdit: boolean; onNew: () => void; onImport: () => void; onExport: () => void; onArchive?: () => void }) {
   const [open, setOpen] = useState(false)
   const item = (label: string, icon: React.ReactNode, run: () => void) => (
     <button
@@ -105,6 +105,7 @@ export function TableActions({ canEdit, onNew, onImport, onExport }: { canEdit: 
             <div role="menu" aria-label="More table actions">
               {canEdit && item('Import schema', <FileUp className="size-4" aria-hidden />, onImport)}
               {item('Export schema', <FileDown className="size-4" aria-hidden />, onExport)}
+              {canEdit && onArchive && item('Archive this table…', <Archive className="size-4" aria-hidden />, onArchive)}
             </div>
           </Popover.Content>
         </Popover.Portal>

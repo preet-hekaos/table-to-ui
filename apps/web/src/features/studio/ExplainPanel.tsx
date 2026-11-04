@@ -1,11 +1,10 @@
-import * as RadixDialog from '@radix-ui/react-dialog'
 import { useQuery } from '@tanstack/react-query'
-import { Sparkles, X } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { ApiError } from '@/api/client'
 import { ai, studio } from '@/api/endpoints'
 import type { FieldDef, StudioTable } from '@/api/types'
-import { Badge, Button, StageBadge } from '@/design-system'
+import { Badge, Button, Dialog, SideContent, StageBadge } from '@/design-system'
 import type { Stage } from '@/design-system'
 import { explainAsText, explainField } from './explain'
 import { featuresOf } from './features'
@@ -72,31 +71,22 @@ export function ExplainPanel({
   }
 
   return (
-    <RadixDialog.Root open onOpenChange={(o) => !o && onClose()}>
-      <RadixDialog.Portal>
-        <RadixDialog.Overlay className="fixed inset-0 z-40 bg-ink/20" />
-        <RadixDialog.Content
-          data-testid="explain-panel"
-          className="fixed inset-y-0 right-0 z-50 flex w-[min(28.75rem,100vw)] flex-col bg-surface shadow-pop focus:outline-none"
-        >
-          <div className="flex items-start gap-3 border-b border-line px-6 py-5">
-            <div className="min-w-0 flex-1">
-              <p className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-violet-800">
-                <Sparkles className="size-3" aria-hidden /> Explain · read only
-              </p>
-              <RadixDialog.Title className="mt-0.5 truncate text-xl font-bold text-ink">{field.label}</RadixDialog.Title>
-              <RadixDialog.Description className="sr-only">What {field.label} is, what happens to it, where it shows and what depends on it.</RadixDialog.Description>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                <Badge>{field.type_name ?? field.type}</Badge>
-                {stage && stage !== 'live' && <StageBadge stage={stage} />}
-              </div>
-            </div>
-            <RadixDialog.Close aria-label="Close" className="rounded-md p-1.5 text-muted hover:bg-soft">
-              <X className="size-4" aria-hidden />
-            </RadixDialog.Close>
-          </div>
-
-          <div className="min-h-0 flex-1 overflow-y-auto">
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <SideContent
+        testId="explain-panel"
+        title={field.label}
+        description={`What ${field.label} is, what happens to it, where it shows and what depends on it.`}
+        eyebrow={<><Sparkles className="size-3" aria-hidden /> Explain · read only</>}
+        meta={<><Badge>{field.type_name ?? field.type}</Badge>{stage && stage !== 'live' && <StageBadge stage={stage} />}</>}
+        footer={
+          <>
+            <Button size="sm" variant="secondary" onClick={() => void copy()}>{copied ? 'Copied' : 'Copy as text'}</Button>
+            {canEdit && <Button size="sm" variant="secondary" onClick={() => { onClose(); onEdit() }}>Edit field</Button>}
+            <span className="ml-auto text-xs text-muted">Nothing here changes data</span>
+          </>
+        }
+      >
+        <div className="-mx-6 -my-5">
             <p className="border-b border-line bg-violet-50 px-6 py-4 text-[15px] text-ink" data-testid="explain-summary">{e.summary}</p>
             {e.sections.map((s) => (
               <section key={s.id} aria-label={s.title} className="border-b border-line px-6 py-4" data-testid={`explain-${s.id}`}>
@@ -138,15 +128,8 @@ export function ExplainPanel({
                 </div>
               )}
             </section>
-          </div>
-
-          <div className="flex items-center gap-2 border-t border-line px-6 py-3.5">
-            <Button size="sm" variant="secondary" onClick={() => void copy()}>{copied ? 'Copied' : 'Copy as text'}</Button>
-            {canEdit && <Button size="sm" variant="secondary" onClick={() => { onClose(); onEdit() }}>Edit field</Button>}
-            <span className="ml-auto text-xs text-muted">Nothing here changes data</span>
-          </div>
-        </RadixDialog.Content>
-      </RadixDialog.Portal>
-    </RadixDialog.Root>
+        </div>
+      </SideContent>
+    </Dialog>
   )
 }

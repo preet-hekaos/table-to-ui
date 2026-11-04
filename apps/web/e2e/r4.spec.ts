@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
-import { expectReadable, run, signUpWithPack } from './helpers'
+import { expectReadable, featuresSaved, run, signUpWithPack } from './helpers'
 
 const token = (page: Page) => page.evaluate(() => sessionStorage.getItem('tableui.token'))
 
@@ -41,22 +41,21 @@ test('Summary strip: cards chosen in Studio, and a whole-table switch', async ({
 
   await test.step('Choose three cards in Studio', async () => {
     await page.goto('/studio?tab=data&table=candidate&part=features')
-    const panel = page.getByTestId('features-panel')
-    await panel.getByRole('checkbox', { name: 'Choose the summary cards myself' }).check()
+    await page.getByRole('button', { name: 'Summary options' }).click()
+    const panel = page.getByRole('dialog', { name: 'Summary options' })
+    await featuresSaved(page, () => panel.getByRole('checkbox', { name: 'Choose the summary cards myself' }).check())
     await expect(panel.getByRole('group', { name: 'Card 1' })).toBeVisible()
-    await panel.getByRole('button', { name: 'Add a card' }).click()
-    await panel.getByLabel('Card 2 shows').selectOption('number')
-    await panel.getByLabel('Card 2 measure').selectOption('max')
-    await panel.getByLabel('Card 2 field').selectOption({ label: 'Total experience' })
-    await panel.getByRole('button', { name: 'Add a card' }).click()
-    await panel.getByLabel('Card 3 shows').selectOption('value')
-    await panel.getByLabel('Card 3 field').selectOption({ label: 'Status' })
-    await panel.getByLabel('Card 3 value').selectOption('Active')
-    await panel.getByLabel('Card 3 name').fill('Active now')
+    await featuresSaved(page, () => panel.getByRole('button', { name: 'Add a card' }).click())
+    await featuresSaved(page, () => panel.getByLabel('Card 2 shows').selectOption('number'))
+    await featuresSaved(page, () => panel.getByLabel('Card 2 measure').selectOption('max'))
+    await featuresSaved(page, () => panel.getByLabel('Card 2 field').selectOption({ label: 'Total experience' }))
+    await featuresSaved(page, () => panel.getByRole('button', { name: 'Add a card' }).click())
+    await featuresSaved(page, () => panel.getByLabel('Card 3 shows').selectOption('value'))
+    await featuresSaved(page, () => panel.getByLabel('Card 3 field').selectOption({ label: 'Status' }))
+    await featuresSaved(page, () => panel.getByLabel('Card 3 value').selectOption('Active'))
+    await featuresSaved(page, async () => { await panel.getByLabel('Card 3 name').fill('Active now'); await panel.getByLabel('Card 3 name').press('Enter') })
     await shot(page, 'r4-studio-cards')
     await testInfo.attach('studio-cards', { body: await page.screenshot(), contentType: 'image/png' })
-    await panel.getByRole('button', { name: 'Save features' }).click()
-    await expect(page.getByText('Saved features for Candidate').first()).toBeVisible()
     await goLive(page)
   })
 
@@ -98,10 +97,9 @@ test('Summary strip: cards chosen in Studio, and a whole-table switch', async ({
     await page.goto('/s/candidates')
     await page.getByRole('checkbox', { name: 'Whole table' }).uncheck()
     await page.goto('/studio?tab=data&table=candidate&part=features')
-    const panel = page.getByTestId('features-panel')
-    await panel.getByRole('checkbox', { name: 'Choose the summary cards myself' }).uncheck()
-    await panel.getByRole('button', { name: 'Save features' }).click()
-    await expect(page.getByText('Saved features for Candidate').first()).toBeVisible()
+    await page.getByRole('button', { name: 'Summary options' }).click()
+    await featuresSaved(page, () => page.getByRole('dialog', { name: 'Summary options' }).getByRole('checkbox', { name: 'Choose the summary cards myself' }).uncheck())
+    await page.keyboard.press('Escape')
     await goLive(page)
     await page.goto('/s/candidates')
     await expect(page.getByTestId('stats-strip')).toContainText('Matching')

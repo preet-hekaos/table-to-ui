@@ -21,6 +21,9 @@ MODULES = [
     "workflow",
     "approvals",
     "duplicates",
+    "automation",
+    "ai",
+    "archive",
 ]
 
 

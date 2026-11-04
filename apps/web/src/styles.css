@@ -267,3 +267,15 @@ body {
   .map-card:hover, .map-card[data-lit='true'], .map-dot:hover, .map-dot[data-lit='true'] { transform: none; }
   .react-flow__edge.map-flow .react-flow__edge-path { animation: none; }
 }
+
+/* Side panels slide in from the right; none of it for people who ask for less motion. */
+@keyframes side-in {
+  from { transform: translateX(2rem); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+[data-side-panel] {
+  animation: side-in 0.16s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-side-panel] { animation: none; }
+}

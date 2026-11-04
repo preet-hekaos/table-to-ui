@@ -3,9 +3,10 @@ import { useState } from 'react'
 import type { ApiError } from '@/api/client'
 import type { FieldDef, StudioTable } from '@/api/types'
 import { Badge, Button, Card, ErrorState, LoadingState, StageBadge, Tabs, TabsContent, TabsList, TabsTrigger } from '@/design-system'
+import { ArchiveDialog } from '@/features/archive/ArchiveDialog'
+import { can as hasPermission, useMe } from '@/features/auth/useMe'
 import { FieldDialog, NewTableDialog } from './FieldDialog'
 import { FieldsGrid } from './FieldsGrid'
-import { FeaturesPanel } from './FeaturesPanel'
 import { SchemaExportDialog } from './SchemaExportDialog'
 import { SchemaImportDialog } from './SchemaImportDialog'
 import { ScreensTab } from './ScreensTab'
@@ -14,8 +15,8 @@ import { useDraftTables } from './useDraftTables'
 import { useStages } from './useStages'
 
 
-/** Screen 2.4: pick a table from the header; its fields, screens and features sit below. */
-export type TablePart = 'fields' | 'screens' | 'features'
+/** Screen 2.4: pick a table from the header; its fields and screens sit below. */
+export type TablePart = 'fields' | 'screens'
 
 export function DataTab({
   selected,
@@ -37,6 +38,9 @@ export function DataTab({
   const [newTable, setNewTable] = useState(false)
   const [importing, setImporting] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [archiving, setArchiving] = useState(false)
+  const me = useMe()
+  const isAdmin = !!me.data && hasPermission(me.data.permissions, 'workspace.manage')
   const stages = useStages()
   if (tables.isLoading) return <LoadingState label="Loading tables" />
   if (tables.isError) return <ErrorState requestId={(tables.error as ApiError).requestId} onRetry={() => void tables.refetch()} />
@@ -58,7 +62,7 @@ export function DataTab({
             <Badge>{current.fields.length} fields</Badge>
             <div className="ml-auto flex flex-wrap items-center gap-3">
               <TabsList aria-label={`${current.label} parts`} className="gap-0.5 overflow-visible rounded-lg border border-line bg-soft p-0.5">
-                {(['fields', 'screens', 'features'] as const).map((v) => (
+                {(['fields', 'screens'] as const).map((v) => (
                   <TabsTrigger key={v} value={v} className="m-0 rounded-md border-0 px-3 py-1 capitalize text-body hover:bg-surface data-[state=active]:bg-surface data-[state=active]:shadow-sm">
                     {v}
                   </TabsTrigger>
@@ -70,7 +74,7 @@ export function DataTab({
                   <Plus className="size-4" aria-hidden /> Add field
                 </Button>
               )}
-              <TableActions canEdit={canEdit} onNew={() => setNewTable(true)} onImport={() => setImporting(true)} onExport={() => setExporting(true)} />
+              <TableActions canEdit={canEdit} onNew={() => setNewTable(true)} onImport={() => setImporting(true)} onExport={() => setExporting(true)} onArchive={isAdmin ? () => setArchiving(true) : undefined} />
             </div>
           </div>
           <TabsContent value="fields">
@@ -78,9 +82,6 @@ export function DataTab({
           </TabsContent>
           <TabsContent value="screens" className="p-3">
             <ScreensTab canEdit={canEdit} tableKey={current.key} />
-          </TabsContent>
-          <TabsContent value="features" className="p-3">
-            <FeaturesPanel key={`${current.key}-${current.version}-${JSON.stringify(current.features ?? null)}`} table={current as StudioTable} canEdit={canEdit} />
           </TabsContent>
           </Tabs>
         </Card>
@@ -94,6 +95,9 @@ export function DataTab({
           open
           onOpenChange={(o) => !o && setEditing(null)}
         />
+      )}
+      {archiving && current && (
+        <ArchiveDialog kind="table" itemKey={current.key} label={current.label} onClose={() => setArchiving(false)} onArchived={() => { setArchiving(false); const next = all.find((t) => t.key !== current.key); if (next) onSelect(next.key) }} />
       )}
       {newTable && <NewTableDialog open onOpenChange={setNewTable} onCreated={onSelect} />}
       {importing && <SchemaImportDialog open onOpenChange={setImporting} onCreated={onSelect} />}

@@ -181,7 +181,7 @@ function Configurator({ screen, table, canEdit }: { screen: DraftScreen; table: 
         )}
         {!listLike && <Checklist legend="Fields shown" options={fields} value={cfg.fields ?? []} onChange={(f) => set({ fields: f })} />}
         <Checklist legend="Actions" options={ACTIONS.map(([key, label]) => ({ key, label }))} value={cfg.actions ?? ['create']} onChange={(picked) => set({ actions: [...(cfg.actions ?? ['create']).filter((a) => a !== 'create'), ...picked] })} />
-        <p className="-mt-2 text-xs text-muted">Export and Import for this table are set in its Features tab.</p>
+        <p className="-mt-2 text-xs text-muted">Export and Import for this table are set in the Table-wide bar on the Fields tab.</p>
         <Field label="Empty-state text" hint="Shown when there is nothing to list yet">
           <Input value={cfg.empty_text ?? ''} maxLength={200} onChange={(e) => set({ empty_text: e.target.value })} disabled={!canEdit} />
         </Field>

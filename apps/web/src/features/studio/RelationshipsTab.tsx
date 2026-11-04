@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { ApiError } from '@/api/client'
 import { studio, type Link, type LinkIssue } from '@/api/endpoints'
+import { ArchiveDialog } from '@/features/archive/ArchiveDialog'
 import { Button, Dialog, DialogContent, Field, Input, Select, useToast } from '@/design-system'
 import { useDraftTables } from './useDraftTables'
 
@@ -161,11 +162,7 @@ export function EditLink({ link, onClose }: { link: Link; onClose: () => void })
     onSuccess: () => done(`Saved ${label}`),
     onError: (e) => setErrors(fieldErrors(e)),
   })
-  const remove = useMutation({
-    mutationFn: () => studio.removeRelationship(link.table, link.field),
-    onSuccess: () => done(`Removed ${link.label}`),
-    onError: (e) => toast({ title: 'Could not remove the link', description: (e as Error).message, tone: 'bad' }),
-  })
+  const [archiving, setArchiving] = useState(false)
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent
@@ -196,7 +193,7 @@ export function EditLink({ link, onClose }: { link: Link; onClose: () => void })
           {errors.hidden && <p role="alert" className="text-xs text-bad">{errors.hidden}</p>}
           <div className="flex flex-wrap justify-between gap-2">
             {!isPack ? (
-              <Button type="button" variant="secondary" onClick={() => remove.mutate()} disabled={remove.isPending}>Remove link</Button>
+              <Button type="button" variant="secondary" onClick={() => setArchiving(true)}>Archive link…</Button>
             ) : <span />}
             <div className="flex gap-2">
               <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
@@ -205,6 +202,9 @@ export function EditLink({ link, onClose }: { link: Link; onClose: () => void })
           </div>
         </form>
       </DialogContent>
+      {archiving && (
+        <ArchiveDialog kind="link" itemKey={link.field} table={link.table} label={link.label} tableLabel={link.table_label} onClose={() => setArchiving(false)} onArchived={() => { setArchiving(false); onClose() }} />
+      )}
     </Dialog>
   )
 }

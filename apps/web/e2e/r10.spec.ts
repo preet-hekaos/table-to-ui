@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
-import { expectReadable, putFeatures, run, signUpWithPack } from './helpers'
+import { expectReadable, featuresSaved, putFeatures, run, signUpWithPack } from './helpers'
 
 const token = (page: Page) => page.evaluate(() => sessionStorage.getItem('tableui.token'))
 
@@ -66,7 +66,7 @@ test('Chart: chosen in Studio, drawn above the table, changed on the screen, cli
   await signUpWithPack(page, `Chart Co ${run}`, `chart-${run}@chart.test`)
   await seed(page)
 
-  await test.step('The Features tab no longer has chart or default settings; they are on the table screen', async () => {
+  await test.step('The bar has no chart or default settings; they are on the table screen', async () => {
     await page.goto('/studio?tab=data&table=candidate&part=features')
     const panel = page.getByTestId('features-panel')
     await expect(panel.getByLabel('Show numbers as')).toHaveCount(0)
@@ -165,11 +165,9 @@ test('A refused save says so instead of doing nothing', async ({ page }) => {
   )
   await page.goto('/studio?tab=data&table=candidate&part=features')
   const panel = page.getByTestId('features-panel')
-  await panel.getByRole('switch', { name: 'Drag to reorder' }).uncheck()
-  await panel.getByRole('button', { name: 'Save features' }).click()
-  await expect(page.getByText('Could not save features').first()).toBeVisible()
-  await expect(page.getByText(/restart the API/).first()).toBeVisible()
-  await expect(panel.getByRole('button', { name: 'Save features' })).toBeEnabled()
+  await featuresSaved(page, () => panel.getByRole('switch', { name: /^Reorder rows/ }).click())
+  await expect(page.getByText('Could not save').first()).toBeVisible()
+  await expect(panel.getByRole('switch', { name: /^Reorder rows/ })).toBeChecked()
 })
 
 test('Chart: also on a master-detail screen, and the Features chart chips are never greyed out by an old setting', async ({ page }) => {

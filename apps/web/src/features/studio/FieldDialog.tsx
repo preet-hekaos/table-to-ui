@@ -4,7 +4,8 @@ import { useMemo, useState, type FormEvent } from 'react'
 import { ApiError } from '@/api/client'
 import { ai, studio } from '@/api/endpoints'
 import type { FieldDef, StudioTable } from '@/api/types'
-import { Button, Dialog, DialogContent, Field, Input, Select, useToast } from '@/design-system'
+import { ArchiveDialog } from '@/features/archive/ArchiveDialog'
+import { Button, Dialog, DialogContent, Field, SideContent, Input, Select, useToast } from '@/design-system'
 
 export { TYPE_LABELS } from './typeLabels'
 import { TYPE_LABELS } from './typeLabels'
@@ -77,11 +78,7 @@ export function FieldDialog({ table, tables, field, open, onOpenChange }: Props)
       if (!(e instanceof ApiError) || !e.errors.length) toast({ title: 'Could not save', description: (e as Error).message, tone: 'bad' })
     },
   })
-  const remove = useMutation({
-    mutationFn: () => studio.removeField(table.key, field!.key),
-    onSuccess: () => done(`Removed ${field!.label}`),
-    onError: (e) => toast({ title: 'Could not remove', description: (e as Error).message, tone: 'bad' }),
-  })
+  const [archiving, setArchiving] = useState(false)
   const submit = (e: FormEvent) => {
     e.preventDefault()
     setErrors({})
@@ -90,13 +87,29 @@ export function FieldDialog({ table, tables, field, open, onOpenChange }: Props)
   const textual = ['text', 'email', 'phone'].includes(type)
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
+      <SideContent
         title={isNew ? `Add a field to ${table.label}` : `Edit ${field.label}`}
         description={
           isNew ? 'New fields are searchable and can be used as filters. They stay in Draft until you publish.' : undefined
         }
+        footer={
+          <>
+            {!isNew && (
+              <Button type="button" variant="secondary" onClick={() => setArchiving(true)}>
+                Archive field…
+              </Button>
+            )}
+            <span className="flex-1" />
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" form="field-form" variant="primary" loading={save.isPending}>
+              {isNew ? 'Add field' : 'Save'}
+            </Button>
+          </>
+        }
       >
-        <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
+        <form id="field-form" onSubmit={submit} className="flex flex-col gap-4" noValidate>
           {!isNew && (
             <div className="-mt-1 flex">
               <Button type="button" size="sm" variant="secondary" className="text-violet-800" onClick={() => setExplaining(true)}>
@@ -184,21 +197,11 @@ export function FieldDialog({ table, tables, field, open, onOpenChange }: Props)
               </p>
             )}
           </div>
-          <div className="flex flex-wrap justify-end gap-2">
-            {!isNew && (
-              <Button type="button" variant="danger" className="mr-auto" onClick={() => remove.mutate()} loading={remove.isPending}>
-                Delete field
-              </Button>
-            )}
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" variant="primary" loading={save.isPending}>
-              {isNew ? 'Add field' : 'Save'}
-            </Button>
-          </div>
         </form>
-      </DialogContent>
+      </SideContent>
+      {archiving && field && (
+        <ArchiveDialog kind={field.type === 'reference' ? 'link' : 'field'} itemKey={field.key} table={table.key} label={field.label} tableLabel={table.label} onClose={() => setArchiving(false)} onArchived={() => { setArchiving(false); onOpenChange(false) }} />
+      )}
       {explaining && field && <ExplainPanel table={table} tables={tables} field={field} canEdit={false} onClose={() => setExplaining(false)} onEdit={() => undefined} />}
     </Dialog>
   )

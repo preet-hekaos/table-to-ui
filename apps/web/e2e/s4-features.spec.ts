@@ -20,10 +20,10 @@ test('S4.1 the Features cell: chips, +N, the dropdown with its eleven ticks, key
     await expect(cell(page, 'Full name')).toContainText('Shown')
   })
 
-  await test.step('The table-wide bar is above the grid with seven switches', async () => {
+  await test.step('The table-wide bar is above the grid with nine switches', async () => {
     const bar = page.getByRole('group', { name: 'Table-wide switches for Candidate' })
-    await expect(bar.getByRole('switch')).toHaveCount(7)
-    for (const n of ['Sorting', 'Filtering', 'Edit in the list', 'Group rows', 'Export data', 'Select rows', 'Numbers above the table'])
+    await expect(bar.getByRole('switch')).toHaveCount(9)
+    for (const n of ['Sorting', 'Filtering', 'Edit in the list', 'Group rows', 'Export data', 'Select rows', 'Summary'])
       await expect(bar.getByRole('switch', { name: new RegExp(`^${n}`) })).toBeChecked()
   })
 
@@ -61,7 +61,7 @@ test('S4.1 the Features cell: chips, +N, the dropdown with its eleven ticks, key
     await page.keyboard.press('Escape')
   })
 
-  await test.step('A table-wide switch greys the tick on every field and the same flag shows on the Features tab', async () => {
+  await test.step('A table-wide switch greys the tick on every field and it stays off in the bar', async () => {
     const bar = page.getByRole('group', { name: 'Table-wide switches for Candidate' })
     await bar.getByRole('switch', { name: /^Export data/ }).click()
     await cell(page, 'Email').click()
@@ -69,10 +69,7 @@ test('S4.1 the Features cell: chips, +N, the dropdown with its eleven ticks, key
     await expect(pop.getByRole('checkbox', { name: /^Exportable/ })).toBeDisabled()
     await expect(pop.getByText('Turn on Export data in the bar above first.')).toBeVisible()
     await page.keyboard.press('Escape')
-    await page.getByRole('tab', { name: 'Features' }).click()
     await expect(page.getByTestId('features-panel').getByRole('switch', { name: /Export data/ })).not.toBeChecked()
-    await expect(page.getByTestId('field-grid')).toHaveCount(0)
-    await page.getByRole('tab', { name: 'Fields' }).click()
     await bar.getByRole('switch', { name: /^Export data/ }).click()
     await expect(bar.getByRole('switch', { name: /^Export data/ })).toBeChecked()
     await page.screenshot({ path: `${SHOTS}/after-fields-tab.png`, fullPage: true })

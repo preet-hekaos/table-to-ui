@@ -67,10 +67,9 @@ test('Studio header: one toolbar, a section switcher, and the pipeline strip', a
     const rows = page.getByRole('table', { name: /fields/ }).locator('tbody tr')
     const h = (await rows.first().boundingBox())!.height
     expect(h, 'a compact field row').toBeLessThan(48)
-    await page.getByRole('tab', { name: 'Features' }).click()
+    await expect(page.getByRole('tab', { name: 'Features' })).toHaveCount(0)
     await expect(page.getByTestId('features-panel')).toBeVisible()
     await expectReadable(page, page.getByRole('tab', { name: 'Fields' }), ['rest', 'hover'])
-    await expectReadable(page, page.getByRole('tab', { name: 'Features' }), ['rest'])
     await expectReadable(page, switcher, ['rest', 'hover', 'focus'])
     await page.getByRole('tab', { name: 'Fields' }).click()
     await shot(page, 'r8-fields')

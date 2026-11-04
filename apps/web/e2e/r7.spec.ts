@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
-import { expectReadable, run, signUpWithPack } from './helpers'
+import { expectReadable, featuresSaved, run, signUpWithPack } from './helpers'
 
 const token = (page: Page) => page.evaluate(() => sessionStorage.getItem('tableui.token'))
 
@@ -32,10 +32,11 @@ test('Features: whole-table switches in the bar over the Fields grid and a Featu
   await page.goto('/studio?tab=data&table=candidate&part=features')
   const panel = page.getByTestId('features-panel')
 
-  await test.step('The Features tab keeps the table-wide section; the per-field grid is gone', async () => {
-    await expect(panel.getByRole('heading', { name: 'For the whole table' })).toBeVisible()
-    await expect(panel.getByRole('heading', { name: 'Field options' })).toHaveCount(0)
-    await expect(panel.getByText('No unsaved changes')).toBeVisible()
+  await test.step('The Table-wide bar holds every switch; there is no Features tab and no Save bar', async () => {
+    await expect(page.getByRole('tab', { name: 'Features' })).toHaveCount(0)
+    await expect(panel.getByRole('switch')).toHaveCount(9)
+    await expect(page.getByRole('button', { name: 'Apply to all tables' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Save features' })).toHaveCount(0)
     await shot(page, 'r7-features-on')
   })
 
@@ -73,39 +74,37 @@ test('Features: whole-table switches in the bar over the Fields grid and a Featu
   })
 })
 
-test('The unsaved-changes count is honest: turning something off and on again is no change', async ({ page }) => {
+test('Every change in the bar saves at once, and flipping something off and on again leaves it as it was', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await signUpWithPack(page, `Count Co ${run}`, `count-${run}@count.test`)
-  await page.goto('/studio?tab=data&table=candidate&part=features')
+  await page.goto('/studio?tab=data&table=candidate')
   const panel = page.getByTestId('features-panel')
-  const clean = panel.getByText('No unsaved changes')
-  await expect(clean).toBeVisible()
+  const read = () => page.evaluate(async () => {
+    const r = await fetch('/v1/studio/tables', { headers: { Authorization: `Bearer ${sessionStorage.getItem('tableui.token')}` } })
+    const t = ((await r.json()) as { key: string; features?: Record<string, unknown> | null }[]).find((x) => x.key === 'candidate')
+    return JSON.stringify(t?.features ?? null)
+  })
+  // A first save writes the whole set once, so what is compared below is always a saved copy.
+  const sorting = panel.getByRole('switch', { name: /^Sorting/ })
+  await featuresSaved(page, () => sorting.click())
+  await featuresSaved(page, () => sorting.click())
+  const start = await read()
 
-  const flips: [string, () => ReturnType<typeof panel.getByRole>, string, string?][] = [
-    ['a switch', () => panel.getByRole('switch', { name: 'Select rows and act on many' }), 'Select rows'],
-    ['a bulk action chip', () => page.getByRole('checkbox', { name: 'Delete (with Undo)' }), 'Bulk action', 'Bulk action options'],
-    ['an export format chip', () => page.getByRole('checkbox', { name: 'CSV' }), 'Format', 'Export options'],
+  const flips: [string, () => ReturnType<typeof panel.getByRole>, string?][] = [
+    ['a switch', () => panel.getByRole('switch', { name: /^Select rows/ })],
+    ['a bulk action chip', () => page.getByRole('checkbox', { name: 'Delete (with Undo)' }), 'Bulk action options'],
+    ['an export format chip', () => page.getByRole('checkbox', { name: 'CSV' }), 'Export options'],
   ]
-  for (const [what, el, , opener] of flips) {
-    await test.step(`Flipping ${what} counts as one change, and flipping it back as none`, async () => {
+  for (const [what, el, opener] of flips) {
+    await test.step(`Flipping ${what} saves, and flipping it back restores it`, async () => {
       const open = async () => { if (opener) await page.getByRole('button', { name: opener }).click() }
       const close = async () => { if (opener) await page.keyboard.press('Escape') }
       await open()
-      await el().click()
+      await featuresSaved(page, () => el().click())
+      await expect.poll(read, what).not.toBe(start)
+      await featuresSaved(page, () => el().click())
       await close()
-      await expect(panel.getByText('1 unsaved change', { exact: true }), what).toBeVisible()
-      await open()
-      await el().click()
-      await close()
-      await expect(clean, `${what} back`).toBeVisible()
+      await expect.poll(read, `${what} back`).toBe(start)
     })
   }
-
-  await test.step('Saving brings the count back to none', async () => {
-    await panel.getByRole('switch', { name: 'Select rows and act on many' }).click()
-    await panel.getByRole('button', { name: 'Save features' }).click()
-    await expect(page.getByText('Saved features for Candidate').first()).toBeVisible()
-    await expect(clean).toBeVisible()
-    await expect(panel.getByRole('button', { name: 'Save features' })).toBeDisabled()
-  })
 })

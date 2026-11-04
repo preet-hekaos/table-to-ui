@@ -682,6 +682,130 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Items */
+        get: operations["items_v1_archive_get"];
+        put?: never;
+        /** Add */
+        post: operations["add_v1_archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/archive/count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Count */
+        get: operations["count_v1_archive_count_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/archive/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Delete Forever */
+        post: operations["delete_forever_v1_archive_delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/archive/impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Impact
+         * @description What archiving would stop, so the confirm window can say it before anyone clicks.
+         */
+        get: operations["impact_v1_archive_impact_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/archive/records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Records */
+        post: operations["add_records_v1_archive_records_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/archive/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore */
+        post: operations["restore_v1_archive_restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/archive/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Settings */
+        get: operations["get_settings_v1_archive_settings_get"];
+        /** Put Settings */
+        put: operations["put_settings_v1_archive_settings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/auth/mfa/confirm": {
         parameters: {
             query?: never;
@@ -3102,6 +3226,18 @@ export interface components {
             /** Password */
             password: string;
         };
+        /** AddBody */
+        AddBody: {
+            /** Key */
+            key: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "table" | "field" | "link" | "measure" | "automation";
+            /** Table */
+            table?: string | null;
+        };
         /** ApplyBody */
         ApplyBody: {
             /** Steps */
@@ -3158,7 +3294,7 @@ export interface components {
             field?: string | null;
             /** Ids */
             ids?: string[] | null;
-            matching?: components["schemas"]["Matching"] | null;
+            matching?: components["schemas"]["tableui__commands__api__router__Matching"] | null;
             undo?: components["schemas"]["Undo"] | null;
             /** Value */
             value?: unknown;
@@ -3303,6 +3439,11 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /** IdsBody */
+        IdsBody: {
+            /** Ids */
+            ids: string[];
+        };
         /** InvitationState */
         InvitationState: {
             /** Email */
@@ -3326,53 +3467,6 @@ export interface components {
             /** Mapping */
             mapping: {
                 [key: string]: string | null;
-            };
-        };
-        /**
-         * Matching
-         * @description Every record that matches the list's current search, instead of a hand-picked set.
-         */
-        Matching: {
-            /**
-             * Anyof
-             * @default {}
-             */
-            anyof: {
-                [key: string]: string;
-            };
-            /**
-             * Contains
-             * @default {}
-             */
-            contains: {
-                [key: string]: string;
-            };
-            /** Expected Count */
-            expected_count: number;
-            /**
-             * Filters
-             * @default {}
-             */
-            filters: {
-                [key: string]: string;
-            };
-            /**
-             * Has
-             * @default {}
-             */
-            has: {
-                [key: string]: string;
-            };
-            /** Owner */
-            owner?: string | null;
-            /** Q */
-            q?: string | null;
-            /**
-             * Ranges
-             * @default {}
-             */
-            ranges: {
-                [key: string]: string;
             };
         };
         /** MeResponse */
@@ -3555,6 +3649,14 @@ export interface components {
             /** Ids */
             ids?: string[] | null;
         };
+        /** RecordsBody */
+        RecordsBody: {
+            /** Ids */
+            ids?: string[] | null;
+            matching?: components["schemas"]["tableui__archive__api__router__Matching"] | null;
+            /** Table */
+            table: string;
+        };
         /** ReleaseOut */
         ReleaseOut: {
             /** Release Id */
@@ -3638,6 +3740,24 @@ export interface components {
             screen?: string | null;
             /** Table */
             table: string;
+        };
+        /** SettingBody */
+        SettingBody: {
+            /** Auto Delete */
+            auto_delete?: boolean | null;
+            /**
+             * Confirm
+             * @default false
+             */
+            confirm: boolean;
+            /** Days */
+            days?: number | null;
+            /** Per Kind */
+            per_kind?: {
+                [key: string]: number;
+            } | null;
+            /** Warn Days */
+            warn_days?: number | null;
         };
         /** SettingsBody */
         SettingsBody: {
@@ -3774,6 +3894,100 @@ export interface components {
              * @default
              */
             reason: string;
+        };
+        /** Matching */
+        tableui__archive__api__router__Matching: {
+            /**
+             * Anyof
+             * @default {}
+             */
+            anyof: {
+                [key: string]: string;
+            };
+            /**
+             * Contains
+             * @default {}
+             */
+            contains: {
+                [key: string]: string;
+            };
+            /** Expected Count */
+            expected_count: number;
+            /**
+             * Filters
+             * @default {}
+             */
+            filters: {
+                [key: string]: string;
+            };
+            /**
+             * Has
+             * @default {}
+             */
+            has: {
+                [key: string]: string;
+            };
+            /** Owner */
+            owner?: string | null;
+            /**
+             * Q
+             * @default
+             */
+            q: string;
+            /**
+             * Ranges
+             * @default {}
+             */
+            ranges: {
+                [key: string]: string;
+            };
+        };
+        /**
+         * Matching
+         * @description Every record that matches the list's current search, instead of a hand-picked set.
+         */
+        tableui__commands__api__router__Matching: {
+            /**
+             * Anyof
+             * @default {}
+             */
+            anyof: {
+                [key: string]: string;
+            };
+            /**
+             * Contains
+             * @default {}
+             */
+            contains: {
+                [key: string]: string;
+            };
+            /** Expected Count */
+            expected_count: number;
+            /**
+             * Filters
+             * @default {}
+             */
+            filters: {
+                [key: string]: string;
+            };
+            /**
+             * Has
+             * @default {}
+             */
+            has: {
+                [key: string]: string;
+            };
+            /** Owner */
+            owner?: string | null;
+            /** Q */
+            q?: string | null;
+            /**
+             * Ranges
+             * @default {}
+             */
+            ranges: {
+                [key: string]: string;
+            };
         };
         /** ExportBody */
         tableui__ops__api__router__ExportBody: {
@@ -5097,6 +5311,282 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReleaseOut"];
+                };
+            };
+        };
+    };
+    items_v1_archive_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    add_v1_archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    count_v1_archive_count_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: number;
+                    };
+                };
+            };
+        };
+    };
+    delete_forever_v1_archive_delete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IdsBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    impact_v1_archive_impact_get: {
+        parameters: {
+            query: {
+                kind: string;
+                key: string;
+                table?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_records_v1_archive_records_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordsBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restore_v1_archive_restore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IdsBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_settings_v1_archive_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    put_settings_v1_archive_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SettingBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

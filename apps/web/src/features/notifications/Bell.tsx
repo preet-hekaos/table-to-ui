@@ -3,7 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { Bell } from 'lucide-react'
 import { useState } from 'react'
 import { notifications } from '@/api/endpoints'
-import { Button, Dialog, DialogContent, EmptyState, LoadingState, Select, useToast } from '@/design-system'
+import { Button, Dialog, SideContent, EmptyState, LoadingState, Select, useToast } from '@/design-system'
 
 const CHANNELS: [string, string][] = [
   ['in_app', 'In the app'],
@@ -49,7 +49,7 @@ export function NotificationBell() {
         )}
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent title={view === 'list' ? 'Notifications' : 'Notification settings'} description={view === 'list' ? 'What happened while you were away.' : 'Choose how you hear about each kind of update.'}>
+        <SideContent title={view === 'list' ? 'Notifications' : 'Notification settings'} description={view === 'list' ? 'What happened while you were away.' : 'Choose how you hear about each kind of update.'}>
           {view === 'settings' ? (
             <Settings onBack={() => setView('list')} />
           ) : (
@@ -103,7 +103,7 @@ export function NotificationBell() {
               )}
             </div>
           )}
-        </DialogContent>
+        </SideContent>
       </Dialog>
     </>
   )

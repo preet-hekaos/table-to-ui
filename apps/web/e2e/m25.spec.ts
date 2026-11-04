@@ -2,6 +2,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { run, signUpWithPack } from './helpers'
+import { confirmArchive } from './archive-helper'
 
 const shot = async (page: Page, name: string) => {
   if (process.env.SCREENSHOTS) await page.screenshot({ path: `../../docs/screens/m2-5/${name}.png`, fullPage: true })
@@ -81,7 +82,7 @@ test('M2.5 demo: relationship builder', async ({ page }) => {
     await page.getByRole('button', { name: 'Save', exact: true }).click()
     await expect(page.getByTestId('link-candidate.favourite_tag')).toContainText('Main tag')
     await page.getByRole('button', { name: 'Edit link Candidate on Submission' }).click()
-    await expect(page.getByRole('button', { name: 'Remove link' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /^Archive link/ })).toHaveCount(0)
     await page.getByRole('button', { name: 'Cancel' }).click()
   })
 
@@ -120,7 +121,7 @@ test('M2.5 demo: relationship builder', async ({ page }) => {
     await page.getByRole('button', { name: 'Cancel' }).click()
   })
 
-  await test.step('7. After publish, a used link cannot be removed and the parent page lists it', async () => {
+  await test.step('7. After publish, a used link can be archived (values kept) and the parent page lists it', async () => {
     const rel = await api<any>(page, 'POST', '/v1/apps/current/releases')
     await api(page, 'POST', `/v1/apps/current/releases/${rel.version}/promote`)
     const tag = await api<any>(page, 'POST', '/v1/records/tag', { data: { name: 'Hot' } })
@@ -134,8 +135,8 @@ test('M2.5 demo: relationship builder', async ({ page }) => {
     await openLinks(page)
     await expect(page.getByTestId('link-candidate.favourite_tag')).toContainText('1 record uses it')
     await page.getByRole('button', { name: 'Edit link Main tag on Candidate' }).click()
-    await page.getByRole('button', { name: 'Remove link' }).click()
-    await expect(page.getByText('Could not remove the link', { exact: true })).toBeVisible()
+    await confirmArchive(page, /^Archive link/, 'link')
+    await expect(page.getByText(/archived/i).first()).toBeVisible()
   })
 
   await test.step('7b. Link health explains risky links in plain words and refuses a required loop', async () => {

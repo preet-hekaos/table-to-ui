@@ -26,6 +26,7 @@ import {
 } from "@/design-system";
 import { can, useMe } from "@/features/auth/useMe";
 import { AiSettings } from "./AiSettings";
+import { ArchivePage } from "@/features/archive/ArchivePage";
 import { useFileUrl } from "@/features/workspace/useBrand";
 
 const errMsg = (e: unknown) =>
@@ -576,7 +577,7 @@ export function Settings({ tab = "people" }: { tab?: string }) {
       <h1 className="text-xl font-bold text-ink">Settings</h1>
       <Tabs defaultValue={tab}>
         <TabsList aria-label="Settings sections">
-          {["people", "teams", "roles", "branding", "regional", "ai"].map(
+          {["people", "teams", "roles", "branding", "regional", "ai", "archive"].map(
             (t) => (
               <TabsTrigger key={t} value={t}>
                 {t === "ai" ? "AI" : t[0]!.toUpperCase() + t.slice(1)}
@@ -601,6 +602,9 @@ export function Settings({ tab = "people" }: { tab?: string }) {
         </TabsContent>
         <TabsContent value="ai" className="pt-4">
           <AiSettings />
+        </TabsContent>
+        <TabsContent value="archive" className="pt-4">
+          <ArchivePage />
         </TabsContent>
       </Tabs>
     </div>
