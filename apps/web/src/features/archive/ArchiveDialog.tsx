@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { archive, type ArchiveKind } from '@/api/endpoints'
 import { Button, Dialog, Input, useToast } from '@/design-system'
 
-const KIND_WORD: Record<ArchiveKind, string> = { field: 'field', link: 'link', measure: 'measure', automation: 'automation', record: 'record' }
+const KIND_WORD: Record<ArchiveKind, string> = { table: 'table', field: 'field', link: 'link', measure: 'measure', automation: 'automation', record: 'record' }
 
 export const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
 
@@ -85,7 +85,7 @@ export function ArchiveDialog({
                 <ul className="mb-4 list-disc space-y-1 pl-5 text-sm text-body">
                   <li>Hide it from every form, list, filter, chart and export.</li>
                   {info.effects.map((e) => <li key={e}>{e}</li>)}
-                  {info.kept > 0 && <li>Keep its <b>{info.kept}</b> saved {info.kept === 1 ? 'value' : 'values'}, so a restore brings {info.kept === 1 ? 'it' : 'them'} back.</li>}
+                  {info.kept > 0 && <li>Keep its <b>{info.kept}</b> saved {kind === 'table' ? (info.kept === 1 ? 'record' : 'records') : info.kept === 1 ? 'value' : 'values'}, so a restore brings {info.kept === 1 ? 'it' : 'them'} back.</li>}
                   <li>{info.days ? <>Delete it for good after <b>{info.days} days</b>, unless you restore it first.</> : <>Keep it until you delete it yourself.</>}</li>
                 </ul>
                 {blocked && (

@@ -3,6 +3,8 @@ import { useState } from 'react'
 import type { ApiError } from '@/api/client'
 import type { FieldDef, StudioTable } from '@/api/types'
 import { Badge, Button, Card, ErrorState, LoadingState, StageBadge, Tabs, TabsContent, TabsList, TabsTrigger } from '@/design-system'
+import { ArchiveDialog } from '@/features/archive/ArchiveDialog'
+import { can as hasPermission, useMe } from '@/features/auth/useMe'
 import { FieldDialog, NewTableDialog } from './FieldDialog'
 import { FieldsGrid } from './FieldsGrid'
 import { SchemaExportDialog } from './SchemaExportDialog'
@@ -36,6 +38,9 @@ export function DataTab({
   const [newTable, setNewTable] = useState(false)
   const [importing, setImporting] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [archiving, setArchiving] = useState(false)
+  const me = useMe()
+  const isAdmin = !!me.data && hasPermission(me.data.permissions, 'workspace.manage')
   const stages = useStages()
   if (tables.isLoading) return <LoadingState label="Loading tables" />
   if (tables.isError) return <ErrorState requestId={(tables.error as ApiError).requestId} onRetry={() => void tables.refetch()} />
@@ -69,7 +74,7 @@ export function DataTab({
                   <Plus className="size-4" aria-hidden /> Add field
                 </Button>
               )}
-              <TableActions canEdit={canEdit} onNew={() => setNewTable(true)} onImport={() => setImporting(true)} onExport={() => setExporting(true)} />
+              <TableActions canEdit={canEdit} onNew={() => setNewTable(true)} onImport={() => setImporting(true)} onExport={() => setExporting(true)} onArchive={isAdmin ? () => setArchiving(true) : undefined} />
             </div>
           </div>
           <TabsContent value="fields">
@@ -90,6 +95,9 @@ export function DataTab({
           open
           onOpenChange={(o) => !o && setEditing(null)}
         />
+      )}
+      {archiving && current && (
+        <ArchiveDialog kind="table" itemKey={current.key} label={current.label} onClose={() => setArchiving(false)} onArchived={() => { setArchiving(false); const next = all.find((t) => t.key !== current.key); if (next) onSelect(next.key) }} />
       )}
       {newTable && <NewTableDialog open onOpenChange={setNewTable} onCreated={onSelect} />}
       {importing && <SchemaImportDialog open onOpenChange={setImporting} onCreated={onSelect} />}

@@ -3234,7 +3234,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "field" | "link" | "measure" | "automation";
+            kind: "table" | "field" | "link" | "measure" | "automation";
             /** Table */
             table?: string | null;
         };

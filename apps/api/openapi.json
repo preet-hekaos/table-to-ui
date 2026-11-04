@@ -27,6 +27,7 @@
           },
           "kind": {
             "enum": [
+              "table",
               "field",
               "link",
               "measure",

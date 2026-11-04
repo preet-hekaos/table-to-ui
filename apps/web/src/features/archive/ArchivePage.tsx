@@ -9,17 +9,18 @@ import { fmtDate } from './ArchiveDialog'
 
 const KINDS: { key: ArchiveKind | 'all'; label: string }[] = [
   { key: 'all', label: 'All' },
+  { key: 'table', label: 'Tables' },
   { key: 'field', label: 'Fields' },
   { key: 'link', label: 'Links' },
   { key: 'measure', label: 'Measures' },
   { key: 'automation', label: 'Automations' },
   { key: 'record', label: 'Records' },
 ]
-const KIND_NAME: Record<ArchiveKind, string> = { field: 'Field', link: 'Link', measure: 'Measure', automation: 'Automation', record: 'Record' }
+const KIND_NAME: Record<ArchiveKind, string> = { table: 'Table', field: 'Field', link: 'Link', measure: 'Measure', automation: 'Automation', record: 'Record' }
 const DAYS = [7, 14, 30, 60, 90, 180, 365]
 
 const left = (i: ArchiveItem) =>
-  i.delete_after === null ? 'Kept until you delete it' : i.days_left === 0 ? 'today' : `in ${i.days_left} ${i.days_left === 1 ? 'day' : 'days'} · ${fmtDate(i.delete_after)}`
+  i.needs_publish ? 'Publish first, then it can be deleted' : i.delete_after === null ? 'Kept until you delete it' : i.days_left === 0 ? 'today' : `in ${i.days_left} ${i.days_left === 1 ? 'day' : 'days'} · ${fmtDate(i.delete_after)}`
 
 /** Settings › Archive: everything an admin took out, with Restore, Delete forever and the auto-delete clock. */
 export function ArchivePage() {
@@ -160,6 +161,7 @@ function DeleteForever({ items, onClose, onDone }: { items: ArchiveItem[]; onClo
 }
 
 const KIND_ROWS: { key: ArchiveKind; label: string }[] = [
+  { key: 'table', label: 'Tables' },
   { key: 'field', label: 'Fields' },
   { key: 'link', label: 'Links' },
   { key: 'measure', label: 'Measures' },

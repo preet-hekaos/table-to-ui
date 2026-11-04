@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta
 from typing import Any
 
-KINDS = ("field", "link", "measure", "automation", "record")
+KINDS = ("table", "field", "link", "measure", "automation", "record")
 DAY_CHOICES = (7, 14, 30, 60, 90, 180, 365)
 DEFAULT = {"auto_delete": True, "days": 30, "per_kind": {}, "warn_days": 3}
 

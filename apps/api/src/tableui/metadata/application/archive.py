@@ -17,7 +17,7 @@ from tableui.metadata.application.releases import environment_manifest
 from tableui.metadata.domain.models import TableDef
 from tableui.platform.errors import NotFound
 
-KINDS = ("field", "link", "measure", "automation")
+KINDS = ("table", "field", "link", "measure", "automation")
 
 
 async def _table(s: AsyncSession, table_key: str) -> tuple[TableDef, dict[str, Any], str]:
@@ -27,11 +27,106 @@ async def _table(s: AsyncSession, table_key: str) -> tuple[TableDef, dict[str, A
     return TableDef.model_validate(found[0]), found[0], found[1]
 
 
+async def _table_parts(s: AsyncSession, table_key: str) -> dict[str, Any]:
+    """Everything that belongs to a table (its screens, menu entries, rules, measures, automations) and what blocks leaving."""
+    found = await studio._draft(s, "table", table_key)
+    if found is None:
+        raise NotFound(f"There is no table '{table_key}'.")
+    own: list[dict[str, Any]] = []
+    blockers: list[str] = []
+    screens: set[str] = set()
+    rows = (
+        await s.execute(text("SELECT kind, key, definition, source FROM metadata_object"))
+    ).all()
+    for r in rows:
+        d = r.definition
+        if r.kind == "screen" and d.get("table") == table_key:
+            screens.add(r.key)
+            own.append({"kind": "screen", "key": r.key, "definition": d, "source": r.source})
+        elif r.kind in ("rule", "measure") and d.get("table") == table_key:
+            own.append({"kind": r.kind, "key": r.key, "definition": d, "source": r.source})
+        elif r.kind == "automation":
+            if (d.get("trigger") or {}).get("table") == table_key:
+                own.append(
+                    {"kind": "automation", "key": r.key, "definition": d, "source": r.source}
+                )
+            elif any(a.get("table") == table_key for a in d.get("actions", []) or []):
+                blockers.append(
+                    f"The automation “{d.get('label') or r.key}” creates records in it."
+                )
+        elif r.kind == "table" and r.key != table_key:
+            label = d.get("label") or r.key
+            for f in d.get("fields", []):
+                if f.get("ref_table") == table_key:
+                    blockers.append(
+                        f"The table “{label}” has the link “{f.get('label') or f.get('key')}” to it."
+                    )
+            for group in ("counts", "search_includes"):
+                if any(x.get("table") == table_key for x in d.get(group, []) or []):
+                    blockers.append(f"The table “{label}” shows its records in a list or search.")
+    for r in rows:
+        if r.kind == "nav" and (r.definition.get("screen") in screens):
+            own.append(
+                {"kind": "nav", "key": r.key, "definition": r.definition, "source": r.source}
+            )
+    return {"table": found, "own": own, "blockers": blockers}
+
+
+async def in_live(control: AsyncSession, tenant_id: uuid.UUID, table_key: str) -> bool:
+    live = await environment_manifest(control, tenant_id, "live")
+    return live is not None and table_key in (live[1].get("tables") or {})
+
+
+async def drop_table_data(s: AsyncSession, *, tenant_id: uuid.UUID, table_key: str) -> bool:
+    """Delete for good: the records table goes, unless Live still uses it (then nothing happens and False comes back)."""
+    schema = await studio._enter_tenant(s, tenant_id)
+    if await in_live(s, tenant_id, table_key):
+        return False
+    await s.execute(text(f'DROP TABLE IF EXISTS "{schema}"."{table_key}"'))  # noqa: S608 - identifiers are validated metadata keys
+    return True
+
+
 async def impact(
     s: AsyncSession, *, tenant_id: uuid.UUID, kind: str, table_key: str | None, key: str
 ) -> dict[str, Any]:
     """What archiving would stop, in plain words. ``blockers`` must be cleared first; ``effects`` happen on their own."""
     schema = await studio._enter_tenant(s, tenant_id)
+    if kind == "table":
+        parts = await _table_parts(s, key)
+        definition, source = parts["table"]
+        t_blockers = list(parts["blockers"])
+        if source == "pack":
+            t_blockers.insert(0, "It comes with the pack. Hide its screens instead.")
+        names = {
+            "screen": "screen",
+            "rule": "rule",
+            "measure": "measure",
+            "automation": "automation",
+        }
+        t_effects = [
+            f"The {names[o['kind']]} “{o['definition'].get('label') or o['definition'].get('title') or o['key']}” goes with it."
+            for o in parts["own"]
+            if o["kind"] in names
+        ]
+        exists = (
+            await s.execute(text("SELECT to_regclass(:n)"), {"n": f'"{schema}"."{key}"'})
+        ).scalar_one()
+        filled = 0
+        if exists is not None:
+            sql = f'SELECT count(*) FROM "{schema}"."{key}"'  # noqa: S608 - identifiers are validated metadata keys
+            filled = int((await s.execute(text(sql))).scalar_one())
+        if await in_live(s, tenant_id, key):
+            t_effects.append(
+                "It is in your live app until you publish, so its data stays safe until then."
+            )
+        return {
+            "label": definition.get("label") or key,
+            "where": None,
+            "blockers": t_blockers,
+            "effects": t_effects,
+            "kept": filled,
+            "kept_word": "records",
+        }
     if kind in ("field", "link"):
         assert table_key
         table, _, _ = await _table(s, table_key)
@@ -121,6 +216,23 @@ async def take_out(
     info = await impact(s, tenant_id=tenant_id, kind=kind, table_key=table_key, key=key)
     if info["blockers"]:
         raise studio._bad("key", info["blockers"][0], "in_use")
+    if kind == "table":
+        parts = await _table_parts(s, key)
+        definition, source = parts["table"]
+        for o in parts["own"]:
+            await s.execute(
+                text("DELETE FROM metadata_object WHERE kind = :k AND key = :key"),
+                {"k": o["kind"], "key": o["key"]},
+            )
+        await s.execute(
+            text("DELETE FROM metadata_object WHERE kind = 'table' AND key = :key"), {"key": key}
+        )
+        await studio._audit(s, tenant_id, user_id, "metadata.table.archive", key, {}, request_id)
+        return {
+            "label": definition.get("label") or key,
+            "detail": f"Table · {len(parts['own'])} things go with it",
+            "payload": {"definition": definition, "source": source, "own": parts["own"]},
+        }
     if kind in ("field", "link"):
         assert table_key
         table, _, _ = await _table(s, table_key)
@@ -169,6 +281,19 @@ async def put_back(
     request_id: str | None,
 ) -> None:
     await studio._enter_tenant(s, tenant_id)
+    if kind == "table":
+        if await studio._draft(s, "table", key) is not None:
+            raise studio._bad("key", f"There is already a table called '{key}'.", "duplicate")
+        await studio._put(
+            s, tenant_id, "table", key, payload["definition"], payload.get("source", "agency")
+        )
+        for o in payload.get("own", []):
+            if await studio._draft(s, o["kind"], o["key"]) is None:
+                await studio._put(
+                    s, tenant_id, o["kind"], o["key"], o["definition"], o.get("source", "agency")
+                )
+        await studio._audit(s, tenant_id, user_id, "metadata.table.restore", key, {}, request_id)
+        return
     if kind in ("field", "link"):
         assert table_key
         found = await studio._draft(s, "table", table_key)

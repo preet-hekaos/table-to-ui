@@ -197,3 +197,75 @@ async def test_only_admins_see_or_use_the_archive(
     assert (
         await client.put("/v1/archive/settings", headers=mate.h(), json={"days": 7})
     ).status_code == 403
+
+
+async def test_archive_a_table_with_its_screens_and_bring_it_back(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    r = await client.post(
+        "/v1/studio/tables",
+        headers=a.h(),
+        json={"label": "Referral partner", "plural_label": "Referral partners"},
+    )
+    assert r.status_code == 201, r.text
+    key = r.json()["key"]
+    imp = (
+        await client.get("/v1/archive/impact", headers=a.h(), params={"kind": "table", "key": key})
+    ).json()
+    assert imp["blockers"] == [] and any("screen" in e for e in imp["effects"])
+    pack = await client.post(
+        "/v1/archive", headers=a.h(), json={"kind": "table", "key": "candidate"}
+    )
+    assert pack.status_code == 422 and "pack" in pack.text
+    r = await client.post("/v1/archive", headers=a.h(), json={"kind": "table", "key": key})
+    assert r.status_code == 201, r.text
+    item = r.json()
+    tables = (await client.get("/v1/studio/tables", headers=a.h())).json()
+    assert key not in {t["key"] for t in tables}
+    listing = (await client.get("/v1/archive", headers=a.h())).json()["items"]
+    assert listing[0]["kind"] == "table" and listing[0]["needs_publish"] is False
+    r = await client.post("/v1/archive/restore", headers=a.h(), json={"ids": [item["id"]]})
+    assert r.json()["failed"] == [], r.text
+    tables = (await client.get("/v1/studio/tables", headers=a.h())).json()
+    assert key in {t["key"] for t in tables}
+
+
+async def test_a_table_that_is_live_is_deleted_only_after_a_publish_takes_it_out(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    r = await client.post(
+        "/v1/studio/tables", headers=a.h(), json={"label": "Vendor", "plural_label": "Vendors"}
+    )
+    key = r.json()["key"]
+    await a.publish_live()
+    item = (
+        await client.post("/v1/archive", headers=a.h(), json={"kind": "table", "key": key})
+    ).json()
+    listing = (await client.get("/v1/archive", headers=a.h())).json()["items"]
+    assert listing[0]["needs_publish"] is True
+    r = await client.post("/v1/archive/delete", headers=a.h(), json={"ids": [item["id"]]})
+    assert r.status_code == 422 and "Publish" in r.text
+    await a.publish_live()
+    r = await client.post("/v1/archive/delete", headers=a.h(), json={"ids": [item["id"]]})
+    assert r.status_code == 200 and r.json() == {"deleted": 1}
+
+
+async def test_a_table_other_tables_link_to_cannot_be_archived_yet(
+    client: httpx.AsyncClient, agency: Agency
+) -> None:
+    a = agency
+    r = await client.post(
+        "/v1/studio/tables", headers=a.h(), json={"label": "Branch", "plural_label": "Branches"}
+    )
+    key = r.json()["key"]
+    link = await client.post(
+        "/v1/studio/relationships", headers=a.h(),
+        json={"table": "candidate", "to": key, "label": "Branch"},
+    )  # fmt: skip
+    assert link.status_code == 201, link.text
+    imp = (
+        await client.get("/v1/archive/impact", headers=a.h(), params={"kind": "table", "key": key})
+    ).json()
+    assert imp["blockers"] and "link" in imp["blockers"][0]

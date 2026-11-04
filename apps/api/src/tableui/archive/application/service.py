@@ -19,7 +19,7 @@ from tableui.platform.db import Database
 from tableui.platform.errors import NotFound, ValidationFailed
 from tableui.platform.ids import new_id
 
-METADATA_KINDS = ("field", "link", "measure", "automation")
+METADATA_KINDS = ("table", "field", "link", "measure", "automation")
 
 
 def _bad(field: str, message: str, code: str = "invalid") -> ValidationFailed:
@@ -163,7 +163,15 @@ async def list_items(db: Database, tenant_id: uuid.UUID) -> dict[str, Any]:
             )
         ).all()
         setting = await get_setting(s, tenant_id)
-    return {"items": [_shape(r, now) for r in rows], "setting": setting}
+        live = {
+            r.item_key
+            for r in rows
+            if r.kind == "table" and await archive_steps.in_live(s, tenant_id, r.item_key)
+        }
+    shaped = [_shape(r, now) for r in rows]
+    for it in shaped:
+        it["needs_publish"] = it["kind"] == "table" and it["key"] in live
+    return {"items": shaped, "setting": setting}
 
 
 async def count_items(db: Database, tenant_id: uuid.UUID) -> int:
@@ -354,6 +362,17 @@ async def _purge_rows(
 ) -> int:
     n = 0
     for r in rows:
+        dropped = r.kind != "table" or await archive_steps.drop_table_data(
+            s, tenant_id=tenant_id, table_key=r.item_key
+        )
+        if not dropped:
+            if why == "by an admin":
+                raise _bad(
+                    "ids",
+                    f"“{r.label}” is still in your live app. Publish the change first, then delete it.",
+                    "in_live",
+                )
+            continue  # the clock waits until a publish takes it out of Live
         if r.kind in ("field", "link") and r.table_key:
             with contextlib.suppress(
                 Exception

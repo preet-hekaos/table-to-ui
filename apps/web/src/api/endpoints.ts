@@ -721,7 +721,7 @@ export interface TypePresets {
   compatible: Record<string, string[]>
 }
 
-export type ArchiveKind = 'field' | 'link' | 'measure' | 'automation' | 'record'
+export type ArchiveKind = 'table' | 'field' | 'link' | 'measure' | 'automation' | 'record'
 export interface ArchiveItem {
   id: string
   kind: ArchiveKind
@@ -733,6 +733,7 @@ export interface ArchiveItem {
   archived_by: string | null
   delete_after: string | null
   days_left: number | null
+  needs_publish?: boolean
 }
 export interface ArchiveSetting { auto_delete: boolean; days: number; per_kind: Record<string, number>; warn_days: number }
 export interface ArchiveImpact { label: string; where: string | null; blockers: string[]; effects: string[]; kept: number; days: number | null; delete_on: string | null }

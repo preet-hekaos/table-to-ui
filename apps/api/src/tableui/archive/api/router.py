@@ -20,7 +20,7 @@ MAX = 10_000
 
 
 class AddBody(BaseModel):
-    kind: Literal["field", "link", "measure", "automation"]
+    kind: Literal["table", "field", "link", "measure", "automation"]
     table: str | None = None
     key: str
 

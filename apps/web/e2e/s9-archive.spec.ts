@@ -98,3 +98,39 @@ test('Archive instead of delete: type to confirm, hidden everywhere, restore, de
     expect(saved).toMatchObject({ auto_delete: true, days: 14, per_kind: { record: 0 } })
   })
 })
+
+test('Archive a table: from the table menu, goes with its screens, comes back whole', async ({ page }) => {
+  await page.setViewportSize({ width: 1500, height: 1000 })
+  await signUpWithPack(page, `ArchiveT ${run}`, `art-${run}@studio.test`)
+  const token = () => page.evaluate(() => sessionStorage.getItem('tableui.token'))
+  await page.evaluate(async (t) => {
+    await fetch('/v1/studio/tables', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` }, body: JSON.stringify({ label: 'Vendor', plural_label: 'Vendors' }) })
+  }, await token())
+  await page.goto('/studio?table=vendor')
+
+  await test.step('The table menu has Archive this table… and the dialog lists what goes with it', async () => {
+    await page.getByRole('button', { name: 'More table actions' }).click()
+    await page.getByRole('menuitem', { name: 'Archive this table…' }).click()
+    const dlg = page.getByTestId('archive-dialog')
+    await expect(dlg).toContainText('archive the table')
+    await expect(dlg).toContainText('goes with it')
+    const go = dlg.getByRole('button', { name: 'I understand, archive this table' })
+    await expect(go).toBeDisabled()
+    await dlg.getByLabel(/Please type/).fill(await dlg.locator('label[for=archive-confirm] code').innerText())
+    await page.screenshot({ path: `${SHOTS}/archive-table.png` })
+    await go.click()
+    await expect(page.getByTestId('archive-dialog')).toHaveCount(0)
+  })
+
+  await test.step('It is in Settings › Archive as a Table and Restore brings it back', async () => {
+    await page.goto('/settings?tab=archive')
+    const rows = page.getByTestId('archive-row')
+    await expect(rows).toHaveCount(1)
+    await expect(rows).toContainText('Vendor')
+    await expect(rows).toContainText('Table')
+    await page.getByRole('button', { name: 'Restore Vendor' }).click()
+    await expect(rows).toHaveCount(0)
+    const tables = await page.evaluate(async (t) => (await (await fetch('/v1/studio/tables', { headers: { Authorization: `Bearer ${t}` } })).json()).map((x: { key: string }) => x.key), await token())
+    expect(tables).toContain('vendor')
+  })
+})
