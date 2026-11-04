@@ -32,7 +32,7 @@ export function ArchivePage() {
   const [picked, setPicked] = useState<Set<string>>(new Set())
   const [clock, setClock] = useState(false)
   const [forever, setForever] = useState(false)
-  const items = q.data?.items ?? []
+  const items = useMemo(() => q.data?.items ?? [], [q.data])
   const shown = useMemo(
     () => items.filter((i) => (kind === 'all' || i.kind === kind) && `${i.label} ${i.detail}`.toLowerCase().includes(search.trim().toLowerCase())),
     [items, kind, search],
